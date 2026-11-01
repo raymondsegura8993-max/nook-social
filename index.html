@@ -37,6 +37,7 @@ body.auth-required .auth-screen{display:grid}
 .profile-panel h2{margin:0 0 5px}.profile-panel p{color:var(--muted)}
 .profile-edit{margin-top:12px}
 .post-actions .action:disabled{opacity:.5;cursor:wait}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}.profile-panel .avatar{overflow:hidden}
 </style>
 </head>
 <body>
@@ -270,16 +271,18 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     function setProfileMini() {
       if (!currentProfile) return;
       const mini = document.querySelector('.profile-mini');
-      if (mini) mini.innerHTML = '<div class="avatar">'+esc(initials(currentProfile.display_name || currentProfile.username))+'</div><div><b>'+esc(currentProfile.display_name || currentProfile.username)+'</b><small>@'+esc(currentProfile.username)+'</small></div>';
+      const avatarHtml = currentProfile.avatar_url ? '<img src="'+esc(currentProfile.avatar_url)+'" alt="Profile picture">' : esc(initials(currentProfile.display_name || currentProfile.username));
+      if (mini) mini.innerHTML = '<div class="avatar">'+avatarHtml+'</div><div><b>'+esc(currentProfile.display_name || currentProfile.username)+'</b><small>@'+esc(currentProfile.username)+'</small></div>';
       const composerAvatar = document.querySelector('.compose-row .avatar');
-      if (composerAvatar) composerAvatar.textContent = initials(currentProfile.display_name || currentProfile.username);
+      if (composerAvatar) composerAvatar.innerHTML = avatarHtml;
     }
     function renderPost(post, profile, liked, likeCount, commentCount) {
       const card = document.createElement('article');
       card.className = 'post';
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+esc(initials(name))+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div></div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
+      const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div></div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
       card.querySelector('.post-content').textContent = post.content;
       const likeButton = card.querySelector('.like');
       likeButton.classList.toggle('liked', liked);
@@ -320,7 +323,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const ids = [...new Set(posts.map(p=>p.author_id))];
       const postIds = posts.map(p=>p.id);
       const [profilesRes,likesRes,myLikesRes,commentsRes] = await Promise.all([
-        db.from('profiles').select('id,username,display_name').in('id',ids),
+        db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids),
         db.from('post_likes').select('post_id').in('post_id',postIds),
         db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',postIds),
         db.from('post_comments').select('post_id').in('post_id',postIds)
@@ -354,7 +357,27 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (!currentUser) { feed.innerHTML='<div class="empty-feed muted">Please sign in to view your profile.</div>'; return; }
       if (!currentProfile) { await loadProfile(); setProfileMini(); }
       if (!currentProfile) { feed.innerHTML='<div class="empty-feed muted">Your profile could not load. Please refresh and try again.</div>'; return; }
-      feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+esc(initials(currentProfile.display_name||currentProfile.username))+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><button class="primary profile-edit" id="editProfile">Edit profile</button></section><h3>Your posts</h3>';
+      const profileAvatar = currentProfile.avatar_url ? '<img src="'+esc(currentProfile.avatar_url)+'" alt="Profile picture">' : esc(initials(currentProfile.display_name||currentProfile.username));
+      feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><button class="secondary" id="changeAvatar">Change profile picture</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><h3>Your posts</h3>';
+      document.getElementById('changeAvatar').onclick = () => document.getElementById('avatarFile').click();
+      document.getElementById('avatarFile').onchange = async event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) return showToast('Choose a JPG, PNG, WEBP, or GIF image.');
+        if (file.size > 2 * 1024 * 1024) return showToast('Your picture must be 2 MB or smaller.');
+        const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+        const path = currentUser.id + '/' + Date.now() + '.' + ext;
+        showToast('Uploading your picture…');
+        const {error:uploadError} = await db.storage.from('nook-avatars').upload(path,file,{contentType:file.type,upsert:false});
+        if (uploadError) return showToast(uploadError.message);
+        const {data:publicData} = db.storage.from('nook-avatars').getPublicUrl(path);
+        const {data,error:updateError} = await db.from('profiles').update({avatar_url:publicData.publicUrl,updated_at:new Date().toISOString()}).eq('id',currentUser.id).select().single();
+        if (updateError) return showToast(updateError.message);
+        currentProfile = data;
+        setProfileMini();
+        showToast('Profile picture updated!');
+        showProfile();
+      };
       document.getElementById('editProfile').onclick = async () => {
         const display = prompt('Display name:',currentProfile.display_name||'');
         if (display === null) return;
