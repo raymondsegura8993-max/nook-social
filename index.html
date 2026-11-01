@@ -870,6 +870,45 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim();if(!content)return;const send=event.currentTarget.querySelector('button');send.disabled=true;const {error}=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content});send.disabled=false;if(error){showToast(error.message);return;}input.value='';await refreshMessages();};
     }
 
+    async function loadCommunities() {
+      if(!currentUser)return;
+      feed.innerHTML='<section class="profile-panel"><h2>Communities</h2><p>Find people who share your interests.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="communityName" class="dm-search" style="flex:1;min-width:150px;margin:0" maxlength="60" placeholder="Community name"><button class="primary" id="createCommunity">Create</button></div><textarea id="communityDescription" placeholder="What is this community about?" style="width:100%;margin-top:9px;min-height:65px;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white"></textarea></section><div id="communityList" class="profile-panel">Loading communities…</div>';
+      const list=document.getElementById('communityList');
+      document.getElementById('createCommunity').onclick=async()=>{
+        const name=document.getElementById('communityName').value.trim(),description=document.getElementById('communityDescription').value.trim();
+        if(name.length<3)return showToast('Community names need at least 3 characters.');
+        const result=await db.from('communities').insert({name,description,owner_id:currentUser.id}).select('id').single();
+        if(result.error)return showToast(result.error.message);
+        const member=await db.from('community_members').insert({community_id:result.data.id,user_id:currentUser.id,role:'owner'});
+        if(member.error)return showToast('Community created, but owner membership could not be added: '+member.error.message);
+        showToast('Community created!');
+        loadCommunities();
+      };
+      const {data:communities,error}=await db.from('communities').select('id,name,description,owner_id,created_at').order('created_at',{ascending:false}).limit(100);
+      if(error){list.textContent='Could not load communities: '+error.message;return;}
+      if(!communities?.length){list.innerHTML='<div class="muted">No communities yet. Create the first one!</div>';return;}
+      const ids=communities.map(x=>x.id);
+      const [membersRes,mineRes]=await Promise.all([
+        db.from('community_members').select('community_id,user_id,role').in('community_id',ids),
+        db.from('community_members').select('community_id').eq('user_id',currentUser.id).in('community_id',ids)
+      ]);
+      const members=membersRes.data||[],mine=new Set((mineRes.data||[]).map(x=>x.community_id));
+      list.innerHTML='';
+      communities.forEach(community=>{
+        const count=members.filter(m=>m.community_id===community.id).length;
+        const item=document.createElement('section');item.className='trenditem';
+        item.innerHTML='<h3>'+esc(community.name)+'</h3><p class="muted">'+esc(community.description||'No description yet.')+'</p><small class="muted">'+count+' members</small>';
+        const button=document.createElement('button');button.className='follow';button.textContent=mine.has(community.id)?'Joined':'Join';
+        button.disabled=mine.has(community.id);
+        button.onclick=async()=>{button.disabled=true;const result=await db.from('community_members').insert({community_id:community.id,user_id:currentUser.id,role:'member'});if(result.error){button.disabled=false;return showToast(result.error.message);}showToast('Joined '+community.name+'!');loadCommunities();};
+        item.appendChild(button);
+        if(community.owner_id===currentUser.id){
+          const role=document.createElement('small');role.className='muted';role.style.display='block';role.style.marginTop='8px';role.textContent='You own this community. Member roles are managed here.';item.appendChild(role);
+        }
+        list.appendChild(item);
+      });
+    }
+
     async function loadFilteredPosts(mode) {
       if(!currentUser)return;
       feed.innerHTML='<div class="empty-feed muted">Loading '+(mode==='video'?'videos':'trending posts')+'…</div>';
@@ -969,7 +1008,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Messages') return loadMessages();
       if (tab==='Explore') return loadExplore();
       if (tab==='Videos') return loadFilteredPosts('video');
-      if (tab==='Communities') { feed.innerHTML='<div class="empty-feed"><h3>Communities</h3><p class="muted">Community spaces are not set up yet. This area will be enabled when community membership and moderation are ready.</p></div>'; return; }
+      if (tab==='Communities') return loadCommunities();
       feed.innerHTML='<div class="empty-feed muted">This section is not available yet.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
