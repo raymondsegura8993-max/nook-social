@@ -118,7 +118,7 @@ body.auth-required .auth-screen{display:grid}
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="modalback" id="followModal"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h2 id="followModalTitle">Followers</h2><button class="secondary" id="closeFollowModal">Close</button></div><div class="follow-list" id="followList"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -568,6 +568,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         mediaUrl = db.storage.from('nook-media').getPublicUrl(uploadedPath).data.publicUrl;
       }
       const {data:createdPost,error} = await db.from('posts').insert({author_id:currentUser.id,content,media_url:mediaUrl,media_type:mediaType}).select('id').single();
+      if (!error) {
+        const tags=[...new Set((content.match(/#[A-Za-z0-9_]{1,50}/g)||[]).map(tag=>tag.slice(1).toLowerCase()))];
+        for(const tag of tags){
+          let hashtag=await db.from('hashtags').insert({tag}).select('id').single();
+          if(hashtag.error?.code==='23505')hashtag=await db.from('hashtags').select('id').eq('tag',tag).single();
+          if(!hashtag.error&&hashtag.data)await db.from('post_hashtags').insert({post_id:createdPost.id,hashtag_id:hashtag.data.id});
+        }
+      }
       if (!error && window.nookPollMode) {
         const pollResult=await db.from('polls').insert({post_id:createdPost.id}).select('id').single();
         if (pollResult.error) { await db.from('posts').delete().eq('id',createdPost.id); button.disabled=false;button.textContent='Publish';return showToast(pollResult.error.message); }
@@ -581,6 +589,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         return showToast(error.message);
       }
       document.getElementById('postText').value='';
+      if(window.nookLoadedDraftId){await db.from('post_drafts').delete().eq('id',window.nookLoadedDraftId).eq('user_id',currentUser.id);window.nookLoadedDraftId=null;}
       ['pollOption1','pollOption2','pollOption3','pollOption4'].forEach(id=>document.getElementById(id).value='');
       window.nookPollMode=false;document.getElementById('pollFields').hidden=true;
       document.getElementById('mediaFile').value='';
@@ -592,6 +601,23 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (currentTab === 'Profile') showProfile();
     }
     document.getElementById('publish').onclick = publishPost;
+    document.getElementById('saveDraft').onclick=async()=>{
+      if(!currentUser)return showToast('Sign in to save drafts.');
+      const content=document.getElementById('postText').value.trim();
+      if(!content)return showToast('Write something before saving a draft.');
+      const result=await db.from('post_drafts').insert({user_id:currentUser.id,content});
+      if(result.error)return showToast(result.error.message);
+      showToast('Draft saved!');
+    };
+    document.getElementById('loadDraft').onclick=async()=>{
+      if(!currentUser)return showToast('Sign in to load drafts.');
+      const {data,error}=await db.from('post_drafts').select('id,content').eq('user_id',currentUser.id).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+      if(error)return showToast(error.message);
+      if(!data)return showToast('You do not have any saved drafts yet.');
+      document.getElementById('postText').value=data.content;
+      window.nookLoadedDraftId=data.id;
+      showToast('Latest draft loaded.');
+    };
     async function openFollowList(type) {
       const modal=document.getElementById('followModal');
       const list=document.getElementById('followList');
