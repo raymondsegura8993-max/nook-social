@@ -31,7 +31,7 @@ body.auth-required .auth-screen{display:grid}
 @media(max-width:680px){.account-bar{top:12px;right:12px}.top{padding-right:95px}}
 
 .empty-feed{padding:28px 14px;text-align:center;border:1px dashed var(--line);border-radius:16px;margin:12px 0}
-.post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.post-attachment{display:block;max-width:100%;max-height:650px;width:auto;height:auto;object-fit:contain;border-radius:14px;margin:13px auto;background:#09070d}.post-attachment.video{width:100%;max-height:620px;aspect-ratio:9/16;object-fit:contain}.media-choice{font-size:12px;color:#c9b5e6;margin:9px 0 0;min-height:18px}.media-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
 .comment-item{font-size:13px;color:#ddd;margin:7px 0}.comment-item b{color:#fff}
 .profile-panel{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel);margin:14px 0}
 .profile-panel h2{margin:0 0 5px}.profile-panel p{color:var(--muted)}
@@ -97,18 +97,19 @@ body.auth-required .auth-screen{display:grid}
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="media-choice" id="mediaChoice"></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const modal=$('#modal'),toast=$('#toast');
 function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
-function openComposer(){modal.classList.add('show');$('#postText').focus()}
+function openComposer(mediaType){window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
 $('#newPost').onclick=$('#composeOpen').onclick=openComposer;
 $('#cancel').onclick=()=>modal.classList.remove('show');
 modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
-$('#photoBtn').onclick=()=>showToast('Photo uploads are the next feature to build.');
-$('#videoBtn').onclick=()=>showToast('Video uploads are the next feature to build.');
+$('#photoBtn').onclick=()=>openComposer('image');
+$('#videoBtn').onclick=()=>openComposer('video');
+$('#mediaFile').onchange=event=>{const file=event.target.files?.[0];window.nookSelectedMediaFile=file||null;$('#mediaChoice').textContent=file?'Selected: '+file.name:'';};
 $('#pollBtn').onclick=()=>showToast('Polls are coming after the core post system.');
 $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link in your post text.')};
 </script>
@@ -283,7 +284,10 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
       card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div></div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
-      card.querySelector('.post-content').textContent = post.content;
+      card.querySelector('.post-content').textContent = post.content || '';
+      if (!post.content) card.querySelector('.post-content').remove();
+      if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
+      if (post.media_url && post.media_type === 'video') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
       const likeButton = card.querySelector('.like');
       likeButton.classList.toggle('liked', liked);
       likeButton.onclick = async () => {
@@ -317,7 +321,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     async function loadFeed() {
       if (!currentUser) return;
       feed.innerHTML = '<div class="empty-feed muted">Loading posts…</div>';
-      const {data:posts,error} = await db.from('posts').select('id,author_id,content,created_at').order('created_at',{ascending:false}).limit(50);
+      const {data:posts,error} = await db.from('posts').select('id,author_id,content,media_url,media_type,created_at').order('created_at',{ascending:false}).limit(50);
       if (error) { feed.innerHTML='<div class="empty-feed muted">Could not load posts: '+esc(error.message)+'</div>'; return; }
       if (!posts?.length) { feed.innerHTML='<div class="empty-feed muted">No posts yet. Be the first to share something in Nook!</div>'; return; }
       const ids = [...new Set(posts.map(p=>p.author_id))];
@@ -337,20 +341,78 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       feed.innerHTML='';
       posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0));
     }
+    async function getMediaDimensions(file) {
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        if (file.type.startsWith('image/')) {
+          const bitmap = await createImageBitmap(file);
+          const dimensions = {width:bitmap.width,height:bitmap.height};
+          bitmap.close();
+          return dimensions;
+        }
+        return await new Promise((resolve,reject) => {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => resolve({width:video.videoWidth,height:video.videoHeight});
+          video.onerror = () => reject(new Error('This video could not be read. Try an MP4, WEBM, or MOV file.'));
+          video.src = objectUrl;
+        });
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    }
     async function publishPost() {
       if (!currentUser) return showToast('Please sign in again before posting.');
       const content = document.getElementById('postText').value.trim();
-      if (!content) return showToast('Write something before publishing.');
+      const file = window.nookSelectedMediaFile || null;
+      if (!content && !file) return showToast('Write something or add a photo/video first.');
       if (content.length > 2000) return showToast('Posts can be up to 2,000 characters.');
+      let mediaType = null;
+      if (file) {
+        const imageTypes = ['image/jpeg','image/png','image/webp','image/gif'];
+        const videoTypes = ['video/mp4','video/webm','video/quicktime'];
+        if (![...imageTypes,...videoTypes].includes(file.type)) return showToast('Choose a JPG, PNG, WEBP, GIF, MP4, WEBM, or MOV file.');
+        if (file.size > 50 * 1024 * 1024) return showToast('Media files must be 50 MB or smaller.');
+        mediaType = imageTypes.includes(file.type) ? 'image' : 'video';
+        if (window.nookSelectedMediaType && window.nookSelectedMediaType !== mediaType) return showToast('Choose a '+window.nookSelectedMediaType+' file for this post.');
+        if (mediaType === 'video') {
+          let dimensions;
+          try { dimensions = await getMediaDimensions(file); }
+          catch (error) { return showToast(error.message); }
+          const ratio = dimensions.width / dimensions.height;
+          if (Math.abs(ratio - (9/16)) > 0.01) return showToast('Videos must be vertical 9:16. This video is '+dimensions.width+' × '+dimensions.height+'.');
+        }
+      }
       const button = document.getElementById('publish');
       button.disabled = true;
-      const {error} = await db.from('posts').insert({author_id:currentUser.id,content});
+      button.textContent = 'Publishing…';
+      let mediaUrl = null;
+      let uploadedPath = null;
+      if (file) {
+        const extension = file.name.includes('.') ? file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,'') : (mediaType === 'image' ? 'jpg' : 'mp4');
+        uploadedPath = currentUser.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,9) + '.' + extension;
+        const {error:uploadError} = await db.storage.from('nook-media').upload(uploadedPath,file,{contentType:file.type,upsert:false});
+        if (uploadError) {
+          button.disabled = false;button.textContent='Publish';
+          return showToast(uploadError.message);
+        }
+        mediaUrl = db.storage.from('nook-media').getPublicUrl(uploadedPath).data.publicUrl;
+      }
+      const {error} = await db.from('posts').insert({author_id:currentUser.id,content,media_url:mediaUrl,media_type:mediaType});
       button.disabled = false;
-      if (error) return showToast(error.message);
+      button.textContent = 'Publish';
+      if (error) {
+        if (uploadedPath) await db.storage.from('nook-media').remove([uploadedPath]);
+        return showToast(error.message);
+      }
       document.getElementById('postText').value='';
+      document.getElementById('mediaFile').value='';
+      document.getElementById('mediaChoice').textContent='';
+      window.nookSelectedMediaFile=null;window.nookSelectedMediaType=null;
       document.getElementById('modal').classList.remove('show');
       showToast('Your post is now shared on Nook!');
       if (currentTab === 'Home') loadFeed();
+      if (currentTab === 'Profile') showProfile();
     }
     document.getElementById('publish').onclick = publishPost;
     async function showProfile() {
@@ -388,7 +450,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         if (error) return showToast(error.message);
         currentProfile=data;setProfileMini();showProfile();
       };
-      const {data:posts,error} = await db.from('posts').select('id,author_id,content,created_at').eq('author_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+      const {data:posts,error} = await db.from('posts').select('id,author_id,content,media_url,media_type,created_at').eq('author_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
       if (error) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed">'+esc(error.message)+'</div>'); return; }
       if (!posts?.length) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed muted">Your posts will appear here.</div>'); return; }
       const ids=posts.map(p=>p.id);
