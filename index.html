@@ -939,7 +939,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const presenceStatus=document.getElementById('dmPresenceStatus');
       messageChannel=db.channel('nook-dm-'+conversationId,{config:{presence:{key:currentUser.id}}})
         .on('presence',{event:'sync'},()=>{const state=messageChannel.presenceState();const online=Object.keys(state).some(key=>key!==currentUser.id);if(presenceStatus)presenceStatus.textContent=online?'Online':'Offline';})
-        .on('broadcast',{event:'typing'},({payload})=>{if(presenceStatus&&payload?.user_id!==currentUser.id&&payload?.typing)presenceStatus.textContent='Typing…';})
+        .on('broadcast',{event:'typing'},({payload})=>{if(presenceStatus&&payload?.user_id!==currentUser.id)presenceStatus.textContent=payload?.typing?'Typing…':'Online';})
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages())
         .subscribe(async status=>{if(status==='SUBSCRIBED')await messageChannel.track({user_id:currentUser.id,online_at:new Date().toISOString()});});
       const attachButton=document.getElementById('dmAttach'),fileInput=document.getElementById('dmFile');attachButton.onclick=()=>fileInput.click();
