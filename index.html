@@ -75,7 +75,6 @@ body.auth-required .auth-screen{display:grid}
 <button data-tab="Communities"><span class="ico">◉</span><span class="navlabel">Communities</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
-<button data-tab="Saved"><span class="ico">▤</span><span class="navlabel">Saved</span></button>
 <button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button>
 </nav>
 <button class="newpost" id="newPost">＋ Create post</button>
@@ -329,7 +328,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">'+(saved?'▣ Saved':'▤ Save')+'</button></div><div class="comment-list" hidden></div>';
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
       card.querySelector('.post-content').textContent = post.content || '';
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
@@ -362,7 +361,6 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         try { await navigator.clipboard.writeText(link); showToast('Post link copied!'); }
         catch { showToast(link); }
       };
-      card.querySelector('.save').onclick = () => toggleSave(post.id,card.querySelector('.save'),card);
       feed.appendChild(card);
     }
     async function loadPostComments(postId,container) {
@@ -654,7 +652,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.remove('active'));
         button.classList.add('active');
         currentFeed=button.dataset.feed||'For you';
-        if(currentFeed==='Trending'){feed.innerHTML='<div class="empty-feed muted">Trending posts are coming soon.</div>';return;}
+        if(currentFeed==='Trending'){return loadFilteredPosts('trending');}
         loadFeed();
       };
     });
@@ -783,6 +781,69 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim();if(!content)return;const send=event.currentTarget.querySelector('button');send.disabled=true;const {error}=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content});send.disabled=false;if(error){showToast(error.message);return;}input.value='';await refreshMessages();};
     }
 
+    async function loadFilteredPosts(mode) {
+      if(!currentUser)return;
+      feed.innerHTML='<div class="empty-feed muted">Loading '+(mode==='video'?'videos':'trending posts')+'…</div>';
+      let query=db.from('posts').select('id,author_id,content,media_url,media_type,created_at').order('created_at',{ascending:false}).limit(50);
+      if(mode==='video') query=query.eq('media_type','video');
+      const {data:posts,error}=await query;
+      if(error){feed.innerHTML='<div class="empty-feed muted">Could not load posts: '+esc(error.message)+'</div>';return;}
+      if(!posts?.length){feed.innerHTML='<div class="empty-feed muted">'+(mode==='video'?'No videos have been posted yet.':'No posts to trend yet.')+'</div>';return;}
+      const ids=[...new Set(posts.map(p=>p.author_id))],postIds=posts.map(p=>p.id);
+      const [profilesRes,likesRes,myLikesRes,commentsRes]=await Promise.all([
+        db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids),
+        db.from('post_likes').select('post_id').in('post_id',postIds),
+        db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',postIds),
+        db.from('post_comments').select('post_id').in('post_id',postIds)
+      ]);
+      const profiles=Object.fromEntries((profilesRes.data||[]).map(p=>[p.id,p]));
+      const counts={};(likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);
+      const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
+      const commentCounts={};(commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
+      if(mode==='trending')posts.sort((a,b)=>(counts[b.id]||0)-(counts[a.id]||0));
+      feed.innerHTML='';
+      posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,false));
+    }
+    async function loadExplore() {
+      feed.innerHTML='<div class="profile-panel"><h2>Explore Nook</h2><p>Find people and posts.</p><input id="exploreSearch" class="dm-search" placeholder="Search usernames or posts…" aria-label="Search Nook"><div id="exploreResults" class="muted">Start typing to search.</div></div>';
+      const input=document.getElementById('exploreSearch'),results=document.getElementById('exploreResults');
+      let timer;
+      input.addEventListener('input',()=>{
+        clearTimeout(timer);
+        timer=setTimeout(async()=>{
+          const term=input.value.trim().replace(/[,%()]/g,' ');
+          if(term.length<2){results.textContent='Type at least 2 characters.';return;}
+          results.innerHTML='<div class="muted">Searching…</div>';
+          const [peopleRes,postsRes]=await Promise.all([
+            db.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').limit(12),
+            db.from('posts').select('id,author_id,content,media_url,media_type,created_at').ilike('content','%'+term+'%').order('created_at',{ascending:false}).limit(20)
+          ]);
+          if(peopleRes.error||postsRes.error){results.innerHTML='<div class="muted">Search could not finish. Try another word.</div>';return;}
+          results.innerHTML='';
+          const heading=document.createElement('h3');heading.textContent='People';results.appendChild(heading);
+          (peopleRes.data||[]).forEach(person=>{
+            const item=document.createElement('div');item.className='follow-person';
+            item.innerHTML='<div class="avatar small">'+(person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="">':esc(initials(person.display_name||person.username)))+'</div><div class="info"><b>'+esc(person.display_name||person.username)+'</b><small>@'+esc(person.username)+'</small></div>';
+            if(person.id!==currentUser.id){const b=document.createElement('button');b.className='follow';b.textContent=currentFollowing.has(person.id)?'Following':'Follow';b.onclick=()=>toggleFollow(person.id);item.appendChild(b);}
+            results.appendChild(item);
+          });
+          const postHeading=document.createElement('h3');postHeading.textContent='Posts';results.appendChild(postHeading);
+          if(!(postsRes.data||[]).length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No matching posts.';results.appendChild(empty);}
+          else {
+            const authors=[...new Set(postsRes.data.map(p=>p.author_id))];
+            const {data:profiles}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',authors);
+            const byId=Object.fromEntries((profiles||[]).map(p=>[p.id,p]));
+            const target=document.createElement('div');results.appendChild(target);
+            const originalFeed=feed;const originalCurrentTab=currentTab;
+            postsRes.data.forEach(p=>{
+              const holder=document.createElement('div');target.appendChild(holder);
+              const savedFeed=feed;feed=holder;renderPost(p,byId[p.author_id],false,0,0,false);feed=savedFeed;
+            });
+          }
+        },250);
+      });
+      input.focus();
+    }
     async function loadSavedPosts() {
       if(!currentUser)return;
       feed.innerHTML='<div class="empty-feed muted">Loading saved posts…</div>';
@@ -817,9 +878,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Notifications') return loadNotifications();
-      if (tab==='Saved') return loadSavedPosts();
       if (tab==='Messages') return loadMessages();
-      feed.innerHTML='<div class="empty-feed muted">'+esc(tab)+' is coming soon. Your Nook account and posts are working.</div>';
+      if (tab==='Explore') return loadExplore();
+      if (tab==='Videos') return loadFilteredPosts('video');
+      if (tab==='Communities') { feed.innerHTML='<div class="empty-feed"><h3>Communities</h3><p class="muted">Community spaces are not set up yet. This area will be enabled when community membership and moderation are ready.</p></div>'; return; }
+      feed.innerHTML='<div class="empty-feed muted">This section is not available yet.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
       button.onclick=()=> {
