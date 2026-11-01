@@ -924,7 +924,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!layout){await loadMessages();layout=feed.querySelector('.dm-layout');}
       activeConversationId=conversationId;
       const thread=layout.querySelector('.dm-thread');
-      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…"></textarea><input id="dmFile" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" hidden><button class="secondary" type="button" id="dmAttach">＋</button><button class="primary" type="submit">Send</button></form>';
+      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span> · <small id="dmPresenceStatus" class="muted">Checking status…</small></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…"></textarea><input id="dmFile" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" hidden><button class="secondary" type="button" id="dmAttach">＋</button><button class="primary" type="submit">Send</button></form>';
       const messageBox=document.getElementById('dmMessages');
       async function refreshMessages(){
         if(activeConversationId!==conversationId)return;
@@ -936,8 +936,15 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         messageBox.scrollTop=messageBox.scrollHeight;
       }
       await refreshMessages();
-      messageChannel=db.channel('nook-dm-'+conversationId).on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages()).subscribe();
+      const presenceStatus=document.getElementById('dmPresenceStatus');
+      messageChannel=db.channel('nook-dm-'+conversationId,{config:{presence:{key:currentUser.id}}})
+        .on('presence',{event:'sync'},()=>{const state=messageChannel.presenceState();const online=Object.keys(state).some(key=>key!==currentUser.id);if(presenceStatus)presenceStatus.textContent=online?'Online':'Offline';})
+        .on('broadcast',{event:'typing'},({payload})=>{if(presenceStatus&&payload?.user_id!==currentUser.id&&payload?.typing)presenceStatus.textContent='Typing…';})
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages())
+        .subscribe(async status=>{if(status==='SUBSCRIBED')await messageChannel.track({user_id:currentUser.id,online_at:new Date().toISOString()});});
       const attachButton=document.getElementById('dmAttach'),fileInput=document.getElementById('dmFile');attachButton.onclick=()=>fileInput.click();
+      const messageInput=document.getElementById('dmText');let typingTimer=null;
+      messageInput.oninput=()=>{if(messageChannel)messageChannel.send({type:'broadcast',event:'typing',payload:{user_id:currentUser.id,typing:true}});clearTimeout(typingTimer);typingTimer=setTimeout(()=>{if(messageChannel)messageChannel.send({type:'broadcast',event:'typing',payload:{user_id:currentUser.id,typing:false}});},1000);};
       document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim(),file=fileInput.files?.[0];if(!content&&!file)return;if(file&&file.size>25*1024*1024)return showToast('Message attachments must be 25 MB or smaller.');const send=event.currentTarget.querySelector('button[type="submit"]');send.disabled=true;let mediaUrl=null,mediaType=null,uploadedPath=null;if(file){mediaType=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':null;if(!mediaType){send.disabled=false;return showToast('Choose an image, video, or audio file.');}const ext=file.name.includes('.')?file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,''):'bin';uploadedPath=currentUser.id+'/message-'+Date.now()+'.'+ext;const upload=await db.storage.from('nook-media').upload(uploadedPath,file,{contentType:file.type,upsert:false});if(upload.error){send.disabled=false;return showToast(upload.error.message);}mediaUrl=db.storage.from('nook-media').getPublicUrl(uploadedPath).data.publicUrl;}const {error}=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content:content||'Sent an attachment',media_url:mediaUrl,media_type:mediaType});send.disabled=false;if(error){if(uploadedPath)await db.storage.from('nook-media').remove([uploadedPath]);showToast(error.message);return;}input.value='';fileInput.value='';await refreshMessages();};
     }
 
