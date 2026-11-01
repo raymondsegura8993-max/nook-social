@@ -86,7 +86,7 @@ body.auth-required .auth-screen{display:grid}
 <div class="compose-row"><div class="avatar">Y</div><button class="compose-input" id="composeOpen">What's happening in your nook?</button></div>
 <div class="compose-actions"><button class="chip" id="photoBtn">▧ Photo</button><button class="chip" id="videoBtn">▷ Video</button><button class="chip" id="pollBtn">▥ Poll</button><button class="chip" id="linkBtn">↗ Link</button></div>
 </section>
-<div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Trending">Trending</button></div>
+<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div><div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Trending">Trending</button></div>
 <div id="feed">
 <article class="post">
 <div class="posthead"><div class="avatar">N</div><div><div class="postname">Nook <span class="muted">✦</span></div><div class="handle">@nook · Welcome</div></div><span class="posttime">Pinned</span><button class="dots">···</button></div>
@@ -472,8 +472,45 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       container.appendChild(form);
     }
 
+    async function loadStories() {
+      const bar=document.getElementById('storiesBar');if(!bar||!currentUser)return;
+      const fileInput=document.getElementById('storyFile');
+      document.getElementById('addStory').onclick=()=>fileInput.click();
+      fileInput.onchange=async()=>{
+        const file=fileInput.files?.[0];if(!file)return;
+        if(!['image/jpeg','image/png','image/webp','video/mp4','video/webm','video/quicktime'].includes(file.type))return showToast('Choose a JPG, PNG, WEBP, MP4, WEBM, or MOV file.');
+        if(file.size>50*1024*1024)return showToast('Stories must be 50 MB or smaller.');
+        const path=currentUser.id+'/story-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+        const upload=await db.storage.from('nook-media').upload(path,file,{contentType:file.type,upsert:false});
+        if(upload.error)return showToast(upload.error.message);
+        const mediaUrl=db.storage.from('nook-media').getPublicUrl(path).data.publicUrl;
+        const mediaType=file.type.startsWith('video/')?'video':'image';
+        const result=await db.from('stories').insert({author_id:currentUser.id,media_url:mediaUrl,media_type:mediaType});
+        if(result.error){await db.storage.from('nook-media').remove([path]);return showToast(result.error.message);}
+        fileInput.value='';showToast('Your story is live for 24 hours.');loadStories();
+      };
+      const {data:stories,error}=await db.from('stories').select('id,author_id,media_url,media_type,caption,created_at').gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(30);
+      const target=document.getElementById('storyItems');target.innerHTML='';
+      if(error){target.textContent='Stories could not load.';return;}
+      if(!stories?.length){target.innerHTML='<span class="muted" style="font-size:12px">No stories yet.</span>';return;}
+      const ids=[...new Set(stories.map(s=>s.author_id))];
+      const {data:people}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);
+      const byId=Object.fromEntries((people||[]).map(p=>[p.id,p]));
+      stories.forEach(story=>{
+        const person=byId[story.author_id]||{},name=person.display_name||person.username||'Member';
+        const item=document.createElement('button');item.className='chip';item.style.cssText='min-width:72px;max-width:90px;display:flex;flex-direction:column;align-items:center;gap:5px;white-space:normal';
+        const avatar=document.createElement('span');avatar.className='avatar small';avatar.style.border='2px solid #a56bff';avatar.textContent=initials(name);
+        if(person.avatar_url)avatar.innerHTML='<img src="'+esc(person.avatar_url)+'" alt="">';
+        const label=document.createElement('span');label.textContent=name;label.style.cssText='font-size:10px;overflow:hidden;text-overflow:ellipsis;max-width:80px';
+        item.append(avatar,label);
+        item.onclick=()=>{const modal=document.createElement('div');modal.className='modalback show';modal.innerHTML='<div class="modal" style="max-width:430px;text-align:center"><h2>'+esc(name)+' · Story</h2>'+(story.media_type==='video'?'<video src="'+esc(story.media_url)+'" controls autoplay playsinline style="width:100%;max-height:65vh;border-radius:12px"></video>':'<img src="'+esc(story.media_url)+'" alt="Story" style="max-width:100%;max-height:65vh;border-radius:12px">')+'<div class="modalbar"><button class="secondary">Close</button></div></div>';modal.onclick=e=>{if(e.target===modal||e.target.closest('button'))modal.remove();};document.body.appendChild(modal);};
+        target.appendChild(item);
+      });
+    }
+
     async function loadFeed() {
       if (!currentUser) return;
+      await loadStories();
       feed.innerHTML = '<div class="empty-feed muted">Loading posts…</div>';
       const {data:followRows,error:followError} = await db.from('follows').select('following_id').eq('follower_id',currentUser.id);
       if (followError) { feed.innerHTML='<div class="empty-feed muted">Could not load followed accounts: '+esc(followError.message)+'</div>'; return; }
