@@ -103,7 +103,7 @@ body.auth-required .auth-screen{display:grid}
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const modal=$('#modal'),toast=$('#toast');
 function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
-function openComposer(mediaType){window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
+function openComposer(mediaType){if(mediaType!=='image'&&mediaType!=='video')mediaType=null;window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
 $('#newPost').onclick=$('#composeOpen').onclick=openComposer;
 $('#cancel').onclick=()=>modal.classList.remove('show');
 modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
