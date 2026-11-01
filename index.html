@@ -1041,6 +1041,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let activeLiveVodChunks = [];
     let activeLiveVodStream = null;
     let activeLiveAudioTrack = null;
+    let activeLiveInputTrack = null;
+    let activeLiveAudioContext = null;
     async function saveLiveVod(stream, blob) {
       if(!blob || !blob.size) return {error:new Error('No recording data was captured.')};
       const path=currentUser.id+'/vod-'+stream.id+'-'+Date.now()+'.webm';
@@ -1061,6 +1063,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
       activeLiveStreamId=null;
       activeLiveAudioTrack=null;
+      activeLiveInputTrack=null;
+      if(activeLiveAudioContext){activeLiveAudioContext.close().catch(()=>{});activeLiveAudioContext=null;}
     }
     async function connectLiveStream(stream, role) {
       await disconnectActiveLive();
@@ -1079,7 +1083,24 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         await room.connect(data.server_url,data.participant_token);
         if(role==='host'){
           const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1},video:{facingMode:'user'}});
-          activeLiveAudioTrack=tracks.find(track=>track.kind==='audio')||null;
+          const microphoneTrack=tracks.find(track=>track.kind==='audio')||null;
+          activeLiveInputTrack=microphoneTrack;
+          activeLiveAudioTrack=microphoneTrack;
+          if(microphoneTrack&&window.AudioContext){
+            try{
+              activeLiveAudioContext=new AudioContext();
+              const source=activeLiveAudioContext.createMediaStreamSource(new MediaStream([microphoneTrack.mediaStreamTrack]));
+              const highPass=activeLiveAudioContext.createBiquadFilter();highPass.type='highpass';highPass.frequency.value=85;
+              const clarity=activeLiveAudioContext.createBiquadFilter();clarity.type='peaking';clarity.frequency.value=2800;clarity.Q.value=0.9;clarity.gain.value=2.5;
+              const compressor=activeLiveAudioContext.createDynamicsCompressor();compressor.threshold.value=-22;compressor.knee.value=18;compressor.ratio.value=2.5;compressor.attack.value=0.008;compressor.release.value=0.18;
+              const output=activeLiveAudioContext.createMediaStreamDestination();
+              source.connect(highPass);highPass.connect(clarity);clarity.connect(compressor);compressor.connect(output);
+              const processedTrack=new LK.LocalAudioTrack(output.stream.getAudioTracks()[0]);
+              tracks.splice(tracks.indexOf(microphoneTrack),1,processedTrack);
+              activeLiveAudioTrack=processedTrack;
+              await activeLiveAudioContext.resume();
+            }catch(audioProcessError){console.warn('Voice clarity processing unavailable; using microphone audio.',audioProcessError);activeLiveAudioTrack=microphoneTrack;}
+          }
           for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}
           if(activeLiveAudioTrack){
             const audioBox=document.createElement('div');audioBox.className='profile-panel';audioBox.style.cssText='margin-top:12px;padding:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center';
@@ -1090,11 +1111,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             for(const [label,key] of [['Noise reduction','noiseSuppression'],['Echo cancellation','echoCancellation'],['Automatic volume','autoGainControl']]){
               const wrap=document.createElement('label');wrap.style.cssText='display:flex;gap:5px;align-items:center;font-size:13px';
               const check=document.createElement('input');check.type='checkbox';check.checked=true;check.style.width='17px';
-              check.onchange=async()=>{check.disabled=true;try{await activeLiveAudioTrack.mediaStreamTrack.applyConstraints({[key]:check.checked});}catch(e){check.checked=!check.checked;showToast(label+' is not supported on this device.');}finally{check.disabled=false;}};
+              check.onchange=async()=>{check.disabled=true;try{await activeLiveInputTrack.mediaStreamTrack.applyConstraints({[key]:check.checked});}catch(e){check.checked=!check.checked;showToast(label+' is not supported on this device.');}finally{check.disabled=false;}};
               wrap.append(check,document.createTextNode(label));audioBox.appendChild(wrap);
             }
             const quality=document.createElement('select');quality.innerHTML='<option value="48000">High · 48 kHz</option><option value="44100">Standard · 44.1 kHz</option>';
-            quality.onchange=async()=>{try{await activeLiveAudioTrack.mediaStreamTrack.applyConstraints({sampleRate:{ideal:Number(quality.value)},channelCount:{ideal:1}});}catch(e){showToast('This audio quality is not supported on this device.');}};
+            quality.onchange=async()=>{try{await activeLiveInputTrack.mediaStreamTrack.applyConstraints({sampleRate:{ideal:Number(quality.value)},channelCount:{ideal:1}});}catch(e){showToast('This audio quality is not supported on this device.');}};
             audioBox.appendChild(quality);stage.appendChild(audioBox);
           }
           try{
