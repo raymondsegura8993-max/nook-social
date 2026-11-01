@@ -38,6 +38,16 @@ body.auth-required .auth-screen{display:grid}
 .profile-edit{margin-top:12px}
 .post-actions .action:disabled{opacity:.5;cursor:wait}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}.profile-panel .avatar{overflow:hidden}
+.follow-stats{display:flex;gap:22px;margin:14px 0 16px}
+.follow-stat{border:0;background:transparent;color:var(--muted);padding:0;text-align:left;cursor:pointer}
+.follow-stat b{color:#fff;font-size:18px;margin-right:5px}
+.follow-stat:hover b{color:#c79aff}
+.follow-list{max-height: min(60vh,480px);overflow:auto}
+.follow-person{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.follow-person .info{flex:1;min-width:0}
+.follow-person b{display:block}
+.follow-person small{color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -96,6 +106,7 @@ body.auth-required .auth-screen{display:grid}
 </aside>
 </div>
 <div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="followModal"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h2 id="followModalTitle">Followers</h2><button class="secondary" id="closeFollowModal">Close</button></div><div class="follow-list" id="followList"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
@@ -433,12 +444,46 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (currentTab === 'Profile') showProfile();
     }
     document.getElementById('publish').onclick = publishPost;
+    async function openFollowList(type) {
+      const modal=document.getElementById('followModal');
+      const list=document.getElementById('followList');
+      const title=document.getElementById('followModalTitle');
+      title.textContent=type==='followers'?'Followers':'Following';
+      list.innerHTML='<div class="muted">Loading…</div>';
+      modal.classList.add('show');
+      const column=type==='followers'?'follower_id':'following_id';
+      const filter=type==='followers'?'following_id':'follower_id';
+      const {data:rows,error}=await db.from('follows').select(column).eq(filter,currentUser.id);
+      if(error){list.innerHTML='<div class="muted">Could not load this list.</div>';return;}
+      const ids=(rows||[]).map(row=>row[column]);
+      if(!ids.length){list.innerHTML='<div class="muted">No '+type+' yet.</div>';return;}
+      const {data:people,error:peopleError}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);
+      if(peopleError){list.innerHTML='<div class="muted">Could not load profiles.</div>';return;}
+      list.innerHTML='';
+      (people||[]).forEach(person=>{
+        const name=person.display_name||person.username||'Nook member';
+        const avatar=person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="" loading="lazy">':esc(initials(name));
+        const item=document.createElement('div');item.className='follow-person';
+        item.innerHTML='<div class="avatar small">'+avatar+'</div><div class="info"><b>'+esc(name)+'</b><small>@'+esc(person.username)+'</small></div>';
+        list.appendChild(item);
+      });
+    }
+    document.getElementById('closeFollowModal').onclick=()=>document.getElementById('followModal').classList.remove('show');
+    document.getElementById('followModal').onclick=event=>{if(event.target.id==='followModal')event.currentTarget.classList.remove('show');};
     async function showProfile() {
       if (!currentUser) { feed.innerHTML='<div class="empty-feed muted">Please sign in to view your profile.</div>'; return; }
       if (!currentProfile) { await loadProfile(); setProfileMini(); }
       if (!currentProfile) { feed.innerHTML='<div class="empty-feed muted">Your profile could not load. Please refresh and try again.</div>'; return; }
       const profileAvatar = currentProfile.avatar_url ? '<img src="'+esc(currentProfile.avatar_url)+'" alt="Profile picture">' : esc(initials(currentProfile.display_name||currentProfile.username));
-      feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><button class="secondary" id="changeAvatar">Change profile picture</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><h3>Your posts</h3>';
+      const [followersRes,followingRes] = await Promise.all([
+        db.from('follows').select('follower_id').eq('following_id',currentUser.id),
+        db.from('follows').select('following_id').eq('follower_id',currentUser.id)
+      ]);
+      if (followersRes.error || followingRes.error) return showToast('Could not load your follower counts.');
+      const followerCount=(followersRes.data||[]).length, followingCount=(followingRes.data||[]).length;
+      feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><div class="follow-stats"><button class="follow-stat" id="showFollowers"><b>'+followerCount+'</b> Followers</button><button class="follow-stat" id="showFollowing"><b>'+followingCount+'</b> Following</button></div><button class="secondary" id="changeAvatar">Change profile picture</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><h3>Your posts</h3>';
+      document.getElementById('showFollowers').onclick=()=>openFollowList('followers');
+      document.getElementById('showFollowing').onclick=()=>openFollowList('following');
       document.getElementById('changeAvatar').onclick = () => document.getElementById('avatarFile').click();
       document.getElementById('avatarFile').onchange = async event => {
         const file = event.target.files?.[0];
