@@ -142,7 +142,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 (() => {
   const SUPABASE_URL = "https://gbchzfyaexniowsjtfdh.supabase.co";
   const SUPABASE_KEY = "sb_publishable_gb6ZWf3Lbf6OSVTLBa-1ig_eQgeGHyj";
-  const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);\n  window.nookClient = authClient;
+  const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.nookClient = authClient;
   const screen = document.getElementById("authScreen");
   const form = document.getElementById("authForm");
   const message = document.getElementById("authMessage");
@@ -167,7 +168,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   }
   loginTab.addEventListener("click", () => setMode("login"));
   signupTab.addEventListener("click", () => setMode("signup"));
-  function showSignedIn(user) {\n    window.dispatchEvent(new CustomEvent("nook-auth", { detail: user }));
+  function showSignedIn(user) {
+    window.dispatchEvent(new CustomEvent("nook-auth", { detail: user }));
     document.body.classList.remove("auth-required");
     document.getElementById("accountBar").style.display = "flex";
     const name = user.user_metadata?.username || user.email?.split("@")[0] || "Nook member";
@@ -175,7 +177,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     const mini = document.querySelector(".profile-mini");
     if (mini) mini.innerHTML = '<div class="avatar">' + name.slice(0,1).toUpperCase() + '</div><div><b>' + name.replace(/[&<>"]/g,"") + '</b><small>@' + name.replace(/[&<>"]/g,"") + '</small></div>';
   }
-  function showSignedOut() {\n    window.dispatchEvent(new CustomEvent("nook-auth", { detail: null }));
+  function showSignedOut() {
+    window.dispatchEvent(new CustomEvent("nook-auth", { detail: null }));
     document.body.classList.add("auth-required");
     document.getElementById("accountBar").style.display = "none";
   }
@@ -332,6 +335,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0));
     }
     async function publishPost() {
+      if (!currentUser) return showToast('Please sign in again before posting.');
       const content = document.getElementById('postText').value.trim();
       if (!content) return showToast('Write something before publishing.');
       if (content.length > 2000) return showToast('Posts can be up to 2,000 characters.');
@@ -347,7 +351,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     document.getElementById('publish').onclick = publishPost;
     async function showProfile() {
-      if (!currentProfile) return;
+      if (!currentUser) { feed.innerHTML='<div class="empty-feed muted">Please sign in to view your profile.</div>'; return; }
+      if (!currentProfile) { await loadProfile(); setProfileMini(); }
+      if (!currentProfile) { feed.innerHTML='<div class="empty-feed muted">Your profile could not load. Please refresh and try again.</div>'; return; }
       feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+esc(initials(currentProfile.display_name||currentProfile.username))+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><button class="primary profile-edit" id="editProfile">Edit profile</button></section><h3>Your posts</h3>';
       document.getElementById('editProfile').onclick = async () => {
         const display = prompt('Display name:',currentProfile.display_name||'');
@@ -400,5 +406,6 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   waitForClient();
 })();
 </script>
-\n</body>
+
+</body>
 </html>
