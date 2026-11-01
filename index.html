@@ -1040,6 +1040,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let activeLiveVodPromise = null;
     let activeLiveVodChunks = [];
     let activeLiveVodStream = null;
+    let activeLiveAudioTrack = null;
     async function saveLiveVod(stream, blob) {
       if(!blob || !blob.size) return {error:new Error('No recording data was captured.')};
       const path=currentUser.id+'/vod-'+stream.id+'-'+Date.now()+'.webm';
@@ -1059,6 +1060,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       clearLiveCommunity();
       if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
       activeLiveStreamId=null;
+      activeLiveAudioTrack=null;
     }
     async function connectLiveStream(stream, role) {
       await disconnectActiveLive();
@@ -1076,8 +1078,25 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
         await room.connect(data.server_url,data.participant_token);
         if(role==='host'){
-          const tracks=await LK.createLocalTracks({audio:true,video:{facingMode:'user'}});
+          const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1},video:{facingMode:'user'}});
+          activeLiveAudioTrack=tracks.find(track=>track.kind==='audio')||null;
           for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}
+          if(activeLiveAudioTrack){
+            const audioBox=document.createElement('div');audioBox.className='profile-panel';audioBox.style.cssText='margin-top:12px;padding:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center';
+            const heading=document.createElement('b');heading.textContent='🎙️ Audio settings';audioBox.appendChild(heading);
+            const mute=document.createElement('button');mute.className='secondary';mute.textContent='Mute microphone';
+            mute.onclick=async()=>{try{if(activeLiveAudioTrack.isMuted){await activeLiveAudioTrack.unmute();mute.textContent='Mute microphone';}else{await activeLiveAudioTrack.mute();mute.textContent='Unmute microphone';}}catch(e){showToast(e.message);}};
+            audioBox.appendChild(mute);
+            for(const [label,key] of [['Noise reduction','noiseSuppression'],['Echo cancellation','echoCancellation'],['Automatic volume','autoGainControl']]){
+              const wrap=document.createElement('label');wrap.style.cssText='display:flex;gap:5px;align-items:center;font-size:13px';
+              const check=document.createElement('input');check.type='checkbox';check.checked=true;check.style.width='17px';
+              check.onchange=async()=>{check.disabled=true;try{await activeLiveAudioTrack.mediaStreamTrack.applyConstraints({[key]:check.checked});}catch(e){check.checked=!check.checked;showToast(label+' is not supported on this device.');}finally{check.disabled=false;}};
+              wrap.append(check,document.createTextNode(label));audioBox.appendChild(wrap);
+            }
+            const quality=document.createElement('select');quality.innerHTML='<option value="48000">High · 48 kHz</option><option value="44100">Standard · 44.1 kHz</option>';
+            quality.onchange=async()=>{try{await activeLiveAudioTrack.mediaStreamTrack.applyConstraints({sampleRate:{ideal:Number(quality.value)},channelCount:{ideal:1}});}catch(e){showToast('This audio quality is not supported on this device.');}};
+            audioBox.appendChild(quality);stage.appendChild(audioBox);
+          }
           try{
             const recordStream=new MediaStream(tracks.map(track=>track.mediaStreamTrack).filter(Boolean));
             const mimeType=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'');
