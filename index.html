@@ -61,6 +61,7 @@ body.auth-required .auth-screen{display:grid}
 .follow-person b{display:block}
 .follow-person small{color:var(--muted)}
 
+.dm-layout{display:grid;grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr);gap:14px;min-height:420px}.dm-panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px;min-width:0}.dm-search{width:100%;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white;margin-bottom:10px}.dm-person,.dm-conversation{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}.dm-person:hover,.dm-conversation:hover{background:#211a2c}.dm-person .info,.dm-conversation .info{min-width:0;flex:1}.dm-person b,.dm-conversation b{display:block}.dm-person small,.dm-conversation small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-thread{display:flex;flex-direction:column;min-height:420px}.dm-thread-head{font-weight:750;padding:5px 4px 12px;border-bottom:1px solid var(--line)}.dm-messages{flex:1;min-height:290px;max-height:55vh;overflow:auto;padding:12px 2px;display:flex;flex-direction:column;gap:9px}.dm-bubble{max-width:82%;padding:9px 12px;border-radius:14px;background:#282233;overflow-wrap:anywhere;align-self:flex-start}.dm-bubble.mine{background:#58318b;align-self:flex-end}.dm-bubble small{display:block;opacity:.7;font-size:10px;margin-top:3px}.dm-compose{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px}.dm-compose textarea{flex:1;min-width:0;min-height:42px;max-height:110px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white}.dm-empty{color:var(--muted);font-size:13px;padding:18px 4px}@media(max-width:680px){.dm-layout{grid-template-columns:1fr}.dm-thread{min-height:360px}.dm-messages{min-height:220px}}
 </style>
 </head>
 <body>
@@ -314,13 +315,15 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
       card.querySelector('.post-content').textContent = post.content || '';
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
       if (post.media_url && post.media_type === 'video') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
       const followButton = card.querySelector('.follow-inline');
       if (followButton) followButton.onclick = () => toggleFollow(profile.id);
+      const messageButton=card.querySelector('.follow-message');
+      if(messageButton)messageButton.onclick=()=>startConversation(profile.id);
       const likeButton = card.querySelector('.like');
       likeButton.classList.toggle('liked', liked);
       likeButton.onclick = async () => {
@@ -610,8 +613,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const name=person.display_name||person.username||'Nook member';
         const avatar=person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="" loading="lazy">':esc(initials(name));
         const item=document.createElement('div');item.className='suggest';
-        item.innerHTML='<div class="avatar small">'+avatar+'</div><div class="info"><b>'+esc(name)+'</b><small>@'+esc(person.username)+'</small></div><button class="follow">'+(currentFollowing.has(person.id)?'Following':'Follow')+'</button>';
+        item.innerHTML='<div class="avatar small">'+avatar+'</div><div class="info"><b>'+esc(name)+'</b><small>@'+esc(person.username)+'</small></div><button class="follow">'+(currentFollowing.has(person.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>';
         item.querySelector('.follow').onclick=()=>toggleFollow(person.id);
+        item.querySelector('.follow-message').onclick=()=>startConversation(person.id);
         target.appendChild(item);
       });
     }
@@ -647,16 +651,18 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     async function loadNotifications() {
       if(!currentUser)return;
       feed.innerHTML='<div class="empty-feed muted">Loading notifications…</div>';
-      const {data:items,error}=await db.from('notifications').select('id,actor_id,post_id,comment_id,type,created_at,read_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+      const {data:items,error}=await db.from('notifications').select('id,actor_id,post_id,comment_id,message_id,type,created_at,read_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
       if(error){feed.innerHTML='<div class="empty-feed muted">Could not load notifications: '+esc(error.message)+'</div>';return;}
       if(!items?.length){feed.innerHTML='<div class="empty-feed muted">You’re all caught up. New comments on your posts will show up here.</div>';await loadNotificationCount();return;}
-      const actorIds=[...new Set(items.map(n=>n.actor_id))],commentIds=items.map(n=>n.comment_id);
-      const [peopleRes,commentsRes]=await Promise.all([
+      const actorIds=[...new Set(items.map(n=>n.actor_id))],commentIds=items.map(n=>n.comment_id).filter(Boolean),messageIds=items.map(n=>n.message_id).filter(Boolean);
+      const [peopleRes,commentsRes,messagesRes]=await Promise.all([
         db.from('profiles').select('id,username,display_name').in('id',actorIds),
-        db.from('post_comments').select('id,content').in('id',commentIds)
+        commentIds.length?db.from('post_comments').select('id,content').in('id',commentIds):Promise.resolve({data:[]}),
+        messageIds.length?db.from('direct_messages').select('id,content,conversation_id').in('id',messageIds):Promise.resolve({data:[]})
       ]);
       const people=Object.fromEntries((peopleRes.data||[]).map(p=>[p.id,p]));
       const comments=Object.fromEntries((commentsRes.data||[]).map(x=>[x.id,x]));
+      const messages=Object.fromEntries((messagesRes.data||[]).map(x=>[x.id,x]));
       feed.innerHTML='<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="secondary" id="markAllRead">Mark all as read</button></div>';
       document.getElementById('markAllRead').onclick=async()=>{
         const {error:markError}=await db.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',currentUser.id).is('read_at',null);
@@ -664,11 +670,13 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         await loadNotifications();await loadNotificationCount();
       };
       items.forEach(n=>{
-        const person=people[n.actor_id]||{},comment=comments[n.comment_id]||{};
+        const person=people[n.actor_id]||{},comment=comments[n.comment_id]||{},message=messages[n.message_id]||{};
         const item=document.createElement('div');item.className='notification-item'+(n.read_at?'':' unread');
-        item.innerHTML='<b>'+esc(person.display_name||person.username||'Someone')+'</b> '+(n.type==='comment_reply'?'replied to your comment':'commented on your post')+'<p>'+esc(comment.content||'Comment unavailable')+'</p><small class="muted">'+esc(timeAgo(n.created_at))+'</small>';
+        const activity=n.type==='direct_message'?'sent you a message':(n.type==='comment_reply'?'replied to your comment':'commented on your post');
+        item.innerHTML='<b>'+esc(person.display_name||person.username||'Someone')+'</b> '+activity+'<p>'+esc(n.type==='direct_message'?(message.content||'Message unavailable'):(comment.content||'Comment unavailable'))+'</p><small class="muted">'+esc(timeAgo(n.created_at))+'</small>';
         item.onclick=async()=>{
           if(!n.read_at){await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('user_id',currentUser.id);n.read_at=new Date().toISOString();item.classList.remove('unread');await loadNotificationCount();}
+          if(n.type==='direct_message'&&message.conversation_id){const {data:conv}=await db.from('conversations').select('user_one,user_two').eq('id',message.conversation_id).maybeSingle();if(conv){const otherId=conv.user_one===currentUser.id?conv.user_two:conv.user_one;const {data:other}=await db.from('profiles').select('id,username,display_name').eq('id',otherId).maybeSingle();await openConversation(message.conversation_id,other||{id:otherId,username:'Nook member'});}}
         };
         feed.appendChild(item);
       });
@@ -685,11 +693,83 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           if(currentTab==='Notifications')loadNotifications();
         }).subscribe();
     }
+
+    let activeConversationId=null;
+    let messageChannel=null;
+    async function startConversation(otherId) {
+      if(!currentUser||!otherId||otherId===currentUser.id)return;
+      const pair=[currentUser.id,otherId].sort();
+      let {data:conversation,error}=await db.from('conversations').select('id').eq('user_one',pair[0]).eq('user_two',pair[1]).maybeSingle();
+      if(error)return showToast(error.message);
+      if(!conversation){
+        const result=await db.from('conversations').insert({user_one:pair[0],user_two:pair[1]}).select('id').single();
+        if(result.error){
+          const retry=await db.from('conversations').select('id').eq('user_one',pair[0]).eq('user_two',pair[1]).maybeSingle();
+          if(retry.error||!retry.data)return showToast(result.error.message);
+          conversation=retry.data;
+        } else conversation=result.data;
+      }
+      document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab==='Messages'));
+      document.getElementById('pageTitle').textContent='Messages';currentTab='Messages';
+      await loadMessages();
+      await openConversation(conversation.id,{id:otherId});
+    }
+    async function loadMessages() {
+      if(!currentUser)return;
+      activeConversationId=null;
+      if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}
+      feed.innerHTML='<div class="dm-layout"><section class="dm-panel"><h3 style="margin:2px 0 10px">Your messages</h3><input class="dm-search" id="dmSearch" placeholder="Find someone by username"><div id="dmSearchResults"></div><div id="dmConversationList" class="dm-empty">Loading conversations…</div></section><section class="dm-panel dm-thread"><div class="dm-empty">Choose a conversation or find someone to message.</div></section></div>';
+      const search=document.getElementById('dmSearch');let searchTimer=null;
+      search.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(async()=>{
+        const value=search.value.trim().replace(/^@/,'');const target=document.getElementById('dmSearchResults');
+        if(!value){target.innerHTML='';return;}
+        const {data:people,error}=await db.from('profiles').select('id,username,display_name,avatar_url').ilike('username','%'+value+'%').neq('id',currentUser.id).limit(8);
+        if(error){target.textContent='Could not search users.';return;}
+        target.innerHTML='';
+        (people||[]).forEach(person=>{const row=document.createElement('div');row.className='dm-person';const name=person.display_name||person.username||'Nook member';row.innerHTML='<div class="avatar small">'+(person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="">':esc(initials(name)))+'</div><div class="info"><b>'+esc(name)+'</b><small>@'+esc(person.username)+'</small></div><span class="muted">Message</span>';row.onclick=()=>startConversation(person.id);target.appendChild(row);});
+        if(!people?.length)target.innerHTML='<div class="dm-empty">No users found.</div>';
+      },250);};
+      const {data:conversations,error}=await db.from('conversations').select('id,user_one,user_two,created_at').or('user_one.eq.'+currentUser.id+',user_two.eq.'+currentUser.id).order('created_at',{ascending:false}).limit(100);
+      const list=document.getElementById('dmConversationList');
+      if(error){list.textContent='Could not load conversations: '+error.message;return;}
+      if(!conversations?.length){list.textContent='No conversations yet. Search for someone above to start one.';return;}
+      const otherIds=conversations.map(x=>x.user_one===currentUser.id?x.user_two:x.user_one);
+      const [profilesRes,messagesRes]=await Promise.all([
+        db.from('profiles').select('id,username,display_name,avatar_url').in('id',otherIds),
+        db.from('direct_messages').select('conversation_id,content,created_at').in('conversation_id',conversations.map(x=>x.id)).order('created_at',{ascending:false})
+      ]);
+      const people=Object.fromEntries((profilesRes.data||[]).map(p=>[p.id,p]));const latest={};
+      (messagesRes.data||[]).forEach(m=>{if(!latest[m.conversation_id])latest[m.conversation_id]=m;});
+      list.innerHTML='';
+      conversations.forEach(conv=>{const otherId=conv.user_one===currentUser.id?conv.user_two:conv.user_one,person=people[otherId]||{username:'Nook member'};const name=person.display_name||person.username||'Nook member',last=latest[conv.id];const row=document.createElement('div');row.className='dm-conversation';row.innerHTML='<div class="avatar small">'+(person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="">':esc(initials(name)))+'</div><div class="info"><b>'+esc(name)+'</b><small>'+esc(last?.content||'Start a conversation')+'</small></div>';row.onclick=()=>openConversation(conv.id,person);list.appendChild(row);});
+    }
+    async function openConversation(conversationId,person) {
+      activeConversationId=conversationId;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}
+      const name=person.display_name||person.username||'Nook member';let layout=feed.querySelector('.dm-layout');
+      if(!layout){await loadMessages();layout=feed.querySelector('.dm-layout');}
+      const thread=layout.querySelector('.dm-thread');
+      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…" required></textarea><button class="primary" type="submit">Send</button></form>';
+      const messageBox=document.getElementById('dmMessages');
+      async function refreshMessages(){
+        if(activeConversationId!==conversationId)return;
+        const {data:messages,error}=await db.from('direct_messages').select('id,sender_id,content,created_at').eq('conversation_id',conversationId).order('created_at',{ascending:true}).limit(200);
+        if(error){messageBox.textContent='Could not load messages: '+error.message;return;}
+        messageBox.innerHTML='';
+        if(!messages?.length){messageBox.innerHTML='<div class="dm-empty">Say hello and start the conversation.</div>';return;}
+        messages.forEach(m=>{const bubble=document.createElement('div');bubble.className='dm-bubble'+(m.sender_id===currentUser.id?' mine':'');bubble.innerHTML=esc(m.content)+'<small>'+esc(timeAgo(m.created_at))+'</small>';messageBox.appendChild(bubble);});
+        messageBox.scrollTop=messageBox.scrollHeight;
+      }
+      await refreshMessages();
+      messageChannel=db.channel('nook-dm-'+conversationId).on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages()).subscribe();
+      document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim();if(!content)return;const send=event.currentTarget.querySelector('button');send.disabled=true;const {error}=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content});send.disabled=false;if(error){showToast(error.message);return;}input.value='';await refreshMessages();};
+    }
+
     async function onTab(tab) {
       currentTab=tab;
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Notifications') return loadNotifications();
+      if (tab==='Messages') return loadMessages();
       feed.innerHTML='<div class="empty-feed muted">'+esc(tab)+' is coming soon. Your Nook account and posts are working.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
