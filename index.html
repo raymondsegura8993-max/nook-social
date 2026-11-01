@@ -747,6 +747,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       activeConversationId=conversationId;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}
       const name=person.display_name||person.username||'Nook member';let layout=feed.querySelector('.dm-layout');
       if(!layout){await loadMessages();layout=feed.querySelector('.dm-layout');}
+      activeConversationId=conversationId;
       const thread=layout.querySelector('.dm-thread');
       thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…" required></textarea><button class="primary" type="submit">Send</button></form>';
       const messageBox=document.getElementById('dmMessages');
