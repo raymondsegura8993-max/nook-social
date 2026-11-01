@@ -767,6 +767,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 
     async function onTab(tab) {
       currentTab=tab;
+      if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Notifications') return loadNotifications();
