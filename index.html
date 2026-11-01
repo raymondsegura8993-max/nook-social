@@ -531,9 +531,12 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       }
       const {data:posts,error} = await postsQuery;
       if (error) { feed.innerHTML='<div class="empty-feed muted">Could not load posts: '+esc(error.message)+'</div>'; return; }
-      if (!posts?.length) { feed.innerHTML='<div class="empty-feed muted">No posts yet. Be the first to share something in Nook!</div>'; return; }
-      const ids = [...new Set(posts.map(p=>p.author_id))];
-      const postIds = posts.map(p=>p.id);
+      const {data:blockRows}=await db.from('user_blocks').select('blocked_id').eq('blocker_id',currentUser.id);
+      const blockedIds=new Set((blockRows||[]).map(x=>x.blocked_id));
+      const visiblePosts=(posts||[]).filter(p=>!blockedIds.has(p.author_id));
+      if (!visiblePosts.length) { feed.innerHTML='<div class="empty-feed muted">No posts yet. Be the first to share something in Nook!</div>'; return; }
+      const ids = [...new Set(visiblePosts.map(p=>p.author_id))];
+      const postIds = visiblePosts.map(p=>p.id);
       const [profilesRes,likesRes,myLikesRes,commentsRes,savedRes] = await Promise.all([
         db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids),
         db.from('post_likes').select('post_id').in('post_id',postIds),
@@ -549,7 +552,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const commentCounts = {};
       (commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
       feed.innerHTML='';
-      posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,currentSavedPostIds.has(p.id)));
+      visiblePosts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function getMediaDimensions(file) {
       const objectUrl = URL.createObjectURL(file);
@@ -985,8 +988,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(mode==='video') query=query.eq('media_type','video');
       const {data:posts,error}=await query;
       if(error){feed.innerHTML='<div class="empty-feed muted">Could not load posts: '+esc(error.message)+'</div>';return;}
-      if(!posts?.length){feed.innerHTML='<div class="empty-feed muted">'+(mode==='video'?'No videos have been posted yet.':'No posts to trend yet.')+'</div>';return;}
-      const ids=[...new Set(posts.map(p=>p.author_id))],postIds=posts.map(p=>p.id);
+      const {data:blockRows}=await db.from('user_blocks').select('blocked_id').eq('blocker_id',currentUser.id);
+      const blockedIds=new Set((blockRows||[]).map(x=>x.blocked_id));
+      const visiblePosts=(posts||[]).filter(p=>!blockedIds.has(p.author_id));
+      if(!visiblePosts.length){feed.innerHTML='<div class="empty-feed muted">'+(mode==='video'?'No videos have been posted yet.':'No posts to trend yet.')+'</div>';return;}
+      const ids=[...new Set(visiblePosts.map(p=>p.author_id))],postIds=visiblePosts.map(p=>p.id);
       const [profilesRes,likesRes,myLikesRes,commentsRes]=await Promise.all([
         db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids),
         db.from('post_likes').select('post_id').in('post_id',postIds),
@@ -997,9 +1003,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const counts={};(likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);
       const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
       const commentCounts={};(commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
-      if(mode==='trending')posts.sort((a,b)=>(counts[b.id]||0)-(counts[a.id]||0));
+      if(mode==='trending')visiblePosts.sort((a,b)=>(counts[b.id]||0)-(counts[a.id]||0));
       feed.innerHTML='';
-      posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,false));
+      visiblePosts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,false));
     }
     async function loadExplore() {
       feed.innerHTML='<div class="profile-panel"><h2>Explore Nook</h2><p>Find people and posts.</p><input id="exploreSearch" class="dm-search" placeholder="Search usernames or posts…" aria-label="Search Nook"><div id="exploreResults" class="muted">Start typing to search.</div></div>';
