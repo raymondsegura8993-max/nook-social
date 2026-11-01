@@ -29,6 +29,14 @@ body.auth-required .auth-screen{display:grid}
 .account-bar{position:fixed;z-index:6;right:20px;top:16px;display:none;align-items:center;gap:9px;padding:7px 9px 7px 12px;border:1px solid var(--line);border-radius:12px;background:#17131fee;font-size:12px}
 .account-bar button{border:1px solid #68449b;background:#241833;color:#d9baff;border-radius:8px;padding:6px 9px;font-size:11px}
 @media(max-width:680px){.account-bar{top:12px;right:12px}.top{padding-right:95px}}
+
+.empty-feed{padding:28px 14px;text-align:center;border:1px dashed var(--line);border-radius:16px;margin:12px 0}
+.post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.comment-item{font-size:13px;color:#ddd;margin:7px 0}.comment-item b{color:#fff}
+.profile-panel{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel);margin:14px 0}
+.profile-panel h2{margin:0 0 5px}.profile-panel p{color:var(--muted)}
+.profile-edit{margin-top:12px}
+.post-actions .action:disabled{opacity:.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -93,20 +101,15 @@ body.auth-required .auth-screen{display:grid}
 <script>
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const modal=$('#modal'),toast=$('#toast');
-function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2200)}
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
 function openComposer(){modal.classList.add('show');$('#postText').focus()}
 $('#newPost').onclick=$('#composeOpen').onclick=openComposer;
 $('#cancel').onclick=()=>modal.classList.remove('show');
 modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
-$('#publish').onclick=()=>{const text=$('#postText').value.trim();if(!text){showToast('Write something before publishing.');return}const card=document.createElement('article');card.className='post';card.innerHTML='<div class="posthead"><div class="avatar">Y</div><div><div class="postname">Your profile</div><div class="handle">@yourusername · just now</div></div></div><p></p><div class="post-actions"><button class="action like">♡ <span>Like</span></button><button class="action">▢ Comment</button><button class="action">↗ Share</button><button class="action save">▤ Save</button></div>';card.querySelector('p').textContent=text;$('#feed').prepend(card);$('#postText').value='';modal.classList.remove('show');wireActions(card);showToast('Post added to this preview!')};
-function wireActions(root=document){root.querySelectorAll('.like').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.onclick=()=>{b.classList.toggle('liked');b.innerHTML=b.classList.contains('liked')?'♥ <span>Liked</span>':'♡ <span>Like</span>'}});root.querySelectorAll('.save').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.onclick=()=>{b.textContent=b.textContent.includes('Saved')?'▤ Save':'▤ Saved';showToast('Saved state changed in this preview.')}})}
-wireActions();
-$$('.nav button').forEach(b=>b.onclick=()=>{ $$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#pageTitle').textContent=b.dataset.tab;if(b.dataset.tab!=='Home')showToast(b.dataset.tab+' page is a preview for now.')});
-$$('.feed-tabs button').forEach(b=>b.onclick=()=>{$$('.feed-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(b.dataset.feed!=='For you')showToast(b.dataset.feed+' feed will be connected later.')});
-$$('.follow').forEach(b=>b.onclick=()=>{b.textContent=b.textContent==='Follow'?'Following':'Follow';showToast('Follow preview updated.')});
-$('#welcomeExplore').onclick=()=>{showToast('Explore is coming in the next build.');};
-$('#searchBtn').onclick=()=>showToast('Search will be connected in the next build.');
-['photoBtn','videoBtn','pollBtn','linkBtn'].forEach(id=>$('#'+id).onclick=()=>{openComposer();showToast(id==='pollBtn'?'Poll creation is coming soon.':id==='linkBtn'?'Paste a link into your post text for now.':id==='photoBtn'?'Photo uploads are coming soon.':'Video uploads are coming soon.')});
+$('#photoBtn').onclick=()=>showToast('Photo uploads are the next feature to build.');
+$('#videoBtn').onclick=()=>showToast('Video uploads are the next feature to build.');
+$('#pollBtn').onclick=()=>showToast('Polls are coming after the core post system.');
+$('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link in your post text.')};
 </script>
 
 <div class="auth-screen" id="authScreen">
@@ -139,7 +142,7 @@ $('#searchBtn').onclick=()=>showToast('Search will be connected in the next buil
 (() => {
   const SUPABASE_URL = "https://gbchzfyaexniowsjtfdh.supabase.co";
   const SUPABASE_KEY = "sb_publishable_gb6ZWf3Lbf6OSVTLBa-1ig_eQgeGHyj";
-  const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);\n  window.nookClient = authClient;
   const screen = document.getElementById("authScreen");
   const form = document.getElementById("authForm");
   const message = document.getElementById("authMessage");
@@ -164,7 +167,7 @@ $('#searchBtn').onclick=()=>showToast('Search will be connected in the next buil
   }
   loginTab.addEventListener("click", () => setMode("login"));
   signupTab.addEventListener("click", () => setMode("signup"));
-  function showSignedIn(user) {
+  function showSignedIn(user) {\n    window.dispatchEvent(new CustomEvent("nook-auth", { detail: user }));
     document.body.classList.remove("auth-required");
     document.getElementById("accountBar").style.display = "flex";
     const name = user.user_metadata?.username || user.email?.split("@")[0] || "Nook member";
@@ -172,7 +175,7 @@ $('#searchBtn').onclick=()=>showToast('Search will be connected in the next buil
     const mini = document.querySelector(".profile-mini");
     if (mini) mini.innerHTML = '<div class="avatar">' + name.slice(0,1).toUpperCase() + '</div><div><b>' + name.replace(/[&<>"]/g,"") + '</b><small>@' + name.replace(/[&<>"]/g,"") + '</small></div>';
   }
-  function showSignedOut() {
+  function showSignedOut() {\n    window.dispatchEvent(new CustomEvent("nook-auth", { detail: null }));
     document.body.classList.add("auth-required");
     document.getElementById("accountBar").style.display = "none";
   }
@@ -227,5 +230,175 @@ $('#searchBtn').onclick=()=>showToast('Search will be connected in the next buil
   })();
 })();
 </script>
-</body>
+
+<script>
+(() => {
+  const waitForClient = () => {
+    if (!window.nookClient) return setTimeout(waitForClient, 100);
+    start(window.nookClient);
+  };
+  function start(db) {
+    const feed = document.getElementById('feed');
+    let currentUser = null;
+    let currentProfile = null;
+    let currentTab = 'Home';
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const initials = value => (value || 'N').trim().slice(0,1).toUpperCase();
+    const timeAgo = value => {
+      const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+      if (seconds < 60) return 'just now';
+      if (seconds < 3600) return Math.floor(seconds/60)+'m';
+      if (seconds < 86400) return Math.floor(seconds/3600)+'h';
+      return Math.floor(seconds/86400)+'d';
+    };
+    async function loadProfile() {
+      if (!currentUser) return null;
+      let {data, error} = await db.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+      if (error) { showToast(error.message); return null; }
+      if (!data) {
+        const username = (currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'member').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,20);
+        const result = await db.from('profiles').insert({id:currentUser.id,username:username.length>=3?username:'member_'+currentUser.id.slice(0,8),display_name:username});
+        if (result.error) { showToast(result.error.message); return null; }
+        ({data,error} = await db.from('profiles').select('*').eq('id',currentUser.id).single());
+      }
+      currentProfile = data;
+      return data;
+    }
+    function setProfileMini() {
+      if (!currentProfile) return;
+      const mini = document.querySelector('.profile-mini');
+      if (mini) mini.innerHTML = '<div class="avatar">'+esc(initials(currentProfile.display_name || currentProfile.username))+'</div><div><b>'+esc(currentProfile.display_name || currentProfile.username)+'</b><small>@'+esc(currentProfile.username)+'</small></div>';
+      const composerAvatar = document.querySelector('.compose-row .avatar');
+      if (composerAvatar) composerAvatar.textContent = initials(currentProfile.display_name || currentProfile.username);
+    }
+    function renderPost(post, profile, liked, likeCount, commentCount) {
+      const card = document.createElement('article');
+      card.className = 'post';
+      const name = profile?.display_name || profile?.username || 'Nook member';
+      const handle = profile?.username || 'member';
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+esc(initials(name))+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div></div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
+      card.querySelector('.post-content').textContent = post.content;
+      const likeButton = card.querySelector('.like');
+      likeButton.classList.toggle('liked', liked);
+      likeButton.onclick = async () => {
+        likeButton.disabled = true;
+        const result = liked
+          ? await db.from('post_likes').delete().eq('post_id',post.id).eq('user_id',currentUser.id)
+          : await db.from('post_likes').insert({post_id:post.id,user_id:currentUser.id});
+        likeButton.disabled = false;
+        if (result.error) return showToast(result.error.message);
+        liked = !liked;
+        likeButton.classList.toggle('liked',liked);
+        likeButton.innerHTML = (liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+(likeCount+(liked?1:-1))+'</span>';
+        likeCount += liked?1:-1;
+      };
+      card.querySelector('.comment').onclick = async () => {
+        const value = prompt('Write a comment:');
+        if (!value || !value.trim()) return;
+        const result = await db.from('post_comments').insert({post_id:post.id,author_id:currentUser.id,content:value.trim()});
+        if (result.error) return showToast(result.error.message);
+        showToast('Comment posted!');
+        loadFeed();
+      };
+      card.querySelector('.share').onclick = async () => {
+        const link = location.href.split('#')[0]+'#post-'+post.id;
+        try { await navigator.clipboard.writeText(link); showToast('Post link copied!'); }
+        catch { showToast(link); }
+      };
+      card.querySelector('.save').onclick = () => showToast('Post bookmarks are coming in a later update.');
+      feed.appendChild(card);
+    }
+    async function loadFeed() {
+      if (!currentUser) return;
+      feed.innerHTML = '<div class="empty-feed muted">Loading posts…</div>';
+      const {data:posts,error} = await db.from('posts').select('id,author_id,content,created_at').order('created_at',{ascending:false}).limit(50);
+      if (error) { feed.innerHTML='<div class="empty-feed muted">Could not load posts: '+esc(error.message)+'</div>'; return; }
+      if (!posts?.length) { feed.innerHTML='<div class="empty-feed muted">No posts yet. Be the first to share something in Nook!</div>'; return; }
+      const ids = [...new Set(posts.map(p=>p.author_id))];
+      const postIds = posts.map(p=>p.id);
+      const [profilesRes,likesRes,myLikesRes,commentsRes] = await Promise.all([
+        db.from('profiles').select('id,username,display_name').in('id',ids),
+        db.from('post_likes').select('post_id').in('post_id',postIds),
+        db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',postIds),
+        db.from('post_comments').select('post_id').in('post_id',postIds)
+      ]);
+      const profiles = Object.fromEntries((profilesRes.data||[]).map(p=>[p.id,p]));
+      const counts = {};
+      (likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);
+      const mine = new Set((myLikesRes.data||[]).map(x=>x.post_id));
+      const commentCounts = {};
+      (commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
+      feed.innerHTML='';
+      posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0));
+    }
+    async function publishPost() {
+      const content = document.getElementById('postText').value.trim();
+      if (!content) return showToast('Write something before publishing.');
+      if (content.length > 2000) return showToast('Posts can be up to 2,000 characters.');
+      const button = document.getElementById('publish');
+      button.disabled = true;
+      const {error} = await db.from('posts').insert({author_id:currentUser.id,content});
+      button.disabled = false;
+      if (error) return showToast(error.message);
+      document.getElementById('postText').value='';
+      document.getElementById('modal').classList.remove('show');
+      showToast('Your post is now shared on Nook!');
+      if (currentTab === 'Home') loadFeed();
+    }
+    document.getElementById('publish').onclick = publishPost;
+    async function showProfile() {
+      if (!currentProfile) return;
+      feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+esc(initials(currentProfile.display_name||currentProfile.username))+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><button class="primary profile-edit" id="editProfile">Edit profile</button></section><h3>Your posts</h3>';
+      document.getElementById('editProfile').onclick = async () => {
+        const display = prompt('Display name:',currentProfile.display_name||'');
+        if (display === null) return;
+        const bio = prompt('Short bio (up to 160 characters):',currentProfile.bio||'');
+        if (bio === null) return;
+        if (bio.length>160) return showToast('Your bio must be 160 characters or less.');
+        const {data,error} = await db.from('profiles').update({display_name:display.trim().slice(0,40),bio,updated_at:new Date().toISOString()}).eq('id',currentUser.id).select().single();
+        if (error) return showToast(error.message);
+        currentProfile=data;setProfileMini();showProfile();
+      };
+      const {data:posts,error} = await db.from('posts').select('id,author_id,content,created_at').eq('author_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+      if (error) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed">'+esc(error.message)+'</div>'); return; }
+      if (!posts?.length) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed muted">Your posts will appear here.</div>'); return; }
+      const ids=posts.map(p=>p.id);
+      const [likesRes,myLikesRes,commentsRes]=await Promise.all([
+        db.from('post_likes').select('post_id').in('post_id',ids),
+        db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',ids),
+        db.from('post_comments').select('post_id').in('post_id',ids)
+      ]);
+      const counts={},cc={};(likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);(commentsRes.data||[]).forEach(x=>cc[x.post_id]=(cc[x.post_id]||0)+1);
+      const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
+      posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0));
+    }
+    async function onTab(tab) {
+      currentTab=tab;
+      if (tab==='Home') return loadFeed();
+      if (tab==='Profile') return showProfile();
+      feed.innerHTML='<div class="empty-feed muted">'+esc(tab)+' is coming soon. Your Nook account and posts are working.</div>';
+    }
+    document.querySelectorAll('.nav button').forEach(button => {
+      button.onclick=()=> {
+        document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+        button.classList.add('active');
+        const tab=button.dataset.tab;
+        document.getElementById('pageTitle').textContent=tab;
+        onTab(tab);
+      };
+    });
+    async function authChanged(user) {
+      currentUser=user;
+      if (!user) { currentProfile=null; feed.innerHTML='<div class="empty-feed muted">Sign in to see Nook posts.</div>'; return; }
+      await loadProfile();
+      setProfileMini();
+      await loadFeed();
+    }
+    window.addEventListener('nook-auth',e=>authChanged(e.detail));
+    db.auth.getSession().then(({data})=>authChanged(data.session?.user||null));
+  }
+  waitForClient();
+})();
+</script>
+\n</body>
 </html>
