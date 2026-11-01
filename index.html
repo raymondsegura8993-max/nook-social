@@ -31,7 +31,7 @@ body.auth-required .auth-screen{display:grid}
 @media(max-width:680px){.account-bar{top:12px;right:12px}.top{padding-right:95px}}
 
 .empty-feed{padding:28px 14px;text-align:center;border:1px dashed var(--line);border-radius:16px;margin:12px 0}
-.post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.post-attachment{display:block;max-width:100%;max-height:650px;width:auto;height:auto;object-fit:contain;border-radius:14px;margin:13px auto;background:#09070d}.post-attachment.video{width:100%;max-height:620px;aspect-ratio:9/16;object-fit:contain}.media-choice{font-size:12px;color:#c9b5e6;margin:9px 0 0;min-height:18px}.media-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+.post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.post-attachment{display:block;max-width:100%;max-height:650px;width:auto;height:auto;object-fit:contain;border-radius:14px;margin:13px auto;background:#09070d}.post-attachment.video{width:100%;max-height:620px;aspect-ratio:9/16;object-fit:contain}.file-drop-zone{margin-top:12px;padding:25px 14px;border:2px dashed #594273;border-radius:14px;background:#100d16;text-align:center;color:#d9c9ed;cursor:pointer;transition:border-color .15s,background .15s}.file-drop-zone:hover,.file-drop-zone.dragover{border-color:var(--purple);background:#21172f}.file-drop-zone strong{display:block;font-size:14px;color:#fff}.file-drop-zone span{display:block;font-size:12px;color:var(--muted);margin-top:5px}.media-choice{font-size:12px;color:#c9b5e6;margin:9px 0 0;min-height:18px}.media-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
 .comment-item{font-size:13px;color:#ddd;margin:7px 0}.comment-item b{color:#fff}
 .profile-panel{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel);margin:14px 0}
 .profile-panel h2{margin:0 0 5px}.profile-panel p{color:var(--muted)}
@@ -97,7 +97,7 @@ body.auth-required .auth-screen{display:grid}
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="media-choice" id="mediaChoice"></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
@@ -109,7 +109,14 @@ $('#cancel').onclick=()=>modal.classList.remove('show');
 modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
 $('#photoBtn').onclick=()=>openComposer('image');
 $('#videoBtn').onclick=()=>openComposer('video');
-$('#mediaFile').onchange=event=>{const file=event.target.files?.[0];window.nookSelectedMediaFile=file||null;$('#mediaChoice').textContent=file?'Selected: '+file.name:'';};
+function selectPostFile(file){if(!file)return;window.nookSelectedMediaFile=file;$('#mediaChoice').textContent='Selected: '+file.name;}
+$('#mediaFile').onchange=event=>selectPostFile(event.target.files?.[0]);
+const dropZone=$('#fileDropZone');
+dropZone.onclick=()=>$('#mediaFile').click();
+dropZone.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();$('#mediaFile').click();}};
+['dragenter','dragover'].forEach(type=>dropZone.addEventListener(type,event=>{event.preventDefault();dropZone.classList.add('dragover');}));
+['dragleave','drop'].forEach(type=>dropZone.addEventListener(type,event=>{event.preventDefault();dropZone.classList.remove('dragover');}));
+dropZone.addEventListener('drop',event=>selectPostFile(event.dataTransfer?.files?.[0]));
 $('#pollBtn').onclick=()=>showToast('Polls are coming after the core post system.');
 $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link in your post text.')};
 </script>
