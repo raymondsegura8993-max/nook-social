@@ -118,14 +118,14 @@ body.auth-required .auth-screen{display:grid}
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="modalback" id="followModal"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h2 id="followModalTitle">Followers</h2><button class="secondary" id="closeFollowModal">Close</button></div><div class="follow-list" id="followList"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const modal=$('#modal'),toast=$('#toast');
 function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
-function openComposer(mediaType){if(mediaType!=='image'&&mediaType!=='video')mediaType=null;window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
+function openComposer(mediaType,pollMode=false){if(mediaType!=='image'&&mediaType!=='video')mediaType=null;window.nookPollMode=!!pollMode;$('#pollFields').hidden=!window.nookPollMode;window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
 $('#newPost').onclick=$('#composeOpen').onclick=openComposer;
 $('#cancel').onclick=()=>modal.classList.remove('show');
 modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
@@ -139,7 +139,7 @@ dropZone.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preven
 ['dragenter','dragover'].forEach(type=>dropZone.addEventListener(type,event=>{event.preventDefault();dropZone.classList.add('dragover');}));
 ['dragleave','drop'].forEach(type=>dropZone.addEventListener(type,event=>{event.preventDefault();dropZone.classList.remove('dragover');}));
 dropZone.addEventListener('drop',event=>selectPostFile(event.dataTransfer?.files?.[0]));
-$('#pollBtn').onclick=()=>showToast('Polls are coming after the core post system.');
+$('#pollBtn').onclick=()=>openComposer(null,true);
 $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link in your post text.')};
 </script>
 
@@ -322,6 +322,33 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       showToast(wasSaved?'Post removed from Saved':'Post saved!');
       if(wasSaved&&currentTab==='Saved'&&card){card.remove();if(!feed.querySelector('.post'))feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet.</div>';}
     }
+    async function loadPoll(postId,card) {
+      const {data:poll,error}=await db.from('polls').select('id,ends_at').eq('post_id',postId).maybeSingle();
+      if(error||!poll)return;
+      const [optionsRes,votesRes,myVoteRes]=await Promise.all([
+        db.from('poll_options').select('id,label,position').eq('poll_id',poll.id).order('position'),
+        db.from('poll_votes').select('option_id').eq('poll_id',poll.id),
+        db.from('poll_votes').select('option_id').eq('poll_id',poll.id).eq('user_id',currentUser.id).maybeSingle()
+      ]);
+      if(optionsRes.error||votesRes.error)return;
+      const options=optionsRes.data||[],votes=votesRes.data||[],counts={};
+      votes.forEach(v=>counts[v.option_id]=(counts[v.option_id]||0)+1);
+      const total=votes.length,chosen=myVoteRes.data?.option_id,expired=poll.ends_at&&new Date(poll.ends_at)<new Date();
+      const panel=document.createElement('div');panel.className='poll-panel';panel.style.cssText='border:1px solid var(--line);border-radius:13px;padding:12px;margin:12px 0;background:#100d16';
+      panel.innerHTML='<b style="display:block;margin-bottom:9px">Poll · '+total+' vote'+(total===1?'':'s')+'</b>';
+      options.forEach(option=>{
+        const count=counts[option.id]||0,percent=total?Math.round(count/total*100):0;
+        const row=document.createElement('button');row.type='button';row.disabled=!!chosen||!!expired;
+        row.style.cssText='display:block;width:100%;text-align:left;border:1px solid '+(chosen===option.id?'#a56bff':'var(--line)')+';background:#211a2c;color:white;border-radius:9px;padding:10px;margin:7px 0;position:relative;overflow:hidden';
+        row.innerHTML='<span style="position:absolute;inset:0 auto 0 0;width:'+percent+'%;background:#8b55d533"></span><span style="position:relative">'+esc(option.label)+'</span><span style="position:relative;float:right">'+(chosen||expired?percent+'%':'Vote')+'</span>';
+        row.onclick=async()=>{row.disabled=true;const result=await db.from('poll_votes').insert({poll_id:poll.id,option_id:option.id,user_id:currentUser.id});if(result.error){showToast(result.error.code==='23505'?'You already voted.':result.error.message);return;}await loadPoll(postId,card);};
+        panel.appendChild(row);
+      });
+      if(expired)panel.insertAdjacentHTML('beforeend','<small class="muted">This poll has ended.</small>');
+      const old=card.querySelector('.poll-panel');if(old)old.remove();
+      card.querySelector('.post-actions').before(panel);
+    }
+
     function renderPost(post, profile, liked, likeCount, commentCount, saved=false, container=feed) {
       const card = document.createElement('article');
       card.className = 'post';
@@ -333,6 +360,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
       if (post.media_url && post.media_type === 'video') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
+      loadPoll(post.id,card);
       const followButton = card.querySelector('.follow-inline');
       if (followButton) followButton.onclick = () => toggleFollow(profile.id);
       const messageButton=card.querySelector('.follow-message');
@@ -477,9 +505,13 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     async function publishPost() {
       if (!currentUser) return showToast('Please sign in again before posting.');
-      const content = document.getElementById('postText').value.trim();
+      const rawContent = document.getElementById('postText').value.trim();
+      const content = rawContent || (window.nookPollMode ? 'Vote in my poll:' : '');
       const file = window.nookSelectedMediaFile || null;
+      const pollOptions = window.nookPollMode ? ['pollOption1','pollOption2','pollOption3','pollOption4'].map(id=>document.getElementById(id).value.trim()).filter(Boolean) : [];
       if (!content && !file) return showToast('Write something or add a photo/video first.');
+      if (window.nookPollMode && (pollOptions.length<2 || pollOptions.length>4)) return showToast('A poll needs 2–4 options.');
+      if (window.nookPollMode && file) return showToast('Polls cannot include an attached photo or video yet.');
       if (content.length > 2000) return showToast('Posts can be up to 2,000 characters.');
       let mediaType = null;
       if (file) {
@@ -512,7 +544,13 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         }
         mediaUrl = db.storage.from('nook-media').getPublicUrl(uploadedPath).data.publicUrl;
       }
-      const {error} = await db.from('posts').insert({author_id:currentUser.id,content,media_url:mediaUrl,media_type:mediaType});
+      const {data:createdPost,error} = await db.from('posts').insert({author_id:currentUser.id,content,media_url:mediaUrl,media_type:mediaType}).select('id').single();
+      if (!error && window.nookPollMode) {
+        const pollResult=await db.from('polls').insert({post_id:createdPost.id}).select('id').single();
+        if (pollResult.error) { await db.from('posts').delete().eq('id',createdPost.id); button.disabled=false;button.textContent='Publish';return showToast(pollResult.error.message); }
+        const optionResult=await db.from('poll_options').insert(pollOptions.map((label,position)=>({poll_id:pollResult.data.id,label,position})));
+        if (optionResult.error) { await db.from('polls').delete().eq('id',pollResult.data.id);await db.from('posts').delete().eq('id',createdPost.id);button.disabled=false;button.textContent='Publish';return showToast(optionResult.error.message); }
+      }
       button.disabled = false;
       button.textContent = 'Publish';
       if (error) {
@@ -520,6 +558,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         return showToast(error.message);
       }
       document.getElementById('postText').value='';
+      ['pollOption1','pollOption2','pollOption3','pollOption4'].forEach(id=>document.getElementById(id).value='');
+      window.nookPollMode=false;document.getElementById('pollFields').hidden=true;
       document.getElementById('mediaFile').value='';
       document.getElementById('mediaChoice').textContent='';
       window.nookSelectedMediaFile=null;window.nookSelectedMediaType=null;
