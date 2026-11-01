@@ -1062,6 +1062,29 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const panel=document.getElementById('liveCommunity');
         if(panel){
           panel.hidden=false;
+          const hostFollow=document.getElementById('liveHostFollow');
+          if(hostFollow){
+            const {data:hostProfile}=await db.from('profiles').select('username,display_name,avatar_url').eq('id',stream.host_id).maybeSingle();
+            hostFollow.innerHTML='';
+            const hostInfo=document.createElement('div');hostInfo.className='info';
+            hostInfo.innerHTML='<b>Live with '+esc(hostProfile?.display_name||hostProfile?.username||'Nook member')+'</b><small>@'+esc(hostProfile?.username||'member')+'</small>';
+            hostFollow.appendChild(hostInfo);
+            if(stream.host_id!==currentUser.id){
+              const followButton=document.createElement('button');followButton.className='follow';
+              const isFollowing=currentFollowing.has(stream.host_id);
+              followButton.textContent=isFollowing?'Following':'Follow';
+              followButton.onclick=async()=>{
+                followButton.disabled=true;
+                await toggleFollow(stream.host_id);
+                const nowFollowing=currentFollowing.has(stream.host_id);
+                followButton.textContent=nowFollowing?'Following':'Follow';
+                followButton.disabled=false;
+              };
+              hostFollow.appendChild(followButton);
+            } else {
+              const ownLabel=document.createElement('small');ownLabel.className='muted';ownLabel.textContent='Your live stream';hostFollow.appendChild(ownLabel);
+            }
+          }
           const viewers=document.getElementById('liveViewerList');
           const viewerCount=document.getElementById('liveViewerCount');
           const chatMessages=document.getElementById('liveChatMessages');
@@ -1123,7 +1146,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     async function loadLive(){
       if(!currentUser)return;
       await disconnectActiveLive();
-      feed.innerHTML='<section class="profile-panel"><h2>🔴 Nook Live</h2><p class="muted">Go live with your camera and microphone, or join someone who is broadcasting.</p><form id="startLiveForm" class="comment-form"><input id="liveTitle" maxlength="100" placeholder="What are you going live about?" required><button class="primary">＋ Go Live</button></form><div id="liveStatus" class="muted" style="margin:10px 0"></div><div id="liveStage" class="live-stage"><div class="muted">Choose a live stream below or start your own.</div></div><div style="display:flex;gap:8px;margin-top:10px"><button id="leaveLive" class="secondary" hidden>Leave stream</button><button id="endLive" class="secondary" hidden>End broadcast</button></div></section><section class="profile-panel" id="liveCommunity" hidden><div class="live-chat-layout"><div class="live-viewers"><h3 style="margin:0 0 10px">Watching <small id="liveViewerCount" class="muted">0 watching</small></h3><div id="liveViewerList" class="live-viewer-list muted">Waiting for viewers…</div></div><div class="live-chat-box"><h3 style="margin:0 0 10px">Live chat</h3><div id="liveChatMessages" class="live-chat-messages"><div class="muted">Say hello!</div></div><form id="liveChatForm" class="live-chat-form"><input id="liveChatInput" maxlength="300" placeholder="Send a message…" autocomplete="off"><button class="primary">Send</button></form></div></div></section><section class="profile-panel"><h3>Live now</h3><div id="liveList" class="muted">Checking live streams…</div></section>';
+      feed.innerHTML='<section class="profile-panel"><h2>🔴 Nook Live</h2><p class="muted">Go live with your camera and microphone, or join someone who is broadcasting.</p><form id="startLiveForm" class="comment-form"><input id="liveTitle" maxlength="100" placeholder="What are you going live about?" required><button class="primary">＋ Go Live</button></form><div id="liveStatus" class="muted" style="margin:10px 0"></div><div id="liveStage" class="live-stage"><div class="muted">Choose a live stream below or start your own.</div></div><div style="display:flex;gap:8px;margin-top:10px"><button id="leaveLive" class="secondary" hidden>Leave stream</button><button id="endLive" class="secondary" hidden>End broadcast</button></div></section><section class="profile-panel" id="liveCommunity" hidden><div id="liveHostFollow" class="follow-person" style="margin-bottom:12px"></div><div class="live-chat-layout"><div class="live-viewers"><h3 style="margin:0 0 10px">Watching <small id="liveViewerCount" class="muted">0 watching</small></h3><div id="liveViewerList" class="live-viewer-list muted">Waiting for viewers…</div></div><div class="live-chat-box"><h3 style="margin:0 0 10px">Live chat</h3><div id="liveChatMessages" class="live-chat-messages"><div class="muted">Say hello!</div></div><form id="liveChatForm" class="live-chat-form"><input id="liveChatInput" maxlength="300" placeholder="Send a message…" autocomplete="off"><button class="primary">Send</button></form></div></div></section><section class="profile-panel"><h3>Live now</h3><div id="liveList" class="muted">Checking live streams…</div></section>';
       document.getElementById('startLiveForm').onsubmit=async e=>{e.preventDefault();if(activeLiveRoom)return showToast('Leave your current live stream first.');const title=document.getElementById('liveTitle').value.trim();if(!title)return;const roomName='nook-'+currentUser.id.slice(0,8)+'-'+crypto.randomUUID();const {data:stream,error}=await db.from('live_streams').insert({host_id:currentUser.id,title,room_name:roomName,status:'live'}).select().single();if(error)return showToast(error.message);await connectLiveStream(stream,'host');loadLiveList();};
       await loadLiveList();
     }
