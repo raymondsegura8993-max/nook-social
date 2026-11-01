@@ -871,7 +871,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!currentUser)return;
       activeConversationId=null;
       if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}
-      feed.innerHTML='<div class="dm-layout"><section class="dm-panel"><h3 style="margin:2px 0 10px">Your messages</h3><input class="dm-search" id="dmSearch" placeholder="Find someone by username"><div id="dmSearchResults"></div><div id="dmConversationList" class="dm-empty">Loading conversations…</div></section><section class="dm-panel dm-thread"><div class="dm-empty">Choose a conversation or find someone to message.</div></section></div>';
+      feed.innerHTML='<div class="dm-layout"><section class="dm-panel"><h3 style="margin:2px 0 10px">Your messages</h3><input class="dm-search" id="dmSearch" placeholder="Find someone by username"><div id="dmSearchResults"></div><div id="dmConversationList" class="dm-empty">Loading conversations…</div><h3 style="margin:15px 0 6px">Group chats</h3><button class="primary" id="createGroup" style="width:100%;margin-bottom:8px">＋ Create group</button><div id="groupConversationList" class="dm-empty">Loading groups…</div></section><section class="dm-panel dm-thread"><div class="dm-empty">Choose a conversation or find someone to message.</div></section></div>';
       const search=document.getElementById('dmSearch');let searchTimer=null;
       search.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(async()=>{
         const value=search.value.trim().replace(/^@/,'');const target=document.getElementById('dmSearchResults');
@@ -895,6 +895,28 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       (messagesRes.data||[]).forEach(m=>{if(!latest[m.conversation_id])latest[m.conversation_id]=m;});
       list.innerHTML='';
       conversations.forEach(conv=>{const otherId=conv.user_one===currentUser.id?conv.user_two:conv.user_one,person=people[otherId]||{username:'Nook member'};const name=person.display_name||person.username||'Nook member',last=latest[conv.id];const row=document.createElement('div');row.className='dm-conversation';row.innerHTML='<div class="avatar small">'+(person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="">':esc(initials(name)))+'</div><div class="info"><b>'+esc(name)+'</b><small>'+esc(last?.content||'Start a conversation')+'</small></div>';row.onclick=()=>openConversation(conv.id,person);list.appendChild(row);});
+      const groupList=document.getElementById('groupConversationList');
+      const {data:members}=await db.from('group_conversation_members').select('group_id').eq('user_id',currentUser.id);
+      const groupIds=(members||[]).map(x=>x.group_id);
+      if(!groupIds.length)groupList.textContent='No group chats yet.';
+      else {const {data:groups,error:groupError}=await db.from('group_conversations').select('id,title,created_at').in('id',groupIds).order('created_at',{ascending:false});groupList.innerHTML='';if(groupError)groupList.textContent='Could not load groups.';else (groups||[]).forEach(group=>{const row=document.createElement('div');row.className='dm-conversation';row.innerHTML='<div class="avatar small">G</div><div class="info"><b>'+esc(group.title)+'</b><small>Group conversation</small></div>';row.onclick=()=>openGroupConversation(group.id,group.title);groupList.appendChild(row);});}
+      document.getElementById('createGroup').onclick=async()=>{
+        const title=prompt('Name your group chat:');if(!title||title.trim().length<1)return;
+        const usernames=prompt('Enter usernames to add, separated by commas:');if(!usernames)return;
+        const names=[...new Set(usernames.split(',').map(x=>x.trim().replace(/^@/, '').toLowerCase()).filter(Boolean))];
+        if(!names.length)return;
+        const {data:peopleToAdd,error:peopleError}=await db.from('profiles').select('id,username').in('username',names);
+        if(peopleError)return showToast(peopleError.message);
+        const found=new Set((peopleToAdd||[]).map(p=>p.username));
+        const missing=names.filter(n=>!found.has(n));
+        if(missing.length)return showToast('Usernames not found: '+missing.join(', '));
+        const created=await db.from('group_conversations').insert({title:title.trim().slice(0,80),created_by:currentUser.id}).select('id').single();
+        if(created.error)return showToast(created.error.message);
+        const participants=[currentUser.id,...peopleToAdd.map(p=>p.id)];
+        const added=await db.from('group_conversation_members').insert(participants.map((user_id,i)=>({group_id:created.data.id,user_id,role:i===0?'owner':'member'})));
+        if(added.error)return showToast(added.error.message);
+        showToast('Group chat created!');await loadMessages();await openGroupConversation(created.data.id,title.trim());
+      };
     }
     async function openConversation(conversationId,person) {
       activeConversationId=conversationId;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}
@@ -917,6 +939,18 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       messageChannel=db.channel('nook-dm-'+conversationId).on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages()).subscribe();
       const attachButton=document.getElementById('dmAttach'),fileInput=document.getElementById('dmFile');attachButton.onclick=()=>fileInput.click();
       document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim(),file=fileInput.files?.[0];if(!content&&!file)return;if(file&&file.size>25*1024*1024)return showToast('Message attachments must be 25 MB or smaller.');const send=event.currentTarget.querySelector('button[type="submit"]');send.disabled=true;let mediaUrl=null,mediaType=null,uploadedPath=null;if(file){mediaType=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':null;if(!mediaType){send.disabled=false;return showToast('Choose an image, video, or audio file.');}const ext=file.name.includes('.')?file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,''):'bin';uploadedPath=currentUser.id+'/message-'+Date.now()+'.'+ext;const upload=await db.storage.from('nook-media').upload(uploadedPath,file,{contentType:file.type,upsert:false});if(upload.error){send.disabled=false;return showToast(upload.error.message);}mediaUrl=db.storage.from('nook-media').getPublicUrl(uploadedPath).data.publicUrl;}const {error}=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content:content||'Sent an attachment',media_url:mediaUrl,media_type:mediaType});send.disabled=false;if(error){if(uploadedPath)await db.storage.from('nook-media').remove([uploadedPath]);showToast(error.message);return;}input.value='';fileInput.value='';await refreshMessages();};
+    }
+
+    async function openGroupConversation(groupId,title) {
+      activeConversationId=groupId;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}
+      const layout=feed.querySelector('.dm-layout');if(!layout)return;
+      const thread=layout.querySelector('.dm-thread');
+      thread.innerHTML='<div class="dm-thread-head">'+esc(title)+' <span class="muted" style="font-weight:400">Group chat</span></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a group message…"></textarea><button class="primary" type="submit">Send</button></form>';
+      const messageBox=document.getElementById('dmMessages');
+      async function refresh(){if(activeConversationId!==groupId)return;const {data:messages,error}=await db.from('direct_messages').select('id,sender_id,content,media_url,media_type,created_at').eq('group_id',groupId).order('created_at',{ascending:true}).limit(200);if(error){messageBox.textContent='Could not load group messages: '+error.message;return;}messageBox.innerHTML='';(messages||[]).forEach(m=>{const bubble=document.createElement('div');bubble.className='dm-bubble'+(m.sender_id===currentUser.id?' mine':'');bubble.innerHTML=esc(m.content)+(m.media_url?(m.media_type==='video'?'<video src="'+esc(m.media_url)+'" controls style="max-width:220px"></video>':m.media_type==='audio'?'<audio src="'+esc(m.media_url)+'" controls></audio>':'<img src="'+esc(m.media_url)+'" style="max-width:220px;border-radius:8px">'):'')+'<small>'+esc(timeAgo(m.created_at))+'</small>';messageBox.appendChild(bubble);});messageBox.scrollTop=messageBox.scrollHeight;}
+      await refresh();
+      messageChannel=db.channel('nook-group-'+groupId).on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'group_id=eq.'+groupId},refresh).subscribe();
+      document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim();if(!content)return;const send=event.currentTarget.querySelector('button');send.disabled=true;const {error}=await db.from('direct_messages').insert({group_id:groupId,sender_id:currentUser.id,content});send.disabled=false;if(error)return showToast(error.message);input.value='';await refresh();};
     }
 
     async function loadSettings() {
