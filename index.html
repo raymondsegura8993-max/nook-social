@@ -1082,7 +1082,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
         await room.connect(data.server_url,data.participant_token);
         if(role==='host'){
-          const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1},video:{facingMode:'user'}});
+          const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1},video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}});
           const microphoneTrack=tracks.find(track=>track.kind==='audio')||null;
           activeLiveInputTrack=microphoneTrack;
           activeLiveAudioTrack=microphoneTrack;
@@ -1129,7 +1129,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             activeLiveVodChunks=[];
             activeLiveVodStream=stream;
             activeLiveVodPromise=new Promise(resolve=>{
-              const recorder=mimeType?new MediaRecorder(recordStream,{mimeType}):new MediaRecorder(recordStream);
+              const vodOptions={videoBitsPerSecond:6000000,audioBitsPerSecond:192000};
+              if(mimeType)vodOptions.mimeType=mimeType;
+              let recorder;
+              try{recorder=new MediaRecorder(recordStream,vodOptions);}
+              catch(vodQualityError){const fallbackOptions={};if(mimeType)fallbackOptions.mimeType=mimeType;recorder=Object.keys(fallbackOptions).length?new MediaRecorder(recordStream,fallbackOptions):new MediaRecorder(recordStream);}
               activeLiveRecorder=recorder;
               recorder.ondataavailable=event=>{if(event.data&&event.data.size)activeLiveVodChunks.push(event.data);};
               recorder.onstop=async()=>{
