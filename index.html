@@ -1035,7 +1035,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!stage)return;
       stage.innerHTML='<div class="muted">Connecting to live stream…</div>';
       const {data,error}=await db.functions.invoke('nook-live-token',{body:{stream_id:stream.id,role}});
-      if(error||!data?.participant_token){stage.innerHTML='<div class="muted">'+esc(data?.error||error?.message||'Could not get a stream token.')+'</div>';return;}
+      if(error||!data?.participant_token){stage.innerHTML='<div class="muted">'+esc(data?.error||error?.message||'Could not get a stream token.')+'</div>';if(role==='host'){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}return;}
       try{
         const LK=await import('https://esm.sh/livekit-client@2.23.0');
         const room=new LK.Room({adaptiveStream:true,dynacast:true});activeLiveRoom=room;activeLiveStreamId=stream.id;
@@ -1050,7 +1050,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         if(leave){leave.hidden=false;leave.onclick=async()=>{await room.disconnect();activeLiveRoom=null;activeLiveStreamId=null;stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;};}
         const end=document.getElementById('endLive');
         if(end){end.hidden=role!=='host';end.onclick=async()=>{const result=await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);if(result.error)return showToast(result.error.message);await room.disconnect();activeLiveRoom=null;activeLiveStreamId=null;stage.innerHTML='<div class="muted">Your live stream has ended.</div>';status.textContent='';end.hidden=true;document.getElementById('leaveLive').hidden=true;loadLive();};}
-      }catch(e){stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}}
+      }catch(e){stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}if(role==='host'){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}}
     }
     async function loadLive(){
       if(!currentUser)return;
