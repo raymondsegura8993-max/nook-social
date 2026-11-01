@@ -392,6 +392,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         block.onclick=async()=>{if(!confirm('Block @'+handle+'? Their posts will be hidden from your feed.'))return;const result=await db.from('user_blocks').insert({blocker_id:currentUser.id,blocked_id:profile.id});if(result.error&&result.error.code!=='23505')return showToast(result.error.message);card.remove();showToast('User blocked.');};
         safety.append(report,block);card.querySelector('.post-actions').after(safety);
       }
+      if(post.author_id===currentUser.id){
+        const pin=document.createElement('button');pin.className='action pin-post';pin.textContent=currentProfile?.pinned_post_id===post.id?'📌 Pinned':'📌 Pin';
+        pin.onclick=async()=>{const result=await db.from('profiles').update({pinned_post_id:post.id}).eq('id',currentUser.id);if(result.error)return showToast(result.error.message);currentProfile.pinned_post_id=post.id;showToast('Post pinned to your profile.');if(currentTab==='Profile')showProfile();};
+        card.querySelector('.post-actions').appendChild(pin);
+      }
       const followButton = card.querySelector('.follow-inline');
       if (followButton) followButton.onclick = () => toggleFollow(profile.id);
       const messageButton=card.querySelector('.follow-message');
@@ -703,10 +708,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       ]);
       if (followersRes.error || followingRes.error) return showToast('Could not load your follower counts.');
       const followerCount=(followersRes.data||[]).length, followingCount=(followingRes.data||[]).length;
-      feed.innerHTML = '<section class="profile-panel"><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><div class="follow-stats"><button class="follow-stat" id="showFollowers"><b>'+followerCount+'</b> Followers</button><button class="follow-stat" id="showFollowing"><b>'+followingCount+'</b> Following</button></div><button class="secondary" id="changeAvatar">Change profile picture</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><h3>Your posts</h3>';
+      feed.innerHTML = '<section class="profile-panel"><div id="profileCover" style="height:115px;border-radius:13px;margin-bottom:15px;background:linear-gradient(120deg,#6d35b5,#241633);background-size:cover;background-position:center;'+(currentProfile.cover_url?'background-image:url('+esc(currentProfile.cover_url)+')':'')+'"></div><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><div class="follow-stats"><button class="follow-stat" id="showFollowers"><b>'+followerCount+'</b> Followers</button><button class="follow-stat" id="showFollowing"><b>'+followingCount+'</b> Following</button></div><button class="secondary" id="changeAvatar">Change profile picture</button> <button class="secondary" id="changeCover">Change banner</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><select id="profileTheme" class="secondary" style="margin-top:10px"><option value="purple">Purple theme</option><option value="midnight">Midnight theme</option><option value="ocean">Ocean theme</option><option value="sunset">Sunset theme</option></select><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden><input id="coverFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><div id="creatorAnalytics" class="profile-panel"><b>Creator analytics</b><p class="muted">Loading your stats…</p></div><h3>Your posts</h3>';
       document.getElementById('showFollowers').onclick=()=>openFollowList('followers');
       document.getElementById('showFollowing').onclick=()=>openFollowList('following');
       document.getElementById('changeAvatar').onclick = () => document.getElementById('avatarFile').click();
+      const theme=document.getElementById('profileTheme');theme.value=currentProfile.profile_theme||'purple';
+      theme.onchange=async()=>{const result=await db.from('profiles').update({profile_theme:theme.value}).eq('id',currentUser.id);if(result.error)return showToast(result.error.message);currentProfile.profile_theme=theme.value;showToast('Profile theme updated.');};
+      document.getElementById('changeCover').onclick=()=>document.getElementById('coverFile').click();
+      document.getElementById('coverFile').onchange=async event=>{const file=event.target.files?.[0];if(!file)return;if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))return showToast('Choose a JPG, PNG, WEBP, or GIF banner.');if(file.size>5*1024*1024)return showToast('Banner must be 5 MB or smaller.');const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1],path=currentUser.id+'/cover-'+Date.now()+'.'+ext;const upload=await db.storage.from('nook-avatars').upload(path,file,{contentType:file.type,upsert:false});if(upload.error)return showToast(upload.error.message);const url=db.storage.from('nook-avatars').getPublicUrl(path).data.publicUrl;const result=await db.from('profiles').update({cover_url:url}).eq('id',currentUser.id).select().single();if(result.error)return showToast(result.error.message);currentProfile=result.data;showToast('Banner updated!');showProfile();};
       document.getElementById('avatarFile').onchange = async event => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -738,6 +747,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const {data:posts,error} = await db.from('posts').select('id,author_id,content,media_url,media_type,created_at').eq('author_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
       if (error) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed">'+esc(error.message)+'</div>'); return; }
       if (!posts?.length) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed muted">Your posts will appear here.</div>'); return; }
+      if(currentProfile.pinned_post_id)posts.sort((a,b)=>a.id===currentProfile.pinned_post_id?-1:b.id===currentProfile.pinned_post_id?1:0);
       const ids=posts.map(p=>p.id);
       const [likesRes,myLikesRes,commentsRes,savedRes]=await Promise.all([
         db.from('post_likes').select('post_id').in('post_id',ids),
@@ -748,6 +758,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const counts={},cc={};(likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);(commentsRes.data||[]).forEach(x=>cc[x.post_id]=(cc[x.post_id]||0)+1);
       const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
       currentSavedPostIds=new Set((savedRes.data||[]).map(x=>x.post_id));
+      const totalLikes=(likesRes.data||[]).length;
+      document.getElementById('creatorAnalytics').innerHTML='<b>Creator analytics</b><div class="follow-stats"><span><b>'+posts.length+'</b> Posts</span><span><b>'+totalLikes+'</b> Likes received</span><span><b>'+followerCount+'</b> Followers</span></div>';
       posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function loadDiscoverPeople() {
