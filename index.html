@@ -323,7 +323,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       showToast(wasSaved?'Post removed from Saved':'Post saved!');
       if(wasSaved&&currentTab==='Saved'&&card){card.remove();if(!feed.querySelector('.post'))feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet.</div>';}
     }
-    function renderPost(post, profile, liked, likeCount, commentCount, saved=false)
+    function renderPost(post, profile, liked, likeCount, commentCount, saved=false) {
       const card = document.createElement('article');
       card.className = 'post';
       const name = profile?.display_name || profile?.username || 'Nook member';
