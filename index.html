@@ -322,6 +322,26 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       showToast(wasSaved?'Post removed from Saved':'Post saved!');
       if(wasSaved&&currentTab==='Saved'&&card){card.remove();if(!feed.querySelector('.post'))feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet.</div>';}
     }
+    async function togglePostReactions(postId,card) {
+      let panel=card.querySelector('.reaction-panel');
+      if(panel){panel.remove();return;}
+      panel=document.createElement('div');panel.className='reaction-panel';panel.style.cssText='display:flex;gap:7px;flex-wrap:wrap;padding:10px 0';
+      const emojis=['❤️','😂','🔥','👏','😮','💜'];
+      const [allRes,mineRes]=await Promise.all([
+        db.from('post_reactions').select('reaction').eq('post_id',postId),
+        db.from('post_reactions').select('reaction').eq('post_id',postId).eq('user_id',currentUser.id).maybeSingle()
+      ]);
+      if(allRes.error||mineRes.error)return showToast('Could not load reactions.');
+      const counts={};(allRes.data||[]).forEach(row=>counts[row.reaction]=(counts[row.reaction]||0)+1);
+      const mine=mineRes.data?.reaction;
+      emojis.forEach(emoji=>{
+        const button=document.createElement('button');button.className='chip';button.type='button';button.textContent=emoji+' '+(counts[emoji]||0);if(mine===emoji)button.style.borderColor='#b77aff';
+        button.onclick=async()=>{button.disabled=true;if(mine===emoji){const result=await db.from('post_reactions').delete().eq('post_id',postId).eq('user_id',currentUser.id);if(result.error)return showToast(result.error.message);}else{if(mine){const removed=await db.from('post_reactions').delete().eq('post_id',postId).eq('user_id',currentUser.id);if(removed.error)return showToast(removed.error.message);}const result=await db.from('post_reactions').insert({post_id:postId,user_id:currentUser.id,reaction:emoji});if(result.error)return showToast(result.error.message);}panel.remove();await togglePostReactions(postId,card);};
+        panel.appendChild(button);
+      });
+      card.querySelector('.post-actions').after(panel);
+    }
+
     async function loadPoll(postId,card) {
       const {data:poll,error}=await db.from('polls').select('id,ends_at').eq('post_id',postId).maybeSingle();
       if(error||!poll)return;
@@ -355,12 +375,15 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action react">☺ Reactions</button><button class="action repost">↻ Repost</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
       card.querySelector('.post-content').textContent = post.content || '';
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
       if (post.media_url && post.media_type === 'video') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
       loadPoll(post.id,card);
+      const editButton=document.createElement('button');editButton.className='action edit-post';editButton.textContent='✎ Edit';if(post.author_id===currentUser.id){card.querySelector('.post-actions').appendChild(editButton);editButton.onclick=async()=>{const updated=prompt('Edit your post:',post.content||'');if(updated===null)return;const value=updated.trim();if(!value)return showToast('A post cannot be empty.');if(value.length>2000)return showToast('Posts can be up to 2,000 characters.');const result=await db.from('posts').update({content:value,edited_at:new Date().toISOString()}).eq('id',post.id);if(result.error)return showToast(result.error.message);post.content=value;card.querySelector('.post-content').textContent=value;showToast('Post updated!');};}
+      card.querySelector('.repost').onclick=async()=>{if(!confirm('Repost this to your profile?'))return;const result=await db.from('posts').insert({author_id:currentUser.id,content:post.content||'Shared a post',media_url:post.media_url||null,media_type:post.media_type||null,repost_of:post.id});if(result.error)return showToast(result.error.message);showToast('Reposted to your profile!');if(currentTab==='Home')loadFeed();if(currentTab==='Profile')showProfile();};
+      card.querySelector('.react').onclick=()=>togglePostReactions(post.id,card);
       const followButton = card.querySelector('.follow-inline');
       if (followButton) followButton.onclick = () => toggleFollow(profile.id);
       const messageButton=card.querySelector('.follow-message');
