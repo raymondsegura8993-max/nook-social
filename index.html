@@ -62,6 +62,7 @@ body.auth-required .auth-screen{display:grid}
 .follow-person small{color:var(--muted)}
 
 .dm-layout{display:grid;grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr);gap:14px;min-height:420px}.dm-panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px;min-width:0}.dm-search{width:100%;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white;margin-bottom:10px}.dm-person,.dm-conversation{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}.dm-person:hover,.dm-conversation:hover{background:#211a2c}.dm-person .info,.dm-conversation .info{min-width:0;flex:1}.dm-person b,.dm-conversation b{display:block}.dm-person small,.dm-conversation small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-thread{display:flex;flex-direction:column;min-height:420px}.dm-thread-head{font-weight:750;padding:5px 4px 12px;border-bottom:1px solid var(--line)}.dm-messages{flex:1;min-height:290px;max-height:55vh;overflow:auto;padding:12px 2px;display:flex;flex-direction:column;gap:9px}.dm-bubble{max-width:82%;padding:9px 12px;border-radius:14px;background:#282233;overflow-wrap:anywhere;align-self:flex-start}.dm-bubble.mine{background:#58318b;align-self:flex-end}.dm-bubble small{display:block;opacity:.7;font-size:10px;margin-top:3px}.dm-compose{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px}.dm-compose textarea{flex:1;min-width:0;min-height:42px;max-height:110px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white}.dm-empty{color:var(--muted);font-size:13px;padding:18px 4px}@media(max-width:680px){.dm-layout{grid-template-columns:1fr}.dm-thread{min-height:360px}.dm-messages{min-height:220px}}
+ .live-stage{min-height:220px;background:#09070d;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px}.live-stage video{background:#000}
 </style>
 </head>
 <body>
@@ -72,7 +73,7 @@ body.auth-required .auth-screen{display:grid}
 <button class="active" data-tab="Home"><span class="ico">⌂</span><span class="navlabel">Home</span></button>
 <button data-tab="Explore"><span class="ico">⌕</span><span class="navlabel">Explore</span></button>
 <button data-tab="Videos"><span class="ico">▷</span><span class="navlabel">Videos</span></button>
-<button data-tab="Communities"><span class="ico">◉</span><span class="navlabel">Communities</span></button>
+<button data-tab="Communities"><span class="ico">◉</span><span class="navlabel">Communities</span></button><button data-tab="Live"><span class="ico">●</span><span class="navlabel">Live</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button><button data-tab="Settings"><span class="ico">⚙</span><span class="navlabel">Settings</span></button>
@@ -1026,6 +1027,47 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
 
     async function loadAdminDashboard(){if(!currentUser)return;const {data:admin}=await db.from('nook_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle();if(!admin)return showToast('Admin access required.');feed.innerHTML='<section class="profile-panel"><h2>Nook Admin Dashboard</h2><p>Review user reports and manage verified badges.</p><div id="adminReports">Loading reports…</div></section>';const target=document.getElementById('adminReports');const {data:reports,error}=await db.from('user_reports').select('id,reason,created_at').order('created_at',{ascending:false}).limit(100);if(error){target.textContent=error.message;return;}if(!reports?.length)target.textContent='No reports to review.';else{target.innerHTML='';reports.forEach(r=>{const row=document.createElement('div');row.className='notification-item';row.textContent=r.reason+' · '+new Date(r.created_at).toLocaleString();target.appendChild(row);});}const form=document.createElement('form');form.className='comment-form';form.innerHTML='<input placeholder="Username to verify"><button class="primary">Verify</button>';form.onsubmit=async e=>{e.preventDefault();const username=form.querySelector('input').value.trim().replace(/^@/,'').toLowerCase();const {data:user}=await db.from('profiles').select('id').eq('username',username).maybeSingle();if(!user)return showToast('User not found.');const result=await db.from('verified_profiles').upsert({user_id:user.id},{onConflict:'user_id'});if(result.error)return showToast(result.error.message);showToast('Verified badge added.');};target.appendChild(form);}
+    let activeLiveRoom = null;
+    let activeLiveStreamId = null;
+    async function connectLiveStream(stream, role) {
+      if (activeLiveRoom) { await activeLiveRoom.disconnect(); activeLiveRoom=null; }
+      const stage=document.getElementById('liveStage'), status=document.getElementById('liveStatus');
+      if(!stage)return;
+      stage.innerHTML='<div class="muted">Connecting to live stream…</div>';
+      const {data,error}=await db.functions.invoke('nook-live-token',{body:{stream_id:stream.id,role}});
+      if(error||!data?.participant_token){stage.innerHTML='<div class="muted">'+esc(data?.error||error?.message||'Could not get a stream token.')+'</div>';return;}
+      try{
+        const LK=await import('https://esm.sh/livekit-client@2.23.0');
+        const room=new LK.Room({adaptiveStream:true,dynacast:true});activeLiveRoom=room;activeLiveStreamId=stream.id;
+        const attachTrack=track=>{const el=track.attach();if(el.tagName==='VIDEO'){el.autoplay=true;el.playsInline=true;el.style.width='100%';el.style.maxHeight='480px';el.style.objectFit='contain';el.style.borderRadius='14px';}stage.appendChild(el);};
+        room.on(LK.RoomEvent.TrackSubscribed,track=>attachTrack(track));
+        room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
+        room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
+        await room.connect(data.server_url,data.participant_token);
+        if(role==='host'){const tracks=await LK.createLocalTracks({audio:true,video:{facingMode:'user'}});for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}status.textContent='You are live. Keep this page open while broadcasting.';}
+        else status.textContent='Watching live: '+stream.title;
+        const leave=document.getElementById('leaveLive');
+        if(leave){leave.hidden=false;leave.onclick=async()=>{await room.disconnect();activeLiveRoom=null;activeLiveStreamId=null;stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;};}
+        const end=document.getElementById('endLive');
+        if(end){end.hidden=role!=='host';end.onclick=async()=>{const result=await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);if(result.error)return showToast(result.error.message);await room.disconnect();activeLiveRoom=null;activeLiveStreamId=null;stage.innerHTML='<div class="muted">Your live stream has ended.</div>';status.textContent='';end.hidden=true;document.getElementById('leaveLive').hidden=true;loadLive();};}
+      }catch(e){stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}}
+    }
+    async function loadLive(){
+      if(!currentUser)return;
+      feed.innerHTML='<section class="profile-panel"><h2>🔴 Nook Live</h2><p class="muted">Go live with your camera and microphone, or join someone who is broadcasting.</p><form id="startLiveForm" class="comment-form"><input id="liveTitle" maxlength="100" placeholder="What are you going live about?" required><button class="primary">＋ Go Live</button></form><div id="liveStatus" class="muted" style="margin:10px 0"></div><div id="liveStage" class="live-stage"><div class="muted">Choose a live stream below or start your own.</div></div><div style="display:flex;gap:8px;margin-top:10px"><button id="leaveLive" class="secondary" hidden>Leave stream</button><button id="endLive" class="secondary" hidden>End broadcast</button></div></section><section class="profile-panel"><h3>Live now</h3><div id="liveList" class="muted">Checking live streams…</div></section>';
+      document.getElementById('startLiveForm').onsubmit=async e=>{e.preventDefault();if(activeLiveRoom)return showToast('Leave your current live stream first.');const title=document.getElementById('liveTitle').value.trim();if(!title)return;const roomName='nook-'+currentUser.id.slice(0,8)+'-'+crypto.randomUUID();const {data:stream,error}=await db.from('live_streams').insert({host_id:currentUser.id,title,room_name:roomName,status:'live'}).select().single();if(error)return showToast(error.message);await connectLiveStream(stream,'host');loadLiveList();};
+      await loadLiveList();
+    }
+    async function loadLiveList(){
+      const target=document.getElementById('liveList');if(!target)return;
+      const {data:streams,error}=await db.from('live_streams').select('id,host_id,title,room_name,created_at').eq('status','live').order('created_at',{ascending:false}).limit(30);
+      if(error){target.textContent='Could not load live streams: '+error.message;return;}
+      if(!streams?.length){target.textContent='Nobody is live right now.';return;}
+      const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',streams.map(x=>x.host_id));
+      const byId=Object.fromEntries((profiles||[]).map(x=>[x.id,x]));target.innerHTML='';
+      streams.forEach(stream=>{const person=byId[stream.host_id]||{username:'member'};const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';row.style.padding='12px 0';const info=document.createElement('div');info.innerHTML='<b>🔴 '+esc(stream.title)+'</b><small class="muted" style="display:block">by @'+esc(person.username)+'</small>';const join=document.createElement('button');join.className='follow';join.textContent=stream.host_id===currentUser.id?'Reconnect':'Watch';join.onclick=()=>connectLiveStream(stream,stream.host_id===currentUser.id?'host':'viewer');row.append(info,join);target.appendChild(row);});
+    }
+
     async function loadCommunities() {
       if(!currentUser)return;
       feed.innerHTML='<section class="profile-panel"><h2>Communities</h2><p>Find people who share your interests.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="communityName" class="dm-search" style="flex:1;min-width:150px;margin:0" maxlength="60" placeholder="Community name"><button class="primary" id="createCommunity">Create</button></div><textarea id="communityDescription" placeholder="What is this community about?" style="width:100%;margin-top:9px;min-height:65px;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white"></textarea></section><div id="communityList" class="profile-panel">Loading communities…</div>';
@@ -1172,6 +1214,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Explore') return loadExplore();
       if (tab==='Videos') return loadFilteredPosts('video');
       if (tab==='Communities') return loadCommunities();
+      if (tab==='Live') return loadLive();
       feed.innerHTML='<div class="empty-feed muted">This section is not available yet.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
