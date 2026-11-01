@@ -1082,7 +1082,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
         await room.connect(data.server_url,data.participant_token);
         if(role==='host'){
-          const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1},video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}});
+          const tracks=await LK.createLocalTracks({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,sampleRate:48000,channelCount:1},video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}});
           const microphoneTrack=tracks.find(track=>track.kind==='audio')||null;
           activeLiveInputTrack=microphoneTrack;
           activeLiveAudioTrack=microphoneTrack;
@@ -1090,14 +1090,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             try{
               activeLiveAudioContext=new AudioContext({latencyHint:'interactive'});
               const source=activeLiveAudioContext.createMediaStreamSource(new MediaStream([microphoneTrack.mediaStreamTrack]));
-              const highPass=activeLiveAudioContext.createBiquadFilter();highPass.type='highpass';highPass.frequency.value=80;highPass.Q.value=0.707;
+              const highPass=activeLiveAudioContext.createBiquadFilter();highPass.type='highpass';highPass.frequency.value=65;highPass.Q.value=0.707;
               const humCut=activeLiveAudioContext.createBiquadFilter();humCut.type='notch';humCut.frequency.value=60;humCut.Q.value=12;
               const warmthControl=activeLiveAudioContext.createBiquadFilter();warmthControl.type='peaking';warmthControl.frequency.value=250;warmthControl.Q.value=1;warmthControl.gain.value=-2;
-              const clarity=activeLiveAudioContext.createBiquadFilter();clarity.type='peaking';clarity.frequency.value=3200;clarity.Q.value=0.85;clarity.gain.value=3;
-              const air=activeLiveAudioContext.createBiquadFilter();air.type='highshelf';air.frequency.value=8500;air.gain.value=1.2;
-              const compressor=activeLiveAudioContext.createDynamicsCompressor();compressor.threshold.value=-24;compressor.knee.value=18;compressor.ratio.value=3;compressor.attack.value=0.006;compressor.release.value=0.16;
-              const makeup=activeLiveAudioContext.createGain();makeup.gain.value=1.12;
-              const limiter=activeLiveAudioContext.createDynamicsCompressor();limiter.threshold.value=-3;limiter.knee.value=0;limiter.ratio.value=12;limiter.attack.value=0.003;limiter.release.value=0.12;
+              const clarity=activeLiveAudioContext.createBiquadFilter();clarity.type='peaking';clarity.frequency.value=3200;clarity.Q.value=0.85;clarity.gain.value=1.5;
+              const air=activeLiveAudioContext.createBiquadFilter();air.type='highshelf';air.frequency.value=8500;air.gain.value=0.6;
+              const compressor=activeLiveAudioContext.createDynamicsCompressor();compressor.threshold.value=-18;compressor.knee.value=24;compressor.ratio.value=2;compressor.attack.value=0.012;compressor.release.value=0.24;
+              const makeup=activeLiveAudioContext.createGain();makeup.gain.value=1.05;
+              const limiter=activeLiveAudioContext.createDynamicsCompressor();limiter.threshold.value=-1;limiter.knee.value=0;limiter.ratio.value=8;limiter.attack.value=0.005;limiter.release.value=0.18;
               const output=activeLiveAudioContext.createMediaStreamDestination();
               source.connect(highPass);highPass.connect(humCut);humCut.connect(warmthControl);warmthControl.connect(clarity);clarity.connect(air);air.connect(compressor);compressor.connect(makeup);makeup.connect(limiter);limiter.connect(output);
               const processedTrack=new LK.LocalAudioTrack(output.stream.getAudioTracks()[0]);
@@ -1115,7 +1115,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             audioBox.appendChild(mute);
             for(const [label,key] of [['Noise reduction','noiseSuppression'],['Echo cancellation','echoCancellation'],['Automatic volume','autoGainControl']]){
               const wrap=document.createElement('label');wrap.style.cssText='display:flex;gap:5px;align-items:center;font-size:13px';
-              const check=document.createElement('input');check.type='checkbox';check.checked=true;check.style.width='17px';
+              const check=document.createElement('input');check.type='checkbox';check.checked=false;check.style.width='17px';
               check.onchange=async()=>{check.disabled=true;try{await activeLiveInputTrack.mediaStreamTrack.applyConstraints({[key]:check.checked});}catch(e){check.checked=!check.checked;showToast(label+' is not supported on this device.');}finally{check.disabled=false;}};
               wrap.append(check,document.createTextNode(label));audioBox.appendChild(wrap);
             }
