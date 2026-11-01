@@ -92,7 +92,7 @@ body.auth-required .auth-screen{display:grid}
 <div class="posthead"><div class="avatar">N</div><div><div class="postname">Nook <span class="muted">✦</span></div><div class="handle">@nook · Welcome</div></div><span class="posttime">Pinned</span><button class="dots">···</button></div>
 <p>Welcome to Nook — a place to share what you love, discover new things, and find your people. ✨</p>
 <div class="post-media"><div><strong>Find your corner.</strong><span>Share ideas. Meet people. Be yourself.</span></div></div>
-<div class="post-actions"><button class="action like">♡ <span>Like</span></button><button class="action">▢ Comment</button><button class="action">↗ Share</button><button class="action save">▤ Save</button></div>
+<div class="post-actions"><button class="action like">♡ <span>Like</span></button><button class="action">▢ Comment</button><button class="action">↗ Share</button></div>
 </article>
 <article class="post">
 <div class="posthead"><div class="avatar" style="background:linear-gradient(140deg,#9de6d1,#3a8f83)">C</div><div><div class="postname">Creator Corner</div><div class="handle">@creatorcorner · 2h</div></div><span class="posttime">•••</span></div>
@@ -322,7 +322,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       showToast(wasSaved?'Post removed from Saved':'Post saved!');
       if(wasSaved&&currentTab==='Saved'&&card){card.remove();if(!feed.querySelector('.post'))feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet.</div>';}
     }
-    function renderPost(post, profile, liked, likeCount, commentCount, saved=false) {
+    function renderPost(post, profile, liked, likeCount, commentCount, saved=false, container=feed) {
       const card = document.createElement('article');
       card.className = 'post';
       const name = profile?.display_name || profile?.username || 'Nook member';
@@ -361,7 +361,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         try { await navigator.clipboard.writeText(link); showToast('Post link copied!'); }
         catch { showToast(link); }
       };
-      feed.appendChild(card);
+      container.appendChild(card);
     }
     async function loadPostComments(postId,container) {
       container.innerHTML='<div class="muted">Loading comments…</div>';
@@ -836,8 +836,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             const target=document.createElement('div');results.appendChild(target);
             const originalFeed=feed;const originalCurrentTab=currentTab;
             postsRes.data.forEach(p=>{
-              const holder=document.createElement('div');target.appendChild(holder);
-              const savedFeed=feed;feed=holder;renderPost(p,byId[p.author_id],false,0,0,false);feed=savedFeed;
+              renderPost(p,byId[p.author_id],false,0,0,false,target);
             });
           }
         },250);
