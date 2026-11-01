@@ -1063,6 +1063,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let activeLiveVodStream = null;
     let activeLiveVodThumbnailPromise = null;
     async function captureLiveVodThumbnail(tracks){
+      await new Promise(resolve=>setTimeout(resolve,5000));
       const videoTrack=tracks.find(track=>track.kind==='video');
       if(!videoTrack?.mediaStreamTrack)return null;
       const video=document.createElement('video');
