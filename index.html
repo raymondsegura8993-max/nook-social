@@ -285,7 +285,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     const initials = value => (value || 'N').trim().slice(0,1).toUpperCase();
     function profileLinksMarkup(links) {
       const allowed=['YouTube','Twitch','TikTok','Discord','Website'];
-      const clean=(Array.isArray(links)?links:[]).filter(item=>allowed.includes(item?.label)&&typeof item.url==='string'&&/^https?:\\/\\//i.test(item.url));
+      const clean=(Array.isArray(links)?links:[]).filter(item=>allowed.includes(item?.label)&&typeof item.url==='string'&&/^https?:\/\/i.test(item.url));
       if(!clean.length)return '<div class="profile-links-empty">No links added yet.</div>';
       return '<div class="profile-links">'+clean.map(item=>'<a class="profile-link" href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">↗ '+esc(item.label)+'</a>').join('')+'</div>';
     }
