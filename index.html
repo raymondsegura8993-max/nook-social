@@ -1088,13 +1088,18 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           activeLiveAudioTrack=microphoneTrack;
           if(microphoneTrack&&window.AudioContext){
             try{
-              activeLiveAudioContext=new AudioContext();
+              activeLiveAudioContext=new AudioContext({latencyHint:'interactive'});
               const source=activeLiveAudioContext.createMediaStreamSource(new MediaStream([microphoneTrack.mediaStreamTrack]));
-              const highPass=activeLiveAudioContext.createBiquadFilter();highPass.type='highpass';highPass.frequency.value=85;
-              const clarity=activeLiveAudioContext.createBiquadFilter();clarity.type='peaking';clarity.frequency.value=2800;clarity.Q.value=0.9;clarity.gain.value=2.5;
-              const compressor=activeLiveAudioContext.createDynamicsCompressor();compressor.threshold.value=-22;compressor.knee.value=18;compressor.ratio.value=2.5;compressor.attack.value=0.008;compressor.release.value=0.18;
+              const highPass=activeLiveAudioContext.createBiquadFilter();highPass.type='highpass';highPass.frequency.value=80;highPass.Q.value=0.707;
+              const humCut=activeLiveAudioContext.createBiquadFilter();humCut.type='notch';humCut.frequency.value=60;humCut.Q.value=12;
+              const warmthControl=activeLiveAudioContext.createBiquadFilter();warmthControl.type='peaking';warmthControl.frequency.value=250;warmthControl.Q.value=1;warmthControl.gain.value=-2;
+              const clarity=activeLiveAudioContext.createBiquadFilter();clarity.type='peaking';clarity.frequency.value=3200;clarity.Q.value=0.85;clarity.gain.value=3;
+              const air=activeLiveAudioContext.createBiquadFilter();air.type='highshelf';air.frequency.value=8500;air.gain.value=1.2;
+              const compressor=activeLiveAudioContext.createDynamicsCompressor();compressor.threshold.value=-24;compressor.knee.value=18;compressor.ratio.value=3;compressor.attack.value=0.006;compressor.release.value=0.16;
+              const makeup=activeLiveAudioContext.createGain();makeup.gain.value=1.12;
+              const limiter=activeLiveAudioContext.createDynamicsCompressor();limiter.threshold.value=-3;limiter.knee.value=0;limiter.ratio.value=12;limiter.attack.value=0.003;limiter.release.value=0.12;
               const output=activeLiveAudioContext.createMediaStreamDestination();
-              source.connect(highPass);highPass.connect(clarity);clarity.connect(compressor);compressor.connect(output);
+              source.connect(highPass);highPass.connect(humCut);humCut.connect(warmthControl);warmthControl.connect(clarity);clarity.connect(air);air.connect(compressor);compressor.connect(makeup);makeup.connect(limiter);limiter.connect(output);
               const processedTrack=new LK.LocalAudioTrack(output.stream.getAudioTracks()[0]);
               tracks.splice(tracks.indexOf(microphoneTrack),1,processedTrack);
               activeLiveAudioTrack=processedTrack;
