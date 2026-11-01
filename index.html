@@ -33,6 +33,11 @@ body.auth-required .auth-screen{display:grid}
 .empty-feed{padding:28px 14px;text-align:center;border:1px dashed var(--line);border-radius:16px;margin:12px 0}
 .post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.post-attachment{display:block;max-width:100%;max-height:650px;width:auto;height:auto;object-fit:contain;border-radius:14px;margin:13px auto;background:#09070d}.post-attachment.video{width:100%;max-height:620px;aspect-ratio:9/16;object-fit:contain}.file-drop-zone{margin-top:12px;padding:25px 14px;border:2px dashed #594273;border-radius:14px;background:#100d16;text-align:center;color:#d9c9ed;cursor:pointer;transition:border-color .15s,background .15s}.file-drop-zone:hover,.file-drop-zone.dragover{border-color:var(--purple);background:#21172f}.file-drop-zone strong{display:block;font-size:14px;color:#fff}.file-drop-zone span{display:block;font-size:12px;color:var(--muted);margin-top:5px}.media-choice{font-size:12px;color:#c9b5e6;margin:9px 0 0;min-height:18px}.media-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
 .comment-item{font-size:13px;color:#ddd;margin:7px 0}.comment-item b{color:#fff}
+.comment-reply{margin-left:18px;padding-left:10px;border-left:2px solid #4b365f}
+.comment-replies{margin-top:5px}
+.reply-action{border:0;background:none;color:#bb91ef;font-size:12px;padding:3px 0;margin-top:3px}
+.reply-action:hover{color:#fff}
+
 .comment-form{display:flex;gap:8px;margin-top:12px}
 .comment-form input{min-width:0;flex:1;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:white}
 .comment-form .primary{padding:8px 13px}
@@ -345,18 +350,43 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     async function loadPostComments(postId,container) {
       container.innerHTML='<div class="muted">Loading comments…</div>';
-      const {data:comments,error}=await db.from('post_comments').select('id,author_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true}).limit(100);
+      const {data:comments,error}=await db.from('post_comments').select('id,author_id,content,created_at,parent_comment_id').eq('post_id',postId).order('created_at',{ascending:true}).limit(200);
       if(error){container.innerHTML='<div class="muted">Could not load comments: '+esc(error.message)+'</div>';return;}
       const authorIds=[...new Set((comments||[]).map(x=>x.author_id))];
       const {data:people}=authorIds.length?await db.from('profiles').select('id,username,display_name').in('id',authorIds):{data:[]};
       const byId=Object.fromEntries((people||[]).map(p=>[p.id,p]));
+      const children={};
+      (comments||[]).forEach(comment=>{const key=comment.parent_comment_id||'root';(children[key]||(children[key]=[])).push(comment);});
       container.innerHTML='';
-      (comments||[]).forEach(comment=>{
+      function renderComment(comment,depth) {
         const person=byId[comment.author_id]||{};
-        const item=document.createElement('div');item.className='comment-item';
-        item.innerHTML='<b>'+esc(person.display_name||person.username||'Nook member')+'</b> <span class="muted">@'+esc(person.username||'member')+'</span><div>'+esc(comment.content)+'</div>';
+        const item=document.createElement('div');item.className='comment-item'+(depth?' comment-reply':'');
+        item.innerHTML='<b>'+esc(person.display_name||person.username||'Nook member')+'</b> <span class="muted">@'+esc(person.username||'member')+'</span><div>'+esc(comment.content)+'</div><button class="reply-action" type="button">Reply</button>';
         container.appendChild(item);
-      });
+        const replies=document.createElement('div');replies.className='comment-replies';item.appendChild(replies);
+        item.querySelector('.reply-action').onclick=()=>{
+          let form=item.querySelector('.reply-form');
+          if(form){form.remove();return;}
+          form=document.createElement('form');form.className='comment-form reply-form';
+          form.innerHTML='<input aria-label="Write a reply" maxlength="1000" placeholder="Reply to @'+esc(person.username||'member')+'…"><button class="primary" type="submit">Reply</button>';
+          form.onsubmit=async event=>{
+            event.preventDefault();
+            const input=form.querySelector('input'),value=input.value.trim();
+            if(!value)return;
+            const send=form.querySelector('button');send.disabled=true;
+            const result=await db.from('post_comments').insert({post_id:postId,author_id:currentUser.id,parent_comment_id:comment.id,content:value});
+            send.disabled=false;
+            if(result.error)return showToast(result.error.message);
+            showToast('Reply posted!');
+            await loadPostComments(postId,container);
+            const count=container.closest('.post')?.querySelector('.comment');
+            if(count){const {count:total}=await db.from('post_comments').select('id',{count:'exact',head:true}).eq('post_id',postId);count.textContent='▢ Comment · '+(total||0);}
+          };
+          item.appendChild(form);form.querySelector('input').focus();
+        };
+        (children[comment.id]||[]).forEach(reply=>renderComment(reply,depth+1));
+      }
+      (children.root||[]).forEach(comment=>renderComment(comment,0));
       if(!comments?.length) container.innerHTML='<div class="muted">No comments yet. Start the conversation!</div>';
       const form=document.createElement('form');form.className='comment-form';
       form.innerHTML='<input aria-label="Write a comment" maxlength="1000" placeholder="Write a comment…"><button class="primary" type="submit">Send</button>';
@@ -371,10 +401,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         showToast('Comment posted!');
         await loadPostComments(postId,container);
         const count=container.closest('.post')?.querySelector('.comment');
-        if(count){const total=(comments||[]).length+1;count.textContent='▢ Comment · '+total;}
+        if(count){const {count:total}=await db.from('post_comments').select('id',{count:'exact',head:true}).eq('post_id',postId);count.textContent='▢ Comment · '+(total||0);}
       };
       container.appendChild(form);
     }
+
     async function loadFeed() {
       if (!currentUser) return;
       feed.innerHTML = '<div class="empty-feed muted">Loading posts…</div>';
@@ -635,7 +666,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       items.forEach(n=>{
         const person=people[n.actor_id]||{},comment=comments[n.comment_id]||{};
         const item=document.createElement('div');item.className='notification-item'+(n.read_at?'':' unread');
-        item.innerHTML='<b>'+esc(person.display_name||person.username||'Someone')+'</b> commented on your post<p>'+esc(comment.content||'Comment unavailable')+'</p><small class="muted">'+esc(timeAgo(n.created_at))+'</small>';
+        item.innerHTML='<b>'+esc(person.display_name||person.username||'Someone')+'</b> '+(n.type==='comment_reply'?'replied to your comment':'commented on your post')+'<p>'+esc(comment.content||'Comment unavailable')+'</p><small class="muted">'+esc(timeAgo(n.created_at))+'</small>';
         item.onclick=async()=>{
           if(!n.read_at){await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('user_id',currentUser.id);n.read_at=new Date().toISOString();item.classList.remove('unread');await loadNotificationCount();}
         };
