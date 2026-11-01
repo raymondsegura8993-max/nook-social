@@ -647,7 +647,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     async function loadNotifications() {
       if(!currentUser)return;
       feed.innerHTML='<div class="empty-feed muted">Loading notifications…</div>';
-      const {data:items,error}=await db.from('notifications').select('id,actor_id,post_id,comment_id,created_at,read_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+      const {data:items,error}=await db.from('notifications').select('id,actor_id,post_id,comment_id,type,created_at,read_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
       if(error){feed.innerHTML='<div class="empty-feed muted">Could not load notifications: '+esc(error.message)+'</div>';return;}
       if(!items?.length){feed.innerHTML='<div class="empty-feed muted">You’re all caught up. New comments on your posts will show up here.</div>';await loadNotificationCount();return;}
       const actorIds=[...new Set(items.map(n=>n.actor_id))],commentIds=items.map(n=>n.comment_id);
