@@ -33,6 +33,14 @@ body.auth-required .auth-screen{display:grid}
 .empty-feed{padding:28px 14px;text-align:center;border:1px dashed var(--line);border-radius:16px;margin:12px 0}
 .post .comment-list{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.post-attachment{display:block;max-width:100%;max-height:650px;width:auto;height:auto;object-fit:contain;border-radius:14px;margin:13px auto;background:#09070d}.post-attachment.video{width:100%;max-height:620px;aspect-ratio:9/16;object-fit:contain}.file-drop-zone{margin-top:12px;padding:25px 14px;border:2px dashed #594273;border-radius:14px;background:#100d16;text-align:center;color:#d9c9ed;cursor:pointer;transition:border-color .15s,background .15s}.file-drop-zone:hover,.file-drop-zone.dragover{border-color:var(--purple);background:#21172f}.file-drop-zone strong{display:block;font-size:14px;color:#fff}.file-drop-zone span{display:block;font-size:12px;color:var(--muted);margin-top:5px}.media-choice{font-size:12px;color:#c9b5e6;margin:9px 0 0;min-height:18px}.media-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
 .comment-item{font-size:13px;color:#ddd;margin:7px 0}.comment-item b{color:#fff}
+.comment-form{display:flex;gap:8px;margin-top:12px}
+.comment-form input{min-width:0;flex:1;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:white}
+.comment-form .primary{padding:8px 13px}
+.notification-item{padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--panel);margin:10px 0}
+.notification-item.unread{border-color:#7951aa;background:#21172f}
+.notification-item p{margin:5px 0;color:#e6ddef}
+.notification-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#a45cff;color:white;font-size:10px;font-weight:800;margin-left:auto}
+
 .profile-panel{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel);margin:14px 0}
 .profile-panel h2{margin:0 0 5px}.profile-panel p{color:var(--muted)}
 .profile-edit{margin-top:12px}
@@ -60,7 +68,7 @@ body.auth-required .auth-screen{display:grid}
 <button data-tab="Videos"><span class="ico">▷</span><span class="navlabel">Videos</span></button>
 <button data-tab="Communities"><span class="ico">◉</span><span class="navlabel">Communities</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
-<button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span></button>
+<button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <button data-tab="Saved"><span class="ico">▤</span><span class="navlabel">Saved</span></button>
 <button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button>
 </nav>
@@ -322,13 +330,10 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         likeButton.innerHTML = (liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+(likeCount+(liked?1:-1))+'</span>';
         likeCount += liked?1:-1;
       };
+      const commentList = card.querySelector('.comment-list');
       card.querySelector('.comment').onclick = async () => {
-        const value = prompt('Write a comment:');
-        if (!value || !value.trim()) return;
-        const result = await db.from('post_comments').insert({post_id:post.id,author_id:currentUser.id,content:value.trim()});
-        if (result.error) return showToast(result.error.message);
-        showToast('Comment posted!');
-        loadFeed();
+        commentList.hidden = !commentList.hidden;
+        if (!commentList.hidden) await loadPostComments(post.id,commentList);
       };
       card.querySelector('.share').onclick = async () => {
         const link = location.href.split('#')[0]+'#post-'+post.id;
@@ -337,6 +342,38 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       };
       card.querySelector('.save').onclick = () => showToast('Post bookmarks are coming in a later update.');
       feed.appendChild(card);
+    }
+    async function loadPostComments(postId,container) {
+      container.innerHTML='<div class="muted">Loading comments…</div>';
+      const {data:comments,error}=await db.from('post_comments').select('id,author_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true}).limit(100);
+      if(error){container.innerHTML='<div class="muted">Could not load comments: '+esc(error.message)+'</div>';return;}
+      const authorIds=[...new Set((comments||[]).map(x=>x.author_id))];
+      const {data:people}=authorIds.length?await db.from('profiles').select('id,username,display_name').in('id',authorIds):{data:[]};
+      const byId=Object.fromEntries((people||[]).map(p=>[p.id,p]));
+      container.innerHTML='';
+      (comments||[]).forEach(comment=>{
+        const person=byId[comment.author_id]||{};
+        const item=document.createElement('div');item.className='comment-item';
+        item.innerHTML='<b>'+esc(person.display_name||person.username||'Nook member')+'</b> <span class="muted">@'+esc(person.username||'member')+'</span><div>'+esc(comment.content)+'</div>';
+        container.appendChild(item);
+      });
+      if(!comments?.length) container.innerHTML='<div class="muted">No comments yet. Start the conversation!</div>';
+      const form=document.createElement('form');form.className='comment-form';
+      form.innerHTML='<input aria-label="Write a comment" maxlength="1000" placeholder="Write a comment…"><button class="primary" type="submit">Send</button>';
+      form.onsubmit=async event=>{
+        event.preventDefault();
+        const input=form.querySelector('input');const value=input.value.trim();
+        if(!value)return;
+        const send=form.querySelector('button');send.disabled=true;
+        const result=await db.from('post_comments').insert({post_id:postId,author_id:currentUser.id,content:value});
+        send.disabled=false;
+        if(result.error)return showToast(result.error.message);
+        showToast('Comment posted!');
+        await loadPostComments(postId,container);
+        const count=container.closest('.post')?.querySelector('.comment');
+        if(count){const total=(comments||[]).length+1;count.textContent='▢ Comment · '+total;}
+      };
+      container.appendChild(form);
     }
     async function loadFeed() {
       if (!currentUser) return;
@@ -568,10 +605,60 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         loadFeed();
       };
     });
+    async function loadNotificationCount() {
+      if(!currentUser)return;
+      const {data,error}=await db.from('notifications').select('id').is('read_at',null).eq('user_id',currentUser.id);
+      if(error)return;
+      const badge=document.getElementById('notificationBadge');
+      badge.textContent=(data||[]).length>99?'99+':String((data||[]).length);
+      badge.hidden=!(data||[]).length;
+    }
+    async function loadNotifications() {
+      if(!currentUser)return;
+      feed.innerHTML='<div class="empty-feed muted">Loading notifications…</div>';
+      const {data:items,error}=await db.from('notifications').select('id,actor_id,post_id,comment_id,created_at,read_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+      if(error){feed.innerHTML='<div class="empty-feed muted">Could not load notifications: '+esc(error.message)+'</div>';return;}
+      if(!items?.length){feed.innerHTML='<div class="empty-feed muted">You’re all caught up. New comments on your posts will show up here.</div>';await loadNotificationCount();return;}
+      const actorIds=[...new Set(items.map(n=>n.actor_id))],commentIds=items.map(n=>n.comment_id);
+      const [peopleRes,commentsRes]=await Promise.all([
+        db.from('profiles').select('id,username,display_name').in('id',actorIds),
+        db.from('post_comments').select('id,content').in('id',commentIds)
+      ]);
+      const people=Object.fromEntries((peopleRes.data||[]).map(p=>[p.id,p]));
+      const comments=Object.fromEntries((commentsRes.data||[]).map(x=>[x.id,x]));
+      feed.innerHTML='<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="secondary" id="markAllRead">Mark all as read</button></div>';
+      document.getElementById('markAllRead').onclick=async()=>{
+        const {error:markError}=await db.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',currentUser.id).is('read_at',null);
+        if(markError)return showToast(markError.message);
+        await loadNotifications();await loadNotificationCount();
+      };
+      items.forEach(n=>{
+        const person=people[n.actor_id]||{},comment=comments[n.comment_id]||{};
+        const item=document.createElement('div');item.className='notification-item'+(n.read_at?'':' unread');
+        item.innerHTML='<b>'+esc(person.display_name||person.username||'Someone')+'</b> commented on your post<p>'+esc(comment.content||'Comment unavailable')+'</p><small class="muted">'+esc(timeAgo(n.created_at))+'</small>';
+        item.onclick=async()=>{
+          if(!n.read_at){await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('user_id',currentUser.id);n.read_at=new Date().toISOString();item.classList.remove('unread');await loadNotificationCount();}
+        };
+        feed.appendChild(item);
+      });
+      await loadNotificationCount();
+    }
+    let notificationChannel=null;
+    function subscribeToNotifications() {
+      if(!currentUser)return;
+      if(notificationChannel)db.removeChannel(notificationChannel);
+      notificationChannel=db.channel('nook-notifications-'+currentUser.id)
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'user_id=eq.'+currentUser.id},payload=>{
+          showToast('Someone commented on your post!');
+          loadNotificationCount();
+          if(currentTab==='Notifications')loadNotifications();
+        }).subscribe();
+    }
     async function onTab(tab) {
       currentTab=tab;
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
+      if (tab==='Notifications') return loadNotifications();
       feed.innerHTML='<div class="empty-feed muted">'+esc(tab)+' is coming soon. Your Nook account and posts are working.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
@@ -590,6 +677,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       setProfileMini();
       await loadDiscoverPeople();
       await loadFeed();
+      await loadNotificationCount();
+      subscribeToNotifications();
     }
     window.addEventListener('nook-auth',e=>authChanged(e.detail));
     db.auth.getSession().then(({data})=>authChanged(data.session?.user||null));
