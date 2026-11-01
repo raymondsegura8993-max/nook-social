@@ -405,7 +405,12 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(profile?.id)db.from('verified_profiles').select('user_id').eq('user_id',profile.id).maybeSingle().then(({data})=>{if(data){const nameNode=card.querySelector('.postname');if(nameNode)nameNode.insertAdjacentHTML('beforeend',' <span title="Verified account" style="color:#b98cff">✓</span>');}});
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
-      if (post.media_url && post.media_type === 'video') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
+      if (post.media_url && post.media_type === 'video') {
+        card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
+        const downloadButton=document.createElement('button');downloadButton.className='action';downloadButton.textContent='⬇ Download video';
+        downloadButton.onclick=async()=>{downloadButton.disabled=true;downloadButton.textContent='Preparing download…';try{const response=await fetch(post.media_url);if(!response.ok)throw new Error('Download failed.');const blob=await response.blob();const objectUrl=URL.createObjectURL(blob);const link=document.createElement('a');link.href=objectUrl;link.download='nook-video-'+post.id+'.webm';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(objectUrl);}catch(error){showToast('Could not download this video: '+error.message);}finally{downloadButton.disabled=false;downloadButton.textContent='⬇ Download video';}};
+        card.querySelector('.post-actions').appendChild(downloadButton);
+      }
       loadPoll(post.id,card);
       const editButton=document.createElement('button');editButton.className='action edit-post';editButton.textContent='✎ Edit';if(post.author_id===currentUser.id){card.querySelector('.post-actions').appendChild(editButton);editButton.onclick=async()=>{const updated=prompt('Edit your post:',post.content||'');if(updated===null)return;const value=updated.trim();if(!value)return showToast('A post cannot be empty.');if(value.length>2000)return showToast('Posts can be up to 2,000 characters.');const result=await db.from('posts').update({content:value,edited_at:new Date().toISOString()}).eq('id',post.id);if(result.error)return showToast(result.error.message);post.content=value;card.querySelector('.post-content').textContent=value;showToast('Post updated!');};const historyButton=document.createElement('button');historyButton.className='action';historyButton.textContent='↶ Edit history';historyButton.onclick=async()=>{const {data:history,error}=await db.from('post_edit_history').select('previous_content,edited_at').eq('post_id',post.id).order('edited_at',{ascending:false}).limit(20);if(error)return showToast(error.message);alert((history||[]).map((h,i)=>(i+1)+'. '+new Date(h.edited_at).toLocaleString()+' — '+h.previous_content).join(' | ')||'No previous edits yet.');};card.querySelector('.post-actions').appendChild(historyButton);}
       card.querySelector('.repost').onclick=async()=>{const quote=prompt('Add a message to your repost (leave blank for a regular repost):','');if(quote===null)return;if(quote.trim().length>1000)return showToast('Your quote can be up to 1,000 characters.');const result=await db.from('posts').insert({author_id:currentUser.id,content:quote.trim()||post.content||'Shared a post',quote_text:quote.trim()||null,media_url:post.media_url||null,media_type:post.media_type||null,repost_of:post.id});if(result.error)return showToast(result.error.message);showToast(quote.trim()?'Quote repost published!':'Reposted to your profile!');if(currentTab==='Home')loadFeed();if(currentTab==='Profile')showProfile();};
@@ -1031,6 +1036,20 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let activeLiveRoom = null;
     let activeLiveStreamId = null;
     let activeLiveChannel = null;
+    let activeLiveRecorder = null;
+    let activeLiveVodPromise = null;
+    let activeLiveVodChunks = [];
+    let activeLiveVodStream = null;
+    async function saveLiveVod(stream, blob) {
+      if(!blob || !blob.size) return {error:new Error('No recording data was captured.')};
+      const path=currentUser.id+'/vod-'+stream.id+'-'+Date.now()+'.webm';
+      const upload=await db.storage.from('nook-media').upload(path,blob,{contentType:'video/webm',upsert:false});
+      if(upload.error)return {error:upload.error};
+      const mediaUrl=db.storage.from('nook-media').getPublicUrl(path).data.publicUrl;
+      const post=await db.from('posts').insert({author_id:currentUser.id,content:'Replay: '+(stream.title||'Livestream'),media_url:mediaUrl,media_type:'video'}).select('id').single();
+      if(post.error){await db.storage.from('nook-media').remove([path]);return {error:post.error};}
+      return {postId:post.data.id};
+    }
     function clearLiveCommunity(){
       if(activeLiveChannel){db.removeChannel(activeLiveChannel);activeLiveChannel=null;}
       const panel=document.getElementById('liveCommunity');
@@ -1056,7 +1075,31 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
         room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
         await room.connect(data.server_url,data.participant_token);
-        if(role==='host'){const tracks=await LK.createLocalTracks({audio:true,video:{facingMode:'user'}});for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}status.textContent='You are live. Keep this page open while broadcasting.';}
+        if(role==='host'){
+          const tracks=await LK.createLocalTracks({audio:true,video:{facingMode:'user'}});
+          for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}
+          try{
+            const recordStream=new MediaStream(tracks.map(track=>track.mediaStreamTrack).filter(Boolean));
+            const mimeType=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'');
+            activeLiveVodChunks=[];
+            activeLiveVodStream=stream;
+            activeLiveVodPromise=new Promise(resolve=>{
+              const recorder=mimeType?new MediaRecorder(recordStream,{mimeType}):new MediaRecorder(recordStream);
+              activeLiveRecorder=recorder;
+              recorder.ondataavailable=event=>{if(event.data&&event.data.size)activeLiveVodChunks.push(event.data);};
+              recorder.onstop=async()=>{
+                const blob=new Blob(activeLiveVodChunks,{type:recorder.mimeType||'video/webm'});
+                activeLiveRecorder=null;activeLiveVodChunks=[];
+                const saved=await saveLiveVod(stream,blob);
+                activeLiveVodStream=null;
+                if(saved.error){showToast('Live ended, but the replay could not be saved: '+saved.error.message);resolve(saved);}
+                else{showToast('Replay automatically posted to your profile!');resolve(saved);}
+              };
+              recorder.start(1000);
+            });
+          }catch(recordError){activeLiveRecorder=null;activeLiveVodPromise=null;showToast('Live is on, but VOD recording could not start: '+recordError.message);}
+          status.textContent='You are live. Keep this page open until you press End broadcast so the replay can be saved.';
+        }
         else status.textContent='Watching live: '+stream.title;
 
         const panel=document.getElementById('liveCommunity');
@@ -1140,7 +1183,18 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const leave=document.getElementById('leaveLive');
         if(leave){leave.hidden=false;leave.onclick=async()=>{await disconnectActiveLive();stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;document.getElementById('endLive').hidden=true;};}
         const end=document.getElementById('endLive');
-        if(end){end.hidden=role!=='host';end.onclick=async()=>{const result=await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);if(result.error)return showToast(result.error.message);await disconnectActiveLive();stage.innerHTML='<div class="muted">Your live stream has ended.</div>';status.textContent='';end.hidden=true;document.getElementById('leaveLive').hidden=true;loadLive();};}
+        if(end){end.hidden=role!=='host';end.onclick=async()=>{
+          end.disabled=true;end.textContent='Saving replay…';
+          const result=await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);
+          if(result.error){end.disabled=false;end.textContent='End broadcast';return showToast(result.error.message);}
+          if(activeLiveRecorder&&activeLiveRecorder.state!=='inactive'){
+            activeLiveRecorder.stop();
+            if(activeLiveVodPromise)await activeLiveVodPromise;
+          }
+          await disconnectActiveLive();
+          stage.innerHTML='<div class="muted">Your live stream has ended. The replay is on your profile if recording succeeded.</div>';
+          status.textContent='';end.hidden=true;document.getElementById('leaveLive').hidden=true;loadLive();
+        };}
       }catch(e){stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';await disconnectActiveLive();if(role==='host'){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}}
     }
     async function loadLive(){
