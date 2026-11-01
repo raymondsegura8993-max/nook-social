@@ -7,7 +7,7 @@
 <title>Nook — Your corner of the internet</title>
 <style>
 :root{color-scheme:dark;--bg:#0d0b12;--panel:#15121d;--panel2:#1b1725;--line:#292335;--text:#f7f4fc;--muted:#a39aae;--purple:#9b5cff;--purple2:#6f36d9;--pink:#d56bff}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 48% -20%,#291644 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:1440px;margin:auto;display:grid;grid-template-columns:240px minmax(0,650px) 290px;gap:26px;padding:24px 28px;min-height:100vh}.sidebar,.right{position:sticky;top:24px;height:calc(100vh - 48px)}.brand{display:flex;align-items:center;gap:11px;font-size:24px;font-weight:800;letter-spacing:-1px;margin:3px 0 38px}.mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(140deg,#c084fc,#7137d8 65%,#442080);display:grid;place-items:center;font-size:25px;font-weight:900;box-shadow:0 5px 24px #8c4cff45}.brand span:last-child{background:linear-gradient(90deg,#fff,#c7a6ff);color:transparent;background-clip:text}.nav{display:grid;gap:8px}.nav button{border:0;background:transparent;color:var(--muted);padding:12px 14px;border-radius:13px;text-align:left;display:flex;align-items:center;gap:14px;font-weight:650}.nav button:hover,.nav button.active{background:#241a34;color:#fff}.nav .ico{width:22px;text-align:center;font-size:18px}.newpost{margin-top:25px;width:100%;border:0;border-radius:14px;padding:13px;color:white;font-weight:750;background:linear-gradient(110deg,var(--purple),var(--purple2));box-shadow:0 8px 25px #793be833}.profile-mini{position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--line);padding-top:17px;display:flex;align-items:center;gap:10px}.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(140deg,#e0a6ff,#7140d2);display:grid;place-items:center;font-weight:800;color:#1a1027;flex:none}.avatar.small{width:34px;height:34px;font-size:12px}.muted{color:var(--muted)}.profile-mini b{display:block}.profile-mini small{color:var(--muted)}main{min-width:0}.top{display:flex;justify-content:space-between;align-items:center;margin:3px 0 22px}.top h1{font-size:26px;letter-spacing:-.8px;margin:0}.top .muted{font-size:13px}.iconbtn{border:1px solid var(--line);background:var(--panel);color:white;border-radius:12px;width:42px;height:42px}.composer,.post,.trend,.welcome{background:linear-gradient(145deg,#191522,#13111a);border:1px solid var(--line);border-radius:18px}.composer{padding:17px;margin-bottom:18px}.compose-row{display:flex;gap:12px;align-items:center}.compose-input{flex:1;text-align:left;border:1px solid var(--line);background:#100e16;color:var(--muted);padding:12px 14px;border-radius:13px}.compose-actions{display:flex;gap:8px;margin:14px 0 0 51px}.chip{border:1px solid var(--line);background:#1b1723;color:#cfc5dd;border-radius:10px;padding:7px 11px;font-size:13px}.chip:hover{border-color:#8651d6;color:white}.feed-tabs{display:flex;gap:20px;border-bottom:1px solid var(--line);margin:0 0 16px;padding:0 4px}.feed-tabs button{background:none;border:0;color:var(--muted);padding:11px 2px;border-bottom:2px solid transparent}.feed-tabs button.active{color:white;border-color:var(--purple);font-weight:700}.post{padding:18px;margin-bottom:15px}.posthead{display:flex;align-items:center;gap:11px}.postname{font-weight:750}.handle{font-size:12px;color:var(--muted)}.posttime{margin-left:auto;color:var(--muted);font-size:12px}.dots{border:0;background:none;color:var(--muted);font-size:20px}.post p{margin:15px 0;color:#e9e3f1}.post-media{border-radius:14px;min-height:180px;background:linear-gradient(135deg,#321b55,#16152b 60%,#40205d);display:grid;place-items:center;margin:12px 0;color:#e8d9ff;text-align:center;padding:24px}.post-media strong{font-size:26px;display:block}.post-media span{font-size:13px;color:#c6b5dd}.post-actions{display:flex;gap:22px;border-top:1px solid var(--line);padding-top:13px}.action{background:none;border:0;color:var(--muted);padding:3px 0}.action:hover,.action.liked{color:#d39aff}.right h3{font-size:15px;margin:5px 0 13px}.welcome{padding:17px;margin-bottom:23px;background:linear-gradient(140deg,#2a1940,#171320)}.welcome h3{font-size:18px;margin:0 0 7px}.welcome p{font-size:13px;color:#c8bad9;margin:0 0 14px}.welcome button{border:0;border-radius:10px;padding:9px 12px;background:#a56bff;color:white;font-weight:700}.trend{padding:15px;margin-bottom:22px}.trenditem{padding:10px 0;border-bottom:1px solid var(--line)}.trenditem:last-child{border:0}.trenditem small{display:block;color:var(--muted);font-size:11px}.trenditem b{font-size:14px}.suggest{display:flex;align-items:center;gap:9px;margin:13px 0}.suggest .info{flex:1;min-width:0}.suggest b{display:block;font-size:13px}.suggest small{color:var(--muted);font-size:11px}.follow{border:1px solid #68449b;background:#241833;color:#d9baff;border-radius:9px;padding:6px 9px;font-size:12px}.foot{font-size:11px;color:#766e82;line-height:2;margin-top:20px}.modalback{position:fixed;inset:0;background:#000b;display:none;place-items:center;padding:18px;z-index:5}.modalback.show{display:grid}.modal{width:min(520px,100%);background:#17131f;border:1px solid #40334f;border-radius:20px;padding:21px;box-shadow:0 20px 80px #0009}.modal h2{margin:0 0 15px}.modal textarea{width:100%;min-height:130px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:12px;padding:13px;color:white;outline:none}.modalbar{display:flex;justify-content:flex-end;gap:9px;margin-top:13px}.primary{border:0;background:linear-gradient(110deg,var(--purple),var(--purple2));color:white;border-radius:11px;padding:10px 16px;font-weight:750}.secondary{border:1px solid var(--line);background:#211b2b;color:#ddd;border-radius:11px;padding:10px 16px}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#282033;border:1px solid #594071;padding:10px 16px;border-radius:12px;display:none;z-index:8}.toast.show{display:block}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 48% -20%,#291644 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:1440px;margin:auto;display:grid;grid-template-columns:240px minmax(0,650px) 290px;gap:26px;padding:24px 28px;min-height:100vh}.sidebar,.right{position:sticky;top:24px;height:calc(100vh - 48px)}.brand{display:flex;align-items:center;gap:11px;font-size:24px;font-weight:800;letter-spacing:-1px;margin:3px 0 38px}.mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(140deg,#c084fc,#7137d8 65%,#442080);display:grid;place-items:center;font-size:25px;font-weight:900;box-shadow:0 5px 24px #8c4cff45}.brand span:last-child{background:linear-gradient(90deg,#fff,#c7a6ff);color:transparent;background-clip:text}.nav{display:grid;gap:8px}.nav button{border:0;background:transparent;color:var(--muted);padding:12px 14px;border-radius:13px;text-align:left;display:flex;align-items:center;gap:14px;font-weight:650}.nav button:hover,.nav button.active{background:#241a34;color:#fff}.nav .ico{width:22px;text-align:center;font-size:18px}.newpost{margin-top:25px;width:100%;border:0;border-radius:14px;padding:13px;color:white;font-weight:750;background:linear-gradient(110deg,var(--purple),var(--purple2));box-shadow:0 8px 25px #793be833}.profile-mini{position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--line);padding-top:17px;display:flex;align-items:center;gap:10px}.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(140deg,#e0a6ff,#7140d2);display:grid;place-items:center;font-weight:800;color:#1a1027;flex:none}.avatar.small{width:34px;height:34px;font-size:12px}.muted{color:var(--muted)}.profile-mini b{display:block}.profile-mini small{color:var(--muted)}main{min-width:0}.top{display:flex;justify-content:space-between;align-items:center;margin:3px 0 22px}.top h1{font-size:26px;letter-spacing:-.8px;margin:0}.top .muted{font-size:13px}.iconbtn{border:1px solid var(--line);background:var(--panel);color:white;border-radius:12px;width:42px;height:42px}.composer,.post,.trend,.welcome{background:linear-gradient(145deg,#191522,#13111a);border:1px solid var(--line);border-radius:18px}.composer{padding:17px;margin-bottom:18px}.compose-row{display:flex;gap:12px;align-items:center}.compose-input{flex:1;text-align:left;border:1px solid var(--line);background:#100e16;color:var(--muted);padding:12px 14px;border-radius:13px}.compose-actions{display:flex;gap:8px;margin:14px 0 0 51px}.chip{border:1px solid var(--line);background:#1b1723;color:#cfc5dd;border-radius:10px;padding:7px 11px;font-size:13px}.chip:hover{border-color:#8651d6;color:white}.feed-tabs{display:flex;gap:20px;border-bottom:1px solid var(--line);margin:0 0 16px;padding:0 4px}.feed-tabs button{background:none;border:0;color:var(--muted);padding:11px 2px;border-bottom:2px solid transparent}.feed-tabs button.active{color:white;border-color:var(--purple);font-weight:700}.post{padding:18px;margin-bottom:15px}.posthead{display:flex;align-items:center;gap:11px}.postname{font-weight:750}.handle{font-size:12px;color:var(--muted)}.posttime{margin-left:auto;color:var(--muted);font-size:12px}.dots{border:0;background:none;color:var(--muted);font-size:20px}.post p{margin:15px 0;color:#e9e3f1}.post-media{border-radius:14px;min-height:180px;background:linear-gradient(135deg,#321b55,#16152b 60%,#40205d);display:grid;place-items:center;margin:12px 0;color:#e8d9ff;text-align:center;padding:24px}.post-media strong{font-size:26px;display:block}.post-media span{font-size:13px;color:#c6b5dd}.post-actions{display:flex;gap:22px;border-top:1px solid var(--line);padding-top:13px}.action{background:none;border:0;color:var(--muted);padding:3px 0}.action:hover,.action.liked{color:#d39aff}.right h3{font-size:15px;margin:5px 0 13px}.welcome{padding:17px;margin-bottom:23px;background:linear-gradient(140deg,#2a1940,#171320)}.welcome h3{font-size:18px;margin:0 0 7px}.welcome p{font-size:13px;color:#c8bad9;margin:0 0 14px}.welcome button{border:0;border-radius:10px;padding:9px 12px;background:#a56bff;color:white;font-weight:700}.trend{padding:15px;margin-bottom:22px}.trenditem{padding:10px 0;border-bottom:1px solid var(--line)}.trenditem:last-child{border:0}.trenditem small{display:block;color:var(--muted);font-size:11px}.trenditem b{font-size:14px}.suggest{display:flex;align-items:center;gap:9px;margin:13px 0}.suggest .info{flex:1;min-width:0}.suggest b{display:block;font-size:13px}.suggest small{color:var(--muted);font-size:11px}.follow{border:1px solid #68449b;background:#241833;color:#d9baff;border-radius:9px;padding:6px 9px;font-size:12px}.follow-inline{margin-left:auto;flex:none;border:1px solid #68449b;background:#241833;color:#d9baff;border-radius:9px;padding:6px 10px;font-size:12px}.follow:disabled,.follow-inline:disabled{opacity:.6;cursor:wait}.foot{font-size:11px;color:#766e82;line-height:2;margin-top:20px}.modalback{position:fixed;inset:0;background:#000b;display:none;place-items:center;padding:18px;z-index:5}.modalback.show{display:grid}.modal{width:min(520px,100%);background:#17131f;border:1px solid #40334f;border-radius:20px;padding:21px;box-shadow:0 20px 80px #0009}.modal h2{margin:0 0 15px}.modal textarea{width:100%;min-height:130px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:12px;padding:13px;color:white;outline:none}.modalbar{display:flex;justify-content:flex-end;gap:9px;margin-top:13px}.primary{border:0;background:linear-gradient(110deg,var(--purple),var(--purple2));color:white;border-radius:11px;padding:10px 16px;font-weight:750}.secondary{border:1px solid var(--line);background:#211b2b;color:#ddd;border-radius:11px;padding:10px 16px}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#282033;border:1px solid #594071;padding:10px 16px;border-radius:12px;display:none;z-index:8}.toast.show{display:block}
 @media(max-width:1050px){.app{grid-template-columns:205px minmax(0,650px);max-width:930px}.right{display:none}}
 @media(max-width:680px){.app{display:block;padding:16px 13px 85px}.sidebar{position:static;height:auto}.brand{margin:0 0 17px}.nav{position:fixed;z-index:4;bottom:0;left:0;right:0;background:#120f19;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));gap:0}.nav button{padding:8px 10px;display:grid;gap:2px;justify-items:center;font-size:10px}.nav .ico{font-size:19px}.nav .navlabel{display:block}.newpost,.profile-mini{display:none}.top{margin:12px 0 18px}.top h1{font-size:23px}.compose-actions{margin-left:0}.post{padding:15px}.post-actions{justify-content:space-between;gap:8px}.post-media{min-height:150px}}
 
@@ -91,9 +91,7 @@ body.auth-required .auth-screen{display:grid}
 <div class="trenditem"><small>Popular · Discussion</small><b>Introduce yourself</b><small>Say hello to the community</small></div>
 </section>
 <h3>People to discover</h3>
-<div class="suggest"><div class="avatar small">A</div><div class="info"><b>Alex Creates</b><small>@alexcreates</small></div><button class="follow">Follow</button></div>
-<div class="suggest"><div class="avatar small" style="background:linear-gradient(140deg,#f8c5a2,#bd6c91)">J</div><div class="info"><b>Jamie</b><small>@jamieonline</small></div><button class="follow">Follow</button></div>
-<div class="suggest"><div class="avatar small" style="background:linear-gradient(140deg,#a8c5ff,#6b6bd2)">M</div><div class="info"><b>Morgan</b><small>@morganmakes</small></div><button class="follow">Follow</button></div>
+<div id="discoverPeople"><div class="muted" style="font-size:12px">Finding people…</div></div>
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
@@ -254,6 +252,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let currentUser = null;
     let currentProfile = null;
     let currentTab = 'Home';
+    let currentFeed = 'For you';
+    let currentFollowing = new Set();
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const initials = value => (value || 'N').trim().slice(0,1).toUpperCase();
     const timeAgo = value => {
@@ -290,11 +290,13 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div></div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>');
       card.querySelector('.post-content').textContent = post.content || '';
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
       if (post.media_url && post.media_type === 'video') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'" controls playsinline preload="metadata"></video>');
+      const followButton = card.querySelector('.follow-inline');
+      if (followButton) followButton.onclick = () => toggleFollow(profile.id);
       const likeButton = card.querySelector('.like');
       likeButton.classList.toggle('liked', liked);
       likeButton.onclick = async () => {
@@ -328,7 +330,16 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     async function loadFeed() {
       if (!currentUser) return;
       feed.innerHTML = '<div class="empty-feed muted">Loading posts…</div>';
-      const {data:posts,error} = await db.from('posts').select('id,author_id,content,media_url,media_type,created_at').order('created_at',{ascending:false}).limit(50);
+      const {data:followRows,error:followError} = await db.from('follows').select('following_id').eq('follower_id',currentUser.id);
+      if (followError) { feed.innerHTML='<div class="empty-feed muted">Could not load followed accounts: '+esc(followError.message)+'</div>'; return; }
+      currentFollowing = new Set((followRows||[]).map(row=>row.following_id));
+      let postsQuery = db.from('posts').select('id,author_id,content,media_url,media_type,created_at').order('created_at',{ascending:false}).limit(50);
+      if (currentFeed === 'Following') {
+        const followedIds = [...currentFollowing];
+        if (!followedIds.length) { feed.innerHTML='<div class="empty-feed muted">Your Following feed is empty. Follow some people to see their posts here.</div>'; return; }
+        postsQuery = postsQuery.in('author_id',followedIds);
+      }
+      const {data:posts,error} = await postsQuery;
       if (error) { feed.innerHTML='<div class="empty-feed muted">Could not load posts: '+esc(error.message)+'</div>'; return; }
       if (!posts?.length) { feed.innerHTML='<div class="empty-feed muted">No posts yet. Be the first to share something in Nook!</div>'; return; }
       const ids = [...new Set(posts.map(p=>p.author_id))];
@@ -470,9 +481,51 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
       posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0));
     }
+    async function loadDiscoverPeople() {
+      if (!currentUser) return;
+      const target = document.getElementById('discoverPeople');
+      if (!target) return;
+      const [{data:people,error:peopleError},{data:followRows,error:followError}] = await Promise.all([
+        db.from('profiles').select('id,username,display_name,avatar_url').neq('id',currentUser.id).order('created_at',{ascending:false}).limit(8),
+        db.from('follows').select('following_id').eq('follower_id',currentUser.id)
+      ]);
+      if (peopleError || followError) { target.innerHTML='<div class="muted" style="font-size:12px">Could not load people right now.</div>'; return; }
+      currentFollowing = new Set((followRows||[]).map(row=>row.following_id));
+      if (!people?.length) { target.innerHTML='<div class="muted" style="font-size:12px">More people will appear here as they join Nook.</div>'; return; }
+      target.innerHTML='';
+      people.forEach(person=>{
+        const name=person.display_name||person.username||'Nook member';
+        const avatar=person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="" loading="lazy">':esc(initials(name));
+        const item=document.createElement('div');item.className='suggest';
+        item.innerHTML='<div class="avatar small">'+avatar+'</div><div class="info"><b>'+esc(name)+'</b><small>@'+esc(person.username)+'</small></div><button class="follow">'+(currentFollowing.has(person.id)?'Following':'Follow')+'</button>';
+        item.querySelector('.follow').onclick=()=>toggleFollow(person.id);
+        target.appendChild(item);
+      });
+    }
+    async function toggleFollow(userId) {
+      if (!currentUser || !userId || userId===currentUser.id) return;
+      const wasFollowing=currentFollowing.has(userId);
+      const result=wasFollowing
+        ? await db.from('follows').delete().eq('follower_id',currentUser.id).eq('following_id',userId)
+        : await db.from('follows').insert({follower_id:currentUser.id,following_id:userId});
+      if (result.error) return showToast(result.error.message);
+      if (wasFollowing) currentFollowing.delete(userId); else currentFollowing.add(userId);
+      showToast(wasFollowing?'Unfollowed account':'You are now following this account!');
+      await loadDiscoverPeople();
+      if (currentTab==='Home') await loadFeed();
+    }
+    document.querySelectorAll('.feed-tabs button').forEach(button=>{
+      button.onclick=()=>{
+        document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.remove('active'));
+        button.classList.add('active');
+        currentFeed=button.dataset.feed||'For you';
+        if(currentFeed==='Trending'){feed.innerHTML='<div class="empty-feed muted">Trending posts are coming soon.</div>';return;}
+        loadFeed();
+      };
+    });
     async function onTab(tab) {
       currentTab=tab;
-      if (tab==='Home') return loadFeed();
+      if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       feed.innerHTML='<div class="empty-feed muted">'+esc(tab)+' is coming soon. Your Nook account and posts are working.</div>';
     }
@@ -490,6 +543,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (!user) { currentProfile=null; feed.innerHTML='<div class="empty-feed muted">Sign in to see Nook posts.</div>'; return; }
       await loadProfile();
       setProfileMini();
+      await loadDiscoverPeople();
       await loadFeed();
     }
     window.addEventListener('nook-auth',e=>authChanged(e.detail));
