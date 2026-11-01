@@ -279,6 +279,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let currentTab = 'Home';
     let currentFeed = 'For you';
     let currentFollowing = new Set();
+    let currentSavedPostIds = new Set();
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const initials = value => (value || 'N').trim().slice(0,1).toUpperCase();
     const timeAgo = value => {
@@ -309,13 +310,26 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const composerAvatar = document.querySelector('.compose-row .avatar');
       if (composerAvatar) composerAvatar.innerHTML = avatarHtml;
     }
-    function renderPost(post, profile, liked, likeCount, commentCount) {
+    async function toggleSave(postId, button, card) {
+      const wasSaved=currentSavedPostIds.has(postId);
+      button.disabled=true;
+      const result=wasSaved
+        ? await db.from('saved_posts').delete().eq('user_id',currentUser.id).eq('post_id',postId)
+        : await db.from('saved_posts').insert({user_id:currentUser.id,post_id:postId});
+      button.disabled=false;
+      if(result.error)return showToast(result.error.message);
+      if(wasSaved)currentSavedPostIds.delete(postId);else currentSavedPostIds.add(postId);
+      button.textContent=wasSaved?'▤ Save':'▣ Saved';
+      showToast(wasSaved?'Post removed from Saved':'Post saved!');
+      if(wasSaved&&currentTab==='Saved'&&card){card.remove();if(!feed.querySelector('.post'))feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet.</div>';}
+    }
+    function renderPost(post, profile, liked, likeCount, commentCount, saved=false)
       const card = document.createElement('article');
       card.className = 'post';
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">▤ Save</button></div><div class="comment-list" hidden></div>';
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action share">↗ Share</button><button class="action save">'+(saved?'▣ Saved':'▤ Save')+'</button></div><div class="comment-list" hidden></div>';
       card.querySelector('.post-content').textContent = post.content || '';
       if (!post.content) card.querySelector('.post-content').remove();
       if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
@@ -348,7 +362,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         try { await navigator.clipboard.writeText(link); showToast('Post link copied!'); }
         catch { showToast(link); }
       };
-      card.querySelector('.save').onclick = () => showToast('Post bookmarks are coming in a later update.');
+      card.querySelector('.save').onclick = () => toggleSave(post.id,card.querySelector('.save'),card);
       feed.appendChild(card);
     }
     async function loadPostComments(postId,container) {
@@ -426,20 +440,22 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (!posts?.length) { feed.innerHTML='<div class="empty-feed muted">No posts yet. Be the first to share something in Nook!</div>'; return; }
       const ids = [...new Set(posts.map(p=>p.author_id))];
       const postIds = posts.map(p=>p.id);
-      const [profilesRes,likesRes,myLikesRes,commentsRes] = await Promise.all([
+      const [profilesRes,likesRes,myLikesRes,commentsRes,savedRes] = await Promise.all([
         db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids),
         db.from('post_likes').select('post_id').in('post_id',postIds),
         db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',postIds),
-        db.from('post_comments').select('post_id').in('post_id',postIds)
+        db.from('post_comments').select('post_id').in('post_id',postIds),
+        db.from('saved_posts').select('post_id').eq('user_id',currentUser.id).in('post_id',postIds)
       ]);
       const profiles = Object.fromEntries((profilesRes.data||[]).map(p=>[p.id,p]));
       const counts = {};
       (likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);
       const mine = new Set((myLikesRes.data||[]).map(x=>x.post_id));
+      currentSavedPostIds = new Set((savedRes.data||[]).map(x=>x.post_id));
       const commentCounts = {};
       (commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
       feed.innerHTML='';
-      posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0));
+      posts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function getMediaDimensions(file) {
       const objectUrl = URL.createObjectURL(file);
@@ -588,14 +604,16 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (error) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed">'+esc(error.message)+'</div>'); return; }
       if (!posts?.length) { feed.insertAdjacentHTML('beforeend','<div class="empty-feed muted">Your posts will appear here.</div>'); return; }
       const ids=posts.map(p=>p.id);
-      const [likesRes,myLikesRes,commentsRes]=await Promise.all([
+      const [likesRes,myLikesRes,commentsRes,savedRes]=await Promise.all([
         db.from('post_likes').select('post_id').in('post_id',ids),
         db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',ids),
-        db.from('post_comments').select('post_id').in('post_id',ids)
+        db.from('post_comments').select('post_id').in('post_id',ids),
+        db.from('saved_posts').select('post_id').eq('user_id',currentUser.id).in('post_id',ids)
       ]);
       const counts={},cc={};(likesRes.data||[]).forEach(x=>counts[x.post_id]=(counts[x.post_id]||0)+1);(commentsRes.data||[]).forEach(x=>cc[x.post_id]=(cc[x.post_id]||0)+1);
       const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
-      posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0));
+      currentSavedPostIds=new Set((savedRes.data||[]).map(x=>x.post_id));
+      posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function loadDiscoverPeople() {
       if (!currentUser) return;
@@ -765,12 +783,41 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim();if(!content)return;const send=event.currentTarget.querySelector('button');send.disabled=true;const {error}=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content});send.disabled=false;if(error){showToast(error.message);return;}input.value='';await refreshMessages();};
     }
 
+    async function loadSavedPosts() {
+      if(!currentUser)return;
+      feed.innerHTML='<div class="empty-feed muted">Loading saved posts…</div>';
+      const {data:savedRows,error:savedError}=await db.from('saved_posts').select('post_id,saved_at').eq('user_id',currentUser.id).order('saved_at',{ascending:false}).limit(100);
+      if(savedError){feed.innerHTML='<div class="empty-feed muted">Could not load saved posts: '+esc(savedError.message)+'</div>';return;}
+      if(!savedRows?.length){currentSavedPostIds=new Set();feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet. Press Save on a post to keep it here.</div>';return;}
+      const postIds=savedRows.map(x=>x.post_id);
+      const {data:posts,error}=await db.from('posts').select('id,author_id,content,media_url,media_type,created_at').in('id',postIds);
+      if(error){feed.innerHTML='<div class="empty-feed muted">Could not load saved posts: '+esc(error.message)+'</div>';return;}
+      const byId=Object.fromEntries((posts||[]).map(p=>[p.id,p]));
+      const ordered=postIds.map(id=>byId[id]).filter(Boolean);
+      if(!ordered.length){feed.innerHTML='<div class="empty-feed muted">Your saved posts are no longer available.</div>';return;}
+      const authorIds=[...new Set(ordered.map(p=>p.author_id))];
+      const [profilesRes,likesRes,myLikesRes,commentsRes]=await Promise.all([
+        db.from('profiles').select('id,username,display_name,avatar_url').in('id',authorIds),
+        db.from('post_likes').select('post_id').in('post_id',postIds),
+        db.from('post_likes').select('post_id').eq('user_id',currentUser.id).in('post_id',postIds),
+        db.from('post_comments').select('post_id').in('post_id',postIds)
+      ]);
+      const profiles=Object.fromEntries((profilesRes.data||[]).map(p=>[p.id,p]));
+      const likes={},comments={};
+      (likesRes.data||[]).forEach(x=>likes[x.post_id]=(likes[x.post_id]||0)+1);
+      (commentsRes.data||[]).forEach(x=>comments[x.post_id]=(comments[x.post_id]||0)+1);
+      const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
+      currentSavedPostIds=new Set(postIds);
+      feed.innerHTML='';
+      ordered.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),likes[p.id]||0,comments[p.id]||0,true));
+    }
     async function onTab(tab) {
       currentTab=tab;
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Notifications') return loadNotifications();
+      if (tab==='Saved') return loadSavedPosts();
       if (tab==='Messages') return loadMessages();
       feed.innerHTML='<div class="empty-feed muted">'+esc(tab)+' is coming soon. Your Nook account and posts are working.</div>';
     }
