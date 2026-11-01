@@ -1061,10 +1061,33 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let activeLiveVodPromise = null;
     let activeLiveVodChunks = [];
     let activeLiveVodStream = null;
+    let activeLiveVodThumbnailPromise = null;
+    async function captureLiveVodThumbnail(tracks){
+      const videoTrack=tracks.find(track=>track.kind==='video');
+      if(!videoTrack?.mediaStreamTrack)return null;
+      const video=document.createElement('video');
+      video.muted=true;video.playsInline=true;video.autoplay=true;
+      video.srcObject=new MediaStream([videoTrack.mediaStreamTrack]);
+      try{
+        await new Promise((resolve,reject)=>{
+          const timeout=setTimeout(()=>reject(new Error('Camera frame timed out.')),8000);
+          video.addEventListener('loadeddata',()=>{clearTimeout(timeout);resolve();},{once:true});
+          video.addEventListener('error',()=>{clearTimeout(timeout);reject(new Error('Camera frame unavailable.'));},{once:true});
+        });
+        try{await video.play();}catch(_){}
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        if(!video.videoWidth||!video.videoHeight)return null;
+        const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+        const context=canvas.getContext('2d');if(!context)return null;
+        context.drawImage(video,0,0,canvas.width,canvas.height);
+        return await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.9));
+      }catch(error){console.warn('Live camera thumbnail capture failed:',error);return null;}
+      finally{video.pause();video.srcObject=null;}
+    }
     let activeLiveAudioTrack = null;
     let activeLiveInputTrack = null;
     let activeLiveAudioContext = null;
-    async function saveLiveVod(stream, blob) {
+    async function saveLiveVod(stream, blob, liveThumbnailBlob) {
       if(!blob || !blob.size) return {error:new Error('No recording data was captured.')};
       const stamp=Date.now();
       const path=currentUser.id+'/vod-'+stream.id+'-'+stamp+'.webm';
@@ -1072,52 +1095,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(upload.error)return {error:upload.error};
       const mediaUrl=db.storage.from('nook-media').getPublicUrl(path).data.publicUrl;
       let thumbnailUrl=null;
-      let thumbnailObjectUrl=null;
       try{
-        const video=document.createElement('video');
-        thumbnailObjectUrl=URL.createObjectURL(blob);
-        video.muted=true;video.playsInline=true;video.preload='auto';video.src=thumbnailObjectUrl;
-        await new Promise((resolve,reject)=>{
-          video.addEventListener('loadedmetadata',resolve,{once:true});
-          video.addEventListener('error',()=>reject(new Error('Could not read replay for thumbnail.')),{once:true});
-          video.load();
-        });
-        await new Promise((resolve,reject)=>{
-          if(video.readyState>=2){resolve();return;}
-          video.addEventListener('loadeddata',resolve,{once:true});
-          video.addEventListener('error',()=>reject(new Error('Replay frame did not decode.')),{once:true});
-        });
-        if(video.duration>0.15){
-          const frameTime=Math.min(1,Math.max(0.1,video.duration/2));
-          await new Promise((resolve,reject)=>{
-            const timeout=setTimeout(()=>reject(new Error('Timed out seeking replay frame.')),5000);
-            video.addEventListener('seeked',()=>{clearTimeout(timeout);resolve();},{once:true});
-            video.addEventListener('error',()=>{clearTimeout(timeout);reject(new Error('Could not seek replay frame.'));},{once:true});
-            video.currentTime=frameTime;
-          });
+        if(liveThumbnailBlob&&liveThumbnailBlob.size){
+          const thumbPath=currentUser.id+'/vod-thumb-'+stream.id+'-'+stamp+'.jpg';
+          const thumbUpload=await db.storage.from('nook-media').upload(thumbPath,liveThumbnailBlob,{contentType:'image/jpeg',upsert:false});
+          if(!thumbUpload.error)thumbnailUrl=db.storage.from('nook-media').getPublicUrl(thumbPath).data.publicUrl;
+          else console.warn('VOD thumbnail upload failed:',thumbUpload.error);
         }
-        try{await video.play();}catch(_){}
-        if('requestVideoFrameCallback' in video){
-          await new Promise(resolve=>video.requestVideoFrameCallback(()=>resolve()));
-        }else{
-          await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-        }
-        if(!video.videoWidth||!video.videoHeight)throw new Error('Replay has no decoded video frame.');
-        const canvas=document.createElement('canvas');
-        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-        const context=canvas.getContext('2d');
-        if(!context)throw new Error('Thumbnail canvas unavailable.');
-        context.drawImage(video,0,0,canvas.width,canvas.height);
-        const imageBlob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.9));
-        if(!imageBlob||!imageBlob.size)throw new Error('Could not encode replay thumbnail.');
-        const thumbPath=currentUser.id+'/vod-thumb-'+stream.id+'-'+stamp+'.jpg';
-        const thumbUpload=await db.storage.from('nook-media').upload(thumbPath,imageBlob,{contentType:'image/jpeg',upsert:false});
-        if(!thumbUpload.error)thumbnailUrl=db.storage.from('nook-media').getPublicUrl(thumbPath).data.publicUrl;
-        else console.warn('VOD thumbnail upload failed:',thumbUpload.error);
-      }catch(thumbnailError){console.warn('VOD thumbnail could not be generated:',thumbnailError);}
-      finally{
-        if(thumbnailObjectUrl)URL.revokeObjectURL(thumbnailObjectUrl);
-      }
+      }catch(thumbnailError){console.warn('VOD thumbnail could not be saved:',thumbnailError);}
       const post=await db.from('posts').insert({author_id:currentUser.id,content:'Replay: '+(stream.title||'Livestream'),media_url:mediaUrl,media_type:'video',thumbnail_url:thumbnailUrl}).select('id').single();
       if(post.error){await db.storage.from('nook-media').remove([path]);return {error:post.error};}
       return {postId:post.data.id};
@@ -1197,6 +1182,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             const mimeType=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'');
             activeLiveVodChunks=[];
             activeLiveVodStream=stream;
+            activeLiveVodThumbnailPromise=captureLiveVodThumbnail(tracks);
             activeLiveVodPromise=new Promise(resolve=>{
               const vodOptions={videoBitsPerSecond:6000000,audioBitsPerSecond:192000};
               if(mimeType)vodOptions.mimeType=mimeType;
@@ -1208,7 +1194,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
               recorder.onstop=async()=>{
                 const blob=new Blob(activeLiveVodChunks,{type:recorder.mimeType||'video/webm'});
                 activeLiveRecorder=null;activeLiveVodChunks=[];
-                const saved=await saveLiveVod(stream,blob);
+                const liveThumbnail=await (activeLiveVodThumbnailPromise||Promise.resolve(null));
+                activeLiveVodThumbnailPromise=null;
+                const saved=await saveLiveVod(stream,blob,liveThumbnail);
                 activeLiveVodStream=null;
                 if(saved.error){showToast('Live ended, but the replay could not be saved: '+saved.error.message);resolve(saved);}
                 else{showToast('Replay automatically posted to your profile!');resolve(saved);}
