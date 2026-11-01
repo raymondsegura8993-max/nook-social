@@ -322,6 +322,28 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       showToast(wasSaved?'Post removed from Saved':'Post saved!');
       if(wasSaved&&currentTab==='Saved'&&card){card.remove();if(!feed.querySelector('.post'))feed.innerHTML='<div class="empty-feed muted">You haven’t saved any posts yet.</div>';}
     }
+    async function openPublicProfile(person) {
+      if(!person?.id||person.id===currentUser.id)return showProfile();
+      const seen=await db.from('profile_views').select('profile_id').eq('profile_id',person.id).eq('viewer_id',currentUser.id).maybeSingle();
+      if(seen.data)await db.from('profile_views').update({viewed_at:new Date().toISOString()}).eq('profile_id',person.id).eq('viewer_id',currentUser.id);
+      else await db.from('profile_views').insert({profile_id:person.id,viewer_id:currentUser.id});
+      const [{data:profile},{data:followers},{data:following},{data:posts},{data:verified}]=await Promise.all([
+        db.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url').eq('id',person.id).maybeSingle(),
+        db.from('follows').select('follower_id').eq('following_id',person.id),
+        db.from('follows').select('following_id').eq('follower_id',person.id),
+        db.from('posts').select('id').eq('author_id',person.id),
+        db.from('verified_profiles').select('user_id').eq('user_id',person.id).maybeSingle()
+      ]);
+      if(!profile)return showToast('This profile could not be opened.');
+      const modal=document.createElement('div');modal.className='modalback show';
+      const avatar=profile.avatar_url?'<img src="'+esc(profile.avatar_url)+'" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover">':'<div class="avatar">'+esc(initials(profile.display_name||profile.username))+'</div>';
+      modal.innerHTML='<div class="modal"><div style="height:100px;border-radius:12px;background:linear-gradient(120deg,#6d35b5,#241633);background-size:cover;background-position:center;'+(profile.cover_url?'background-image:url('+esc(profile.cover_url)+')':'')+'"></div><div style="margin-top:14px;display:flex;align-items:center;gap:12px">'+avatar+'<div><h2 style="margin:0">'+esc(profile.display_name||profile.username)+(verified?' <span style="color:#b98cff">✓</span>':'')+'</h2><span class="muted">@'+esc(profile.username)+'</span></div></div><p>'+esc(profile.bio||'No bio yet.')+'</p><div class="follow-stats"><span><b>'+(followers||[]).length+'</b> Followers</span><span><b>'+(following||[]).length+'</b> Following</span><span><b>'+(posts||[]).length+'</b> Posts</span></div><div class="modalbar"><button class="secondary" id="publicClose">Close</button><button class="secondary" id="publicMessage">Message</button><button class="primary" id="publicFollow">'+(currentFollowing.has(person.id)?'Following':'Follow')+'</button></div></div>';
+      modal.onclick=e=>{if(e.target===modal||e.target.id==='publicClose')modal.remove();};
+      document.body.appendChild(modal);
+      modal.querySelector('#publicMessage').onclick=()=>{modal.remove();startConversation(person.id);};
+      modal.querySelector('#publicFollow').onclick=async()=>{await toggleFollow(person.id);modal.remove();};
+    }
+
     async function togglePostReactions(postId,card) {
       let panel=card.querySelector('.reaction-panel');
       if(panel){panel.remove();return;}
@@ -376,6 +398,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
       card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action react">☺ Reactions</button><button class="action repost">↻ Repost</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
+      const nameNode=card.querySelector('.postname');if(profile?.id&&profile.id!==currentUser.id){nameNode.style.cursor='pointer';nameNode.onclick=()=>openPublicProfile(profile);}
       card.querySelector('.post-content').textContent = post.content || '';
       if(profile?.id)db.from('verified_profiles').select('user_id').eq('user_id',profile.id).maybeSingle().then(({data})=>{if(data){const nameNode=card.querySelector('.postname');if(nameNode)nameNode.insertAdjacentHTML('beforeend',' <span title="Verified account" style="color:#b98cff">✓</span>');}});
       if (!post.content) card.querySelector('.post-content').remove();
@@ -761,7 +784,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const mine=new Set((myLikesRes.data||[]).map(x=>x.post_id));
       currentSavedPostIds=new Set((savedRes.data||[]).map(x=>x.post_id));
       const totalLikes=(likesRes.data||[]).length;
-      document.getElementById('creatorAnalytics').innerHTML='<b>Creator analytics</b><div class="follow-stats"><span><b>'+posts.length+'</b> Posts</span><span><b>'+totalLikes+'</b> Likes received</span><span><b>'+followerCount+'</b> Followers</span></div>';
+      const {count:profileViews}=await db.from('profile_views').select('profile_id',{count:'exact',head:true}).eq('profile_id',currentUser.id);
+      document.getElementById('creatorAnalytics').innerHTML='<b>Creator analytics</b><div class="follow-stats"><span><b>'+posts.length+'</b> Posts</span><span><b>'+totalLikes+'</b> Likes received</span><span><b>'+followerCount+'</b> Followers</span><span><b>'+(profileViews||0)+'</b> Profile views</span></div>';
       posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function loadDiscoverPeople() {
