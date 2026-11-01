@@ -410,6 +410,27 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const downloadButton=document.createElement('button');downloadButton.className='action';downloadButton.textContent='⬇ Download video';
         downloadButton.onclick=async()=>{downloadButton.disabled=true;downloadButton.textContent='Preparing download…';try{const response=await fetch(post.media_url);if(!response.ok)throw new Error('Download failed.');const blob=await response.blob();const objectUrl=URL.createObjectURL(blob);const link=document.createElement('a');link.href=objectUrl;link.download='nook-video-'+post.id+'.webm';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(objectUrl);}catch(error){showToast('Could not download this video: '+error.message);}finally{downloadButton.disabled=false;downloadButton.textContent='⬇ Download video';}};
         card.querySelector('.post-actions').appendChild(downloadButton);
+        if(post.author_id===currentUser.id){
+          const deleteVideoButton=document.createElement('button');deleteVideoButton.className='action';deleteVideoButton.textContent='🗑 Delete video';
+          deleteVideoButton.onclick=async()=>{
+            if(!confirm('Delete this video from your Nook profile? This cannot be undone.'))return;
+            deleteVideoButton.disabled=true;deleteVideoButton.textContent='Deleting…';
+            const removed=await db.from('posts').delete().eq('id',post.id).eq('author_id',currentUser.id);
+            if(removed.error){deleteVideoButton.disabled=false;deleteVideoButton.textContent='🗑 Delete video';return showToast('Could not delete video: '+removed.error.message);}
+            const marker='/storage/v1/object/public/nook-media/';
+            const mediaUrl=post.media_url||'';
+            const markerIndex=mediaUrl.indexOf(marker);
+            if(markerIndex>=0){
+              const storagePath=decodeURIComponent(mediaUrl.slice(markerIndex+marker.length).split('?')[0]);
+              const storageResult=await db.storage.from('nook-media').remove([storagePath]);
+              if(storageResult.error)showToast('Video post deleted, but its stored file could not be removed.');
+            }
+            card.remove();
+            if(currentProfile?.pinned_post_id===post.id){currentProfile.pinned_post_id=null;await db.from('profiles').update({pinned_post_id:null}).eq('id',currentUser.id);}
+            showToast('Video deleted.');
+          };
+          card.querySelector('.post-actions').appendChild(deleteVideoButton);
+        }
       }
       loadPoll(post.id,card);
       const editButton=document.createElement('button');editButton.className='action edit-post';editButton.textContent='✎ Edit';if(post.author_id===currentUser.id){card.querySelector('.post-actions').appendChild(editButton);editButton.onclick=async()=>{const updated=prompt('Edit your post:',post.content||'');if(updated===null)return;const value=updated.trim();if(!value)return showToast('A post cannot be empty.');if(value.length>2000)return showToast('Posts can be up to 2,000 characters.');const result=await db.from('posts').update({content:value,edited_at:new Date().toISOString()}).eq('id',post.id);if(result.error)return showToast(result.error.message);post.content=value;card.querySelector('.post-content').textContent=value;showToast('Post updated!');};const historyButton=document.createElement('button');historyButton.className='action';historyButton.textContent='↶ Edit history';historyButton.onclick=async()=>{const {data:history,error}=await db.from('post_edit_history').select('previous_content,edited_at').eq('post_id',post.id).order('edited_at',{ascending:false}).limit(20);if(error)return showToast(error.message);alert((history||[]).map((h,i)=>(i+1)+'. '+new Date(h.edited_at).toLocaleString()+' — '+h.previous_content).join(' | ')||'No previous edits yet.');};card.querySelector('.post-actions').appendChild(historyButton);}
