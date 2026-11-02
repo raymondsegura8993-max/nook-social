@@ -177,6 +177,21 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   const SUPABASE_KEY = "sb_publishable_gb6ZWf3Lbf6OSVTLBa-1ig_eQgeGHyj";
   const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   window.nookClient = authClient;
+  // Count one visit per browser tab session, including visitors who have not signed in.
+  try {
+    let nookVisitorId = localStorage.getItem('nook_visitor_id');
+    if (!nookVisitorId) {
+      nookVisitorId = crypto.randomUUID();
+      localStorage.setItem('nook_visitor_id', nookVisitorId);
+    }
+    if (!sessionStorage.getItem('nook_visit_recorded')) {
+      authClient.from('website_visits').insert({ visitor_id: nookVisitorId })
+        .then(({ error }) => { if (error) console.warn('Nook visit tracking unavailable:', error.message); });
+      sessionStorage.setItem('nook_visit_recorded', '1');
+    }
+  } catch (error) {
+    console.warn('Nook visitor tracking unavailable in this browser:', error);
+  }
   const screen = document.getElementById("authScreen");
   const form = document.getElementById("authForm");
   const message = document.getElementById("authMessage");
@@ -1061,7 +1076,67 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       (people||[]).forEach(person=>{const row=document.createElement('div');row.className='follow-person';row.innerHTML='<div class="info"><b>'+esc(person.display_name||person.username)+'</b><small>@'+esc(person.username)+'</small></div>';const button=document.createElement('button');button.className='follow';button.textContent='Unblock';button.onclick=async()=>{const result=await db.from('user_blocks').delete().eq('blocker_id',currentUser.id).eq('blocked_id',person.id);if(result.error)return showToast(result.error.message);row.remove();showToast('Account unblocked.');};row.appendChild(button);blockedTarget.appendChild(row);});
     }
 
-    async function loadAdminDashboard(){if(!currentUser)return;const {data:admin}=await db.from('nook_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle();if(!admin)return showToast('Admin access required.');feed.innerHTML='<section class="profile-panel"><h2>Nook Admin Dashboard</h2><p>Review user reports and manage verified badges.</p><div id="adminReports">Loading reports…</div></section>';const target=document.getElementById('adminReports');const {data:reports,error}=await db.from('user_reports').select('id,reason,created_at').order('created_at',{ascending:false}).limit(100);if(error){target.textContent=error.message;return;}if(!reports?.length)target.textContent='No reports to review.';else{target.innerHTML='';reports.forEach(r=>{const row=document.createElement('div');row.className='notification-item';row.textContent=r.reason+' · '+new Date(r.created_at).toLocaleString();target.appendChild(row);});}const form=document.createElement('form');form.className='comment-form';form.innerHTML='<input placeholder="Username to verify"><button class="primary">Verify</button>';form.onsubmit=async e=>{e.preventDefault();const username=form.querySelector('input').value.trim().replace(/^@/,'').toLowerCase();const {data:user}=await db.from('profiles').select('id').eq('username',username).maybeSingle();if(!user)return showToast('User not found.');const result=await db.from('verified_profiles').upsert({user_id:user.id},{onConflict:'user_id'});if(result.error)return showToast(result.error.message);showToast('Verified badge added.');};target.appendChild(form);}
+    async function loadAdminDashboard(){
+      if(!currentUser)return;
+      const {data:admin}=await db.from('nook_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle();
+      if(!admin)return showToast('Admin access required.');
+      feed.innerHTML='<section class="profile-panel"><h2>Nook Admin Dashboard</h2><p>Website overview and moderation tools.</p><h3>Website analytics</h3><div id="adminAnalytics" class="muted">Loading website numbers…</div><p class="muted" style="font-size:12px">Unique visitors are estimated by browser, not verified people. One visit is counted per browser tab session. Visitors who clear browser data or use another device may be counted again.</p></section><section class="profile-panel"><h3>User reports</h3><div id="adminReports">Loading reports…</div></section><section class="profile-panel"><h3>Verified badges</h3><div id="adminVerify"></div></section>';
+      const analyticsTarget=document.getElementById('adminAnalytics');
+      const [visitsRes,usersRes,postsRes]=await Promise.all([
+        db.from('website_analytics').select('total_visits,unique_visitors').single(),
+        db.from('profiles').select('id',{count:'exact',head:true}),
+        db.from('posts').select('id',{count:'exact',head:true})
+      ]);
+      const metrics=[
+        ['Total visits',visitsRes.data?.total_visits],
+        ['Unique browsers',visitsRes.data?.unique_visitors],
+        ['Registered accounts',usersRes.count],
+        ['Posts published',postsRes.count]
+      ];
+      analyticsTarget.innerHTML='';
+      const metricGrid=document.createElement('div');
+      metricGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:14px 0';
+      metrics.forEach(([label,value])=>{
+        const card=document.createElement('div');
+        card.style.cssText='background:#100d16;border:1px solid var(--line);border-radius:13px;padding:15px';
+        const number=document.createElement('div');
+        number.style.cssText='font-size:27px;font-weight:800;color:#d7b5ff';
+        number.textContent=value==null?'—':Number(value).toLocaleString();
+        const caption=document.createElement('div');
+        caption.className='muted';
+        caption.style.fontSize='12px';
+        caption.textContent=label;
+        card.append(number,caption);
+        metricGrid.appendChild(card);
+      });
+      analyticsTarget.appendChild(metricGrid);
+      const issues=[visitsRes.error,usersRes.error,postsRes.error].filter(Boolean);
+      if(issues.length){
+        const warning=document.createElement('p');
+        warning.className='muted';
+        warning.textContent='Some numbers could not load: '+issues.map(x=>x.message).join(' · ');
+        analyticsTarget.appendChild(warning);
+      }
+      const target=document.getElementById('adminReports');
+      const {data:reports,error}=await db.from('user_reports').select('id,reason,created_at').order('created_at',{ascending:false}).limit(100);
+      if(error){target.textContent=error.message;}
+      else if(!reports?.length)target.textContent='No reports to review.';
+      else{target.innerHTML='';reports.forEach(r=>{const row=document.createElement('div');row.className='notification-item';row.textContent=r.reason+' · '+new Date(r.created_at).toLocaleString();target.appendChild(row);});}
+      const verifyTarget=document.getElementById('adminVerify');
+      const form=document.createElement('form');
+      form.className='comment-form';
+      form.innerHTML='<input placeholder="Username to verify"><button class="primary">Verify</button>';
+      form.onsubmit=async e=>{
+        e.preventDefault();
+        const username=form.querySelector('input').value.trim().replace(/^@/,'').toLowerCase();
+        const {data:user}=await db.from('profiles').select('id').eq('username',username).maybeSingle();
+        if(!user)return showToast('User not found.');
+        const result=await db.from('verified_profiles').upsert({user_id:user.id},{onConflict:'user_id'});
+        if(result.error)return showToast(result.error.message);
+        showToast('Verified badge added.');
+      };
+      verifyTarget.appendChild(form);
+    }
     let activeLiveRoom = null;
     let activeLiveStreamId = null;
     let activeLiveChannel = null;
