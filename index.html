@@ -88,7 +88,7 @@ body.auth-required .auth-screen{display:grid}
 <button data-tab="Communities"><span class="ico">◉</span><span class="navlabel">Communities</span></button><button data-tab="Live"><span class="ico">●</span><span class="navlabel">Live</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
-<button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button><button data-tab="Settings"><span class="ico">⚙</span><span class="navlabel">Settings</span></button>
+<button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button><button data-tab="Nook Studio"><span class="ico">✦</span><span class="navlabel">Studio</span></button><button data-tab="Settings"><span class="ico">⚙</span><span class="navlabel">Settings</span></button>
 </nav>
 <button class="newpost" id="newPost">＋ Create post</button>
 <div class="profile-mini"><div class="avatar">Y</div><div><b>Your profile</b><small>@yourusername</small></div><span class="muted">•••</span></div>
@@ -1812,6 +1812,116 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       feed.innerHTML='';
       ordered.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),likes[p.id]||0,comments[p.id]||0,true));
     }
+
+    async function loadNookStudio(){
+      const cards=[
+        ['series','🎬 Video series','Group your videos into a show or episode collection.','Title','Description'],
+        ['notes','📝 Community notes','Add context or corrections to a public post.','Post ID (optional)','Note'],
+        ['clips','✂️ Nook clips','Save a timestamped highlight from a video post.','Post ID','Clip title','Start seconds','End seconds'],
+        ['premieres','▶️ Premieres','Schedule a video release for a future time.','Title','Video URL','Start date and time'],
+        ['translations','🌐 Post translations','Share a translation of a post for other readers.','Post ID','Language','Translated text'],
+        ['challenges','🏁 Nook challenges','Create a challenge for the community.','Challenge name','Details','End date (optional)'],
+        ['feeds','🧭 Custom feeds','Save a feed name and the topics it should follow.','Feed name','Topics (comma separated)'],
+        ['voice','🎙️ Voice posts','Share a link to an audio recording.','Title','Audio URL'],
+        ['playlists','📚 Collaborative playlists','Save a list of video or audio links.','Playlist name','Description','Links (one per line)'],
+        ['guestbook','💌 Profile guestbook','Leave a message on a Nook member’s profile.','Profile username','Message'],
+        ['media','🪪 Creator media kit','Create a public creator introduction for collaborators.','Headline','About you','Contact or website link','Topics (comma separated)'],
+        ['parties','🍿 Watch parties','Schedule a shared watch session and invite people with the page link.','Party name','Video URL','Start date and time']
+      ];
+      const fields={
+        series:[['title','Title','text'],['description','Description','textarea']],
+        notes:[['post_id','Post ID (optional)','text'],['body','Note','textarea']],
+        clips:[['post_id','Post ID','text'],['title','Clip title','text'],['start_seconds','Start seconds','number'],['end_seconds','End seconds','number']],
+        premieres:[['title','Title','text'],['video_url','Video URL','url'],['starts_at','Start date and time','datetime-local']],
+        translations:[['post_id','Post ID','text'],['language','Language','text'],['translated_text','Translated text','textarea']],
+        challenges:[['title','Challenge name','text'],['details','Details','textarea'],['ends_at','End date (optional)','datetime-local']],
+        feeds:[['name','Feed name','text'],['topics','Topics (comma separated)','text']],
+        voice:[['title','Title','text'],['audio_url','Audio URL','url']],
+        playlists:[['title','Playlist name','text'],['description','Description','textarea'],['items','Links (one per line)','textarea']],
+        guestbook:[['username','Profile username','text'],['message','Message','textarea']],
+        media:[['headline','Headline','text'],['about','About you','textarea'],['contact_link','Contact or website link','url'],['topics','Topics (comma separated)','text']],
+        parties:[['title','Party name','text'],['video_url','Video URL','url'],['starts_at','Start date and time','datetime-local']]
+      };
+      feed.innerHTML='<div class="profile-panel"><h2>✦ Nook Studio</h2><p class="muted">Extra tools for creators and the community. Some tools are early versions.</p><div id="nookRewind" class="profile-panel"><b>📼 Your Nook Rewind</b><p class="muted">Loading your activity…</p></div></div><div id="nookStudioGrid" style="display:grid;gap:14px"></div>';
+      const rewind=document.getElementById('nookRewind');
+      const [postsRes,followersRes,likesRes,viewsRes]=await Promise.all([
+        db.from('posts').select('id',{count:'exact',head:true}).eq('author_id',currentUser.id),
+        db.from('follows').select('follower_id',{count:'exact',head:true}).eq('following_id',currentUser.id),
+        db.from('post_likes').select('post_id',{count:'exact',head:true}).in('post_id',(await db.from('posts').select('id').eq('author_id',currentUser.id)).data?.map(p=>p.id)||[]),
+        db.from('profile_views').select('profile_id',{count:'exact',head:true}).eq('profile_id',currentUser.id)
+      ]);
+      rewind.innerHTML='<b>📼 Your Nook Rewind</b><div class="follow-stats"><span><b>'+(postsRes.count||0)+'</b> Posts</span><span><b>'+(followersRes.count||0)+'</b> Followers</span><span><b>'+(likesRes.count||0)+'</b> Likes</span><span><b>'+(viewsRes.count||0)+'</b> Profile views</span></div><p class="muted">Your current Nook highlights. Stats update when you open Studio.</p>';
+      const grid=document.getElementById('nookStudioGrid');
+      for(const [key,title,desc] of cards){
+        const card=document.createElement('section');card.className='profile-panel';
+        const form=document.createElement('form');form.dataset.feature=key;
+        const heading=document.createElement('h3');heading.textContent=title;
+        const description=document.createElement('p');description.className='muted';description.textContent=desc;
+        form.append(heading,description);
+        for(const [name,label,type] of fields[key]){
+          const wrap=document.createElement('label');wrap.style.cssText='display:block;margin:9px 0;color:#cfc5dd;font-size:13px';wrap.textContent=label;
+          let input=type==='textarea'?document.createElement('textarea'):document.createElement('input');
+          if(type!=='textarea')input.type=type;
+          input.name=name;input.required=!['post_id','ends_at','contact_link','description'].includes(name);
+          input.placeholder=label;input.style.cssText='display:block;width:100%;margin-top:5px;padding:10px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white';
+          if(name==='start_seconds')input.min='0';
+          if(name==='end_seconds')input.min='1';
+          wrap.appendChild(input);form.appendChild(wrap);
+        }
+        const save=document.createElement('button');save.className='primary';save.type='submit';save.textContent=key==='media'?'Save media kit':'Create';form.appendChild(save);
+        const list=document.createElement('div');list.className='muted';list.style.marginTop='12px';list.textContent='Loading…';list.id='studio-list-'+key;
+        card.append(form,list);grid.appendChild(card);
+        form.addEventListener('submit',async ev=>{
+          ev.preventDefault();const v=Object.fromEntries(new FormData(form).entries());
+          const validUrl=u=>{try{return ['http:','https:'].includes(new URL(u).protocol)}catch{return false}};
+          let table,row;
+          if(key==='series'){table='nook_video_series';row={owner_id:currentUser.id,title:v.title,description:v.description};}
+          if(key==='notes'){table='nook_community_notes';row={author_id:currentUser.id,post_id:v.post_id||null,body:v.body};}
+          if(key==='clips'){table='nook_video_clips';row={owner_id:currentUser.id,post_id:v.post_id,title:v.title,start_seconds:Number(v.start_seconds),end_seconds:Number(v.end_seconds)};if(!Number.isInteger(row.start_seconds)||!Number.isInteger(row.end_seconds)||row.end_seconds<=row.start_seconds)return showToast('End seconds must be greater than start seconds.');}
+          if(key==='premieres'){table='nook_premieres';row={owner_id:currentUser.id,title:v.title,video_url:v.video_url,starts_at:new Date(v.starts_at).toISOString()};}
+          if(key==='translations'){table='nook_post_translations';row={owner_id:currentUser.id,post_id:v.post_id,language:v.language,translated_text:v.translated_text};}
+          if(key==='challenges'){table='nook_challenges';row={owner_id:currentUser.id,title:v.title,details:v.details,ends_at:v.ends_at?new Date(v.ends_at).toISOString():null};}
+          if(key==='feeds'){table='nook_custom_feeds';row={owner_id:currentUser.id,name:v.name,topics:v.topics.split(',').map(x=>x.trim()).filter(Boolean)};}
+          if(key==='voice'){if(!validUrl(v.audio_url))return showToast('Enter a valid audio link.');table='nook_voice_posts';row={owner_id:currentUser.id,title:v.title,audio_url:v.audio_url};}
+          if(key==='playlists'){const items=v.items.split('\n').map(x=>x.trim()).filter(Boolean);if(items.some(x=>!validUrl(x)))return showToast('Every playlist link must be a valid website URL.');table='nook_playlists';row={owner_id:currentUser.id,title:v.title,description:v.description,items};}
+          if(key==='guestbook'){const username=v.username.trim().replace(/^@/,'').toLowerCase();const target=await db.from('profiles').select('id').eq('username',username).maybeSingle();if(!target.data)return showToast('Could not find that username.');table='nook_guestbook_entries';row={profile_id:target.data.id,author_id:currentUser.id,message:v.message};}
+          if(key==='media'){if(v.contact_link&&!validUrl(v.contact_link))return showToast('Enter a valid website link.');table='nook_media_kits';row={owner_id:currentUser.id,headline:v.headline,about:v.about,contact_link:v.contact_link,topics:v.topics.split(',').map(x=>x.trim()).filter(Boolean),updated_at:new Date().toISOString()};}
+          if(key==='parties'){if(!validUrl(v.video_url))return showToast('Enter a valid video URL.');table='nook_watch_parties';row={host_id:currentUser.id,title:v.title,video_url:v.video_url,starts_at:new Date(v.starts_at).toISOString()};}
+          if(key==='premieres'&&!validUrl(v.video_url))return showToast('Enter a valid video URL.');
+          if(key==='premieres'||key==='parties'){if(!v.starts_at||Number.isNaN(Date.parse(v.starts_at)))return showToast('Choose a valid date and time.');}
+          const result=key==='media'?await db.from(table).upsert(row):await db.from(table).insert(row);
+          if(result.error)return showToast(result.error.message);
+          form.reset();showToast(key==='media'?'Media kit saved!':'Added to Nook Studio.');await loadStudioList(key);
+        });
+        await loadStudioList(key);
+      }
+      async function loadStudioList(key){
+        const box=document.getElementById('studio-list-'+key);if(!box)return;
+        const config={
+          series:['nook_video_series','owner_id'],notes:['nook_community_notes','author_id'],clips:['nook_video_clips','owner_id'],
+          premieres:['nook_premieres','owner_id'],translations:['nook_post_translations','owner_id'],challenges:['nook_challenges','owner_id'],
+          feeds:['nook_custom_feeds','owner_id'],voice:['nook_voice_posts','owner_id'],playlists:['nook_playlists','owner_id'],
+          guestbook:['nook_guestbook_entries','profile_id'],media:['nook_media_kits','owner_id'],parties:['nook_watch_parties','host_id']
+        }[key];
+        const result=await db.from(config[0]).select('*').eq(config[1],currentUser.id).order('created_at',{ascending:false}).limit(10);
+        if(result.error){box.textContent='Could not load this section yet.';return;}
+        if(!result.data?.length){box.textContent=key==='guestbook'?'No guestbook messages yet.':'Nothing here yet.';return;}
+        box.innerHTML='';
+        result.data.forEach(item=>{
+          const row=document.createElement('div');row.className='notification-item';row.style.marginTop='8px';
+          const title=item.title||item.name||item.headline||item.language||'Entry';
+          const detail=item.description||item.details||item.body||item.message||item.translated_text||item.about||item.video_url||item.audio_url||'';
+          const h=document.createElement('b');h.textContent=title;const p=document.createElement('p');p.textContent=detail;
+          row.append(h,p);
+          if(item.starts_at){const time=document.createElement('small');time.className='muted';time.textContent=new Date(item.starts_at).toLocaleString();row.appendChild(time);}
+          if(key==='voice'){const a=document.createElement('a');a.href=item.audio_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Open audio';row.appendChild(a);}
+          if(key==='media'&&item.contact_link){const a=document.createElement('a');a.href=item.contact_link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Contact / website';row.appendChild(a);}
+          box.appendChild(row);
+        });
+      }
+      const media=await db.from('nook_media_kits').select('*').eq('owner_id',currentUser.id).maybeSingle();
+      if(media.data){const form=document.querySelector('[data-feature="media"]');for(const [k,v] of Object.entries(media.data)){const input=form.elements[k];if(input)input.value=Array.isArray(v)?v.join(', '):v||'';}}
+    }
     async function onTab(tab) {
       currentTab=tab;
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
@@ -1824,6 +1934,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Videos') return loadFilteredPosts('video');
       if (tab==='Communities') return loadCommunities();
       if (tab==='Live') return loadLive();
+      if (tab==='Nook Studio') return loadNookStudio();
       feed.innerHTML='<div class="empty-feed muted">This section is not available yet.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
