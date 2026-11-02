@@ -1418,6 +1418,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     let activeLiveRoom = null;
     let activeLiveStreamId = null;
+    let activeLiveGuestInviteId = null;
     let activeLiveChannel = null;
     let activeLiveRecorder = null;
     let activeLiveVodPromise = null;
@@ -1479,6 +1480,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       clearLiveCommunity();
       if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
       activeLiveStreamId=null;
+      activeLiveGuestInviteId=null;
       activeLiveAudioTrack=null;
       activeLiveInputTrack=null;
       if(activeLiveAudioContext){activeLiveAudioContext.close().catch(()=>{});activeLiveAudioContext=null;}
@@ -1498,7 +1500,17 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
         room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
         await room.connect(data.server_url,data.participant_token);
-        if(role==='host'){
+        if(role==='guest'){
+          const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:{facingMode:'user',width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}}});
+          for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}
+          activeLiveAudioTrack=tracks.find(track=>track.kind==='audio')||null;
+          const controls=document.createElement('div');controls.className='profile-panel';controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
+          const mic=document.createElement('button');mic.className='secondary';mic.textContent='Mute microphone';
+          mic.onclick=async()=>{if(!activeLiveAudioTrack)return;if(activeLiveAudioTrack.isMuted){await activeLiveAudioTrack.unmute();mic.textContent='Mute microphone';}else{await activeLiveAudioTrack.mute();mic.textContent='Unmute microphone';}};
+          const cam=document.createElement('button');cam.className='secondary';cam.textContent='Turn camera off';const videoTrack=tracks.find(track=>track.kind==='video');
+          cam.onclick=async()=>{if(!videoTrack)return;if(videoTrack.isMuted){await videoTrack.unmute();cam.textContent='Turn camera off';}else{await videoTrack.mute();cam.textContent='Turn camera on';}};
+          controls.append(mic,cam);stage.append(controls);status.textContent='You joined the live with your camera and microphone.';
+        } else if(role==='host'){
           const tracks=await LK.createLocalTracks({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,sampleRate:48000,channelCount:1},video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}});
           const microphoneTrack=tracks.find(track=>track.kind==='audio')||null;
           activeLiveInputTrack=microphoneTrack;
@@ -1569,7 +1581,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           }catch(recordError){activeLiveRecorder=null;activeLiveVodPromise=null;showToast('Live is on, but VOD recording could not start: '+recordError.message);}
           status.textContent='You are live. Keep this page open until you press End broadcast so the replay can be saved.';
         }
-        else status.textContent='Watching live: '+stream.title;
+        else if(role==='guest'){} else status.textContent='Watching live: '+stream.title;
 
         const panel=document.getElementById('liveCommunity');
         if(panel){
