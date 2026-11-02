@@ -1777,6 +1777,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           const liveName=currentProfile?.username||currentUser.user_metadata?.username||currentUser.email?.split('@')[0]||'member';
           const channel=db.channel('nook-live-'+stream.id,{config:{presence:{key:currentUser.id},broadcast:{self:true}}});
           channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'nook_live_gifts',filter:'live_stream_id=eq.'+stream.id},()=>refreshNookLiveGifts());
+          channel.on('postgres_changes',{event:'*',schema:'public',table:'nook_live_guests',filter:'live_stream_id=eq.'+stream.id},payload=>{if(role==='host'){const refreshButton=[...stage.querySelectorAll('button')].find(button=>button.textContent==='Refresh requests');if(refreshButton)refreshButton.click();}else if(payload.new?.guest_id===currentUser.id&&payload.new?.status==='accepted'){showToast('The host accepted your co-host request. Join with camera when ready.');if(currentTab==='Live')loadLiveList();}});
           activeLiveChannel=channel;
           channel.on('presence',{event:'sync'},()=>{
             const state=channel.presenceState();
