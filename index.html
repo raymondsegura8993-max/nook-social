@@ -1200,7 +1200,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!currentUser)return;
       const {data:admin}=await db.from('nook_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle();
       if(!admin)return showToast('Admin access required.');
-      feed.innerHTML='<section class="profile-panel"><h2>Nook Admin Dashboard</h2><p>Website overview and moderation tools.</p><h3>Website analytics</h3><div id="adminAnalytics" class="muted">Loading website numbers…</div><p class="muted" style="font-size:12px">Unique visitors are estimated by browser, not verified people. One visit is counted per browser tab session. Visitors who clear browser data or use another device may be counted again.</p></section><section class="profile-panel"><h3>Badge Creator</h3><p class="muted">Make your own badges and award them to members.</p><form id="customBadgeForm" class="comment-form" style="display:grid;gap:9px"><input id="customBadgeEmoji" maxlength="8" placeholder="Emoji, e.g. 🌟" required><input id="customBadgeTitle" maxlength="40" placeholder="Badge name" required><input id="customBadgeDescription" maxlength="120" placeholder="Description" required><button class="primary" type="submit">Create badge</button></form><div id="customBadgeList" style="margin-top:12px">Loading badges…</div><h4>Award a badge</h4><form id="awardCustomBadgeForm" class="comment-form" style="display:grid;gap:9px"><input id="awardBadgeUsername" placeholder="Member username" required><select id="awardBadgeCode" required><option value="">Choose badge</option></select><button class="secondary" type="submit">Give badge</button></form></section><section class="profile-panel"><h3>User reports</h3><div id="adminReports">Loading reports…</div></section><section class="profile-panel"><h3>Verified badges</h3><div id="adminVerify"></div></section>';
+      feed.innerHTML='<section class="profile-panel"><h2>Nook Admin Dashboard</h2><p>Website overview and moderation tools.</p><h3>Website analytics</h3><div id="adminAnalytics" class="muted">Loading website numbers…</div><p class="muted" style="font-size:12px">Unique visitors are estimated by browser, not verified people. One visit is counted per browser tab session. Visitors who clear browser data or use another device may be counted again.</p></section><section class="profile-panel"><h3>Badge Creator</h3><p class="muted">Make your own badges and award them to members.</p><form id="customBadgeForm" class="comment-form" style="display:grid;gap:9px"><input id="customBadgeEmoji" maxlength="8" placeholder="Emoji, e.g. 🌟" required><input id="customBadgeTitle" maxlength="40" placeholder="Badge name" required><input id="customBadgeDescription" maxlength="120" placeholder="Description" required><button class="primary" type="submit">Create badge</button></form><div id="customBadgeList" style="margin-top:12px">Loading badges…</div><h4>Award a badge</h4><form id="awardCustomBadgeForm" class="comment-form" style="display:grid;gap:9px"><input id="awardBadgeUsername" placeholder="Member username" required><select id="awardBadgeCode" required><option value="">Choose badge</option></select><button class="secondary" type="submit">Give badge</button></form></section><section class="profile-panel"><h3>User reports</h3><div id="adminReports">Loading reports…</div></section><section class="profile-panel"><h3>Verified badges</h3><div id="adminVerify"></div></section>
+      <section class="profile-panel"><h3>📊 Advanced analytics</h3><div id="adminAdvancedAnalytics" class="muted">Loading detailed analytics…</div></section>
+      <section class="profile-panel"><h3>👥 User management</h3><p class="muted">Search member accounts and inspect their public profile details.</p><form id="adminUserSearch" class="comment-form"><input id="adminUserQuery" placeholder="Search username or display name"><button class="primary">Search</button></form><div id="adminUsers">Search for a member to begin.</div></section>
+      <section class="profile-panel"><h3>🛡️ Content moderation</h3><p class="muted">Review recent posts and remove content that breaks Nook's rules.</p><div id="adminContent">Loading posts…</div></section>
+      <section class="profile-panel"><h3>📡 Live monitoring</h3><div id="adminLive">Loading livestreams…</div></section>
+      <section class="profile-panel"><h3>⚙️ Platform controls</h3><p class="muted">Save an announcement and platform maintenance setting for the owner. These settings are stored centrally; site-wide enforcement still needs to be connected before they affect member access.</p><label>Maintenance mode <select id="adminMaintenance"><option value="false">Off</option><option value="true">On</option></select></label><textarea id="adminAnnouncement" placeholder="Platform announcement" maxlength="500" style="width:100%;min-height:90px;margin-top:10px;background:#100d16;color:white;border:1px solid var(--line);border-radius:10px;padding:10px"></textarea><button id="adminSaveSettings" class="primary" style="margin-top:10px">Save platform settings</button><div id="adminSettingsStatus" class="muted" style="margin-top:8px"></div></section>
+      <section class="profile-panel"><h3>🧑‍💻 Admin team</h3><p class="muted">Current admin access list. Only the owner can grant or revoke admin access; staff permission tiers are not enabled yet.</p><div id="adminTeam">Loading admin team…</div></section>
+      <section class="profile-panel"><h3>🧾 Admin activity log</h3><div id="adminAudit">Loading activity…</div></section>';
       const customBadgeForm=document.getElementById('customBadgeForm');
       const customBadgeList=document.getElementById('customBadgeList');
       const awardBadgeSelect=document.getElementById('awardBadgeCode');
@@ -1292,6 +1299,88 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         showToast('Verified badge added.');
       };
       verifyTarget.appendChild(form);
+
+      async function writeAdminAudit(action,targetType,targetId,details={}){
+        const result=await db.from('nook_admin_audit_log').insert({action,target_type:targetType,target_id:targetId,details,created_by:currentUser.id});
+        if(result.error)console.warn('Admin audit entry failed:',result.error);
+      }
+      async function refreshAdminAudit(){
+        const box=document.getElementById('adminAudit');
+        const result=await db.from('nook_admin_audit_log').select('action,target_type,target_id,details,created_at').order('created_at',{ascending:false}).limit(30);
+        if(result.error){box.textContent=result.error.message;return;}
+        box.innerHTML='';
+        if(!result.data?.length){box.textContent='No admin actions recorded yet.';return;}
+        result.data.forEach(item=>{const row=document.createElement('div');row.className='notification-item';const d=item.details||{};row.textContent=item.action+' · '+(item.target_type||'platform')+' · '+(d.label||item.target_id||'—')+' · '+new Date(item.created_at).toLocaleString();box.appendChild(row);});
+      }
+      async function loadAdminAdvancedAnalytics(){
+        const box=document.getElementById('adminAdvancedAnalytics');
+        const [visits,posts,streams,profiles]=await Promise.all([
+          db.from('website_visits').select('visited_at').gte('visited_at',new Date(Date.now()-30*86400000).toISOString()).order('visited_at',{ascending:false}).limit(5000),
+          db.from('posts').select('id,author_id,content,view_count,created_at').order('view_count',{ascending:false}).limit(10),
+          db.from('live_streams').select('id,title,host_id,status,created_at').eq('status','live').order('created_at',{ascending:false}).limit(50),
+          db.from('profiles').select('id,username,created_at').order('created_at',{ascending:false}).limit(5000)
+        ]);
+        const dayCounts={};(visits.data||[]).forEach(v=>{const day=new Date(v.visited_at).toLocaleDateString();dayCounts[day]=(dayCounts[day]||0)+1;});
+        const last7=(visits.data||[]).filter(v=>new Date(v.visited_at)>new Date(Date.now()-7*86400000)).length;
+        const last30=(visits.data||[]).length;
+        const newUsers7=(profiles.data||[]).filter(p=>new Date(p.created_at)>new Date(Date.now()-7*86400000)).length;
+        const newUsers30=(profiles.data||[]).filter(p=>new Date(p.created_at)>new Date(Date.now()-30*86400000)).length;
+        box.innerHTML='';
+        const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:9px';
+        [['Visits · 7 days',last7],['Visits · 30 days',last30],['New accounts · 7 days',newUsers7],['New accounts · 30 days',newUsers30],['Live now',(streams.data||[]).length]].forEach(([label,value])=>{const card=document.createElement('div');card.className='notification-item';const n=document.createElement('b');n.style.cssText='display:block;font-size:23px;color:#d7b5ff';n.textContent=Number(value).toLocaleString();const l=document.createElement('small');l.className='muted';l.textContent=label;card.append(n,l);grid.appendChild(card);});
+        box.appendChild(grid);
+        const heading=document.createElement('h4');heading.textContent='Most-viewed posts';box.appendChild(heading);
+        if(posts.error){const p=document.createElement('p');p.textContent=posts.error.message;box.appendChild(p);}else if(!posts.data?.length){const p=document.createElement('p');p.className='muted';p.textContent='No posts yet.';box.appendChild(p);}else posts.data.forEach(post=>{const row=document.createElement('div');row.className='notification-item';row.textContent=(post.content||'Media post').slice(0,100)+' · '+(post.view_count||0)+' views';box.appendChild(row);});
+        if(visits.error||profiles.error||streams.error){const p=document.createElement('p');p.className='muted';p.textContent='Some analytics could not load. '+[visits.error,profiles.error,streams.error].filter(Boolean).map(e=>e.message).join(' · ');box.appendChild(p);}
+        const note=document.createElement('p');note.className='muted';note.style.fontSize='12px';note.textContent='Visit totals use the latest 5,000 recorded visits; account totals use the latest 5,000 profiles. They are not lifetime totals if Nook grows beyond those limits.';box.appendChild(note);
+      }
+      document.getElementById('adminUserSearch').onsubmit=async e=>{
+        e.preventDefault();const box=document.getElementById('adminUsers');const query=document.getElementById('adminUserQuery').value.trim().replace(/^@/,'');
+        if(!query){box.textContent='Enter a username or display name.';return;}
+        const result=await db.from('profiles').select('id,username,display_name,bio,created_at,is_private').or('username.ilike.%'+query+'%,display_name.ilike.%'+query+'%').limit(30);
+        if(result.error){box.textContent=result.error.message;return;}box.innerHTML='';
+        if(!result.data?.length){box.textContent='No matching accounts.';return;}
+        result.data.forEach(person=>{const row=document.createElement('div');row.className='notification-item';const title=document.createElement('b');title.textContent=(person.display_name||person.username||'Member')+' · @'+person.username;const detail=document.createElement('p');detail.className='muted';detail.textContent='Joined '+new Date(person.created_at).toLocaleDateString()+' · '+(person.is_private?'Private':'Public')+' · '+(person.bio||'No bio');row.append(title,detail);box.appendChild(row);});
+        await writeAdminAudit('searched_members','profiles',null,{label:query});
+      };
+      async function loadAdminContent(){
+        const box=document.getElementById('adminContent');const result=await db.from('posts').select('id,author_id,content,media_type,created_at,view_count').order('created_at',{ascending:false}).limit(40);
+        if(result.error){box.textContent=result.error.message;return;}box.innerHTML='';
+        if(!result.data?.length){box.textContent='No posts to review.';return;}
+        const ids=[...new Set(result.data.map(x=>x.author_id))];const people=await db.from('profiles').select('id,username').in('id',ids);const names=new Map((people.data||[]).map(x=>[x.id,x.username]));
+        result.data.forEach(post=>{const row=document.createElement('div');row.className='notification-item';const label=document.createElement('div');label.textContent='@'+(names.get(post.author_id)||'unknown')+' · '+new Date(post.created_at).toLocaleString()+' · '+(post.view_count||0)+' views';const content=document.createElement('p');content.textContent=(post.content||'Media post').slice(0,220);const del=document.createElement('button');del.className='secondary';del.textContent='Remove post';del.onclick=async()=>{if(!confirm('Remove this post from Nook? This cannot be undone.'))return;const removed=await db.from('posts').delete().eq('id',post.id);if(removed.error)return showToast(removed.error.message);await writeAdminAudit('deleted_post','post',post.id,{label:'@'+(names.get(post.author_id)||'unknown')});showToast('Post removed.');loadAdminContent();refreshAdminAudit();};row.append(label,content,del);box.appendChild(row);});
+      }
+      async function loadAdminLive(){
+        const box=document.getElementById('adminLive');const result=await db.from('live_streams').select('id,title,host_id,status,created_at').eq('status','live').order('created_at',{ascending:false}).limit(50);
+        if(result.error){box.textContent=result.error.message;return;}box.innerHTML='';
+        if(!result.data?.length){box.textContent='Nobody is live right now.';return;}
+        const ids=[...new Set(result.data.map(x=>x.host_id))];const people=await db.from('profiles').select('id,username').in('id',ids);const names=new Map((people.data||[]).map(x=>[x.id,x.username]));
+        result.data.forEach(stream=>{const row=document.createElement('div');row.className='notification-item';row.textContent=(stream.title||'Untitled stream')+' · @'+(names.get(stream.host_id)||'unknown')+' · Started '+new Date(stream.created_at).toLocaleString();const end=document.createElement('button');end.className='secondary';end.textContent='End stream';end.onclick=async()=>{if(!confirm('End this livestream?'))return;const update=await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id);if(update.error)return showToast(update.error.message);await writeAdminAudit('ended_livestream','live_stream',stream.id,{label:stream.title||'Untitled stream'});showToast('Stream marked as ended.');loadAdminLive();refreshAdminAudit();};row.appendChild(end);box.appendChild(row);});
+      }
+      async function loadAdminTeam(){
+        const box=document.getElementById('adminTeam');const result=await db.from('nook_admins').select('user_id,granted_at').order('granted_at',{ascending:true});
+        if(result.error){box.textContent=result.error.message;return;}box.innerHTML='';
+        const ids=(result.data||[]).map(x=>x.user_id);const people=ids.length?await db.from('profiles').select('id,username,display_name').in('id',ids):{data:[]};const names=new Map((people.data||[]).map(x=>[x.id,x]));
+        (result.data||[]).forEach((admin,index)=>{const p=names.get(admin.user_id)||{};const row=document.createElement('div');row.className='notification-item';row.textContent=(index===0?'Owner · ':'Administrator · ')+'@'+(p.username||'account')+' · Added '+new Date(admin.granted_at).toLocaleDateString();box.appendChild(row);});
+      }
+      async function loadAdminSettings(){
+        const result=await db.from('nook_platform_settings').select('key,value');
+        if(result.error){document.getElementById('adminSettingsStatus').textContent=result.error.message;return;}
+        const values=Object.fromEntries((result.data||[]).map(x=>[x.key,x.value]));
+        document.getElementById('adminMaintenance').value=String(values.maintenance_mode?.enabled===true);
+        document.getElementById('adminAnnouncement').value=values.announcement?.text||'';
+      }
+      document.getElementById('adminSaveSettings').onclick=async()=>{
+        const settings=[
+          {key:'maintenance_mode',value:{enabled:document.getElementById('adminMaintenance').value==='true'}},
+          {key:'announcement',value:{text:document.getElementById('adminAnnouncement').value.trim()}}
+        ];
+        for(const setting of settings){const saved=await db.from('nook_platform_settings').upsert({...setting,updated_at:new Date().toISOString(),updated_by:currentUser.id},{onConflict:'key'});if(saved.error){document.getElementById('adminSettingsStatus').textContent=saved.error.message;return;}}
+        await writeAdminAudit('updated_platform_settings','settings',null,{label:'Announcement and maintenance setting'});
+        document.getElementById('adminSettingsStatus').textContent='Settings saved. They are stored centrally but are not yet enforced across the public site.';
+        await refreshAdminAudit();showToast('Platform settings saved.');
+      };
+      await Promise.all([loadAdminAdvancedAnalytics(),loadAdminContent(),loadAdminLive(),loadAdminTeam(),loadAdminSettings(),refreshAdminAudit()]);
     }
     let activeLiveRoom = null;
     let activeLiveStreamId = null;
