@@ -114,7 +114,7 @@
     card.append(list);
     const accepted=data.participants.filter(x=>x.invite_status==='accepted');
     if(battle.status==='inviting'){
-      card.append(mk('p','nook-battle-muted',accepted.length+' of 2–6 creators accepted. All creators must still be live to start.'));
+      card.append(mk('p','nook-battle-muted',accepted.length+' of 2–5 people accepted. All creators must still be live to start.'));
       if(battle.host_id===currentUser.id){
         if(accepted.length>=2){card.append(btn('Start battle now','primary',async()=>{
           const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',battle.host_stream_id).eq('host_id',battle.host_id).eq('status','accepted');
@@ -130,7 +130,7 @@
         if(mine?.invite_status==='invited'){
           const actions=mk('div','nook-battle-actions');
           actions.append(btn('Accept invitation','primary',async()=>{
-            const own=await getOwnLive();if(!own||own.id!==mine.live_stream_id)return showToast('You must be LIVE on the invited stream to accept.');
+            const own=await getOwnLive();if(!own||own.id!==mine.live_stream_id)return showToast('Join the host’s live with your camera before accepting.');
             const r=await db.from('nook_live_battle_participants').update({invite_status:'accepted',accepted_at:new Date().toISOString()}).eq('id',mine.id).eq('user_id',currentUser.id);
             if(r.error)return showToast(r.error.message);showToast('You joined the battle!');await renderLiveBattleContent();
           }),btn('Decline','secondary',async()=>{
@@ -149,7 +149,7 @@
         if(left<=0&&battle.host_id===currentUser.id){clearInterval(battleTimers[battle.id]);delete battleTimers[battle.id];await finishBattle(battle);}
       };
       if(battleTimers[battle.id])clearInterval(battleTimers[battle.id]);updateTimer();battleTimers[battle.id]=setInterval(updateTimer,1000);
-      card.append(btn('View live camera stage','primary',()=>watchBattle(battle.id,card)));
+      card.append(mk('p','nook-battle-muted','Your group cameras stay together in the Live tab while this scoreboard runs.'));
       if(battle.host_id===currentUser.id)card.append(btn('End battle early','secondary',()=>finishBattle(battle)));
       const chat=mk('div','nook-battle-chat');data.chat.forEach(m=>{const line=mk('div','nook-battle-chatline');const p=names.get(m.user_id);const b=mk('b','', '@'+(p?.username||'member')+': ');line.append(b,document.createTextNode(m.message));chat.append(line);});
       card.append(mk('b','','Battle chat'),chat);
@@ -214,7 +214,7 @@
   async function loadNookLiveBattles(){
     await stopBattleWatch();
     Object.values(battleTimers).forEach(clearInterval);battleTimers={};
-    feed.innerHTML='<div class="profile-panel"><button class="secondary" id="liveBattlesBack">← Back to Studio</button><h2 style="margin-top:14px">🔴 Nook LIVE Battles</h2><p class="nook-battle-muted">Free-for-all battles for 2–6 creators who are already LIVE. Viewers can give each creator one free like per battle. No money or gifts.</p><div id="nookLiveBattleContent" class="nook-battle-wrap">Loading LIVE Battles…</div></div>';
+    feed.innerHTML='<div class="profile-panel"><button class="secondary" id="liveBattlesBack">← Back to Studio</button><h2 style="margin-top:14px">🔴 Nook LIVE Battles</h2><p class="nook-battle-muted">Free-for-all battles for 2–5 people who are already LIVE. Viewers can give each creator one free like per battle. No money or gifts.</p><div id="nookLiveBattleContent" class="nook-battle-wrap">Loading LIVE Battles…</div></div>';
     byId('liveBattlesBack').onclick=loadNookStudio;
     await renderLiveBattleContent();
     subscribeBattleUpdates();
@@ -294,7 +294,7 @@
   loadLive=async function(){
     await stopBattleWatch();
     await originalLoadLive();
-    const panel=box('🔴 Nook LIVE Battles','Compete with 2–6 creators while everyone is LIVE. Free likes decide the winner.');
+    const panel=box('🔴 Nook LIVE Battles','Compete with 2–5 people while everyone is LIVE. Free likes decide the winner.');
     const open=btn('Show Battle Controls','primary',async()=>{
       open.disabled=true;open.textContent='Loading…';
       const area=mk('div','nook-battle-wrap');area.id='nookLiveBattleContent';panel.append(area);
