@@ -1820,6 +1820,107 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       ordered.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),likes[p.id]||0,comments[p.id]||0,true));
     }
 
+
+    function studioSubnav(){
+      return '<div class="profile-panel"><h2>✦ Nook Studio</h2><p class="muted">Creator tools, community features, and deeper insights.</p><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><button class="primary" id="openBattles">🏁 Nook Battles</button><button class="secondary" id="openAnalyticsPlus">📊 Analytics Plus</button><button class="secondary" id="openSupporters">💜 Nook Supporters</button></div></div>';
+    }
+    async function loadCreatorAnalyticsPlus(){
+      feed.innerHTML='<div class="profile-panel"><button class="secondary" id="analyticsBack">← Back to Studio</button><h2 style="margin-top:14px">📊 Creator Analytics Plus</h2><p class="muted">A clearer look at how your Nook account is growing. Stats refresh when you open this page.</p><div id="creatorAnalyticsStats" class="empty-feed muted">Loading your analytics…</div><div id="creatorAnalyticsTrend" class="profile-panel">Loading your 7-day activity…</div></div>';
+      document.getElementById('analyticsBack').onclick=loadNookStudio;
+      const since30=new Date(Date.now()-30*86400000).toISOString();
+      const [postsRes,followersRes,likesRes,profileViewsRes,newFollowersRes]=await Promise.all([
+        db.from('posts').select('id,created_at,view_count').eq('author_id',currentUser.id).order('created_at',{ascending:false}).limit(1000),
+        db.from('follows').select('follower_id',{count:'exact',head:true}).eq('following_id',currentUser.id),
+        db.from('post_likes').select('post_id',{count:'exact',head:true}).in('post_id',(await db.from('posts').select('id').eq('author_id',currentUser.id)).data?.map(x=>x.id)||[]),
+        db.from('profile_views').select('profile_id',{count:'exact',head:true}).eq('profile_id',currentUser.id),
+        db.from('follows').select('created_at',{count:'exact'}).eq('following_id',currentUser.id).gte('created_at',since30)
+      ]);
+      const posts=postsRes.data||[],ids=posts.map(x=>x.id);
+      const views=posts.reduce((n,p)=>n+(Number(p.view_count)||0),0);
+      const posts30=posts.filter(p=>p.created_at>=since30).length;
+      const likes30=ids.length?await db.from('post_likes').select('post_id',{count:'exact',head:true}).in('post_id',ids).gte('created_at',since30):{count:0};
+      const stats=document.getElementById('creatorAnalyticsStats');
+      if(postsRes.error||followersRes.error||likesRes.error||profileViewsRes.error){stats.textContent='Some analytics could not load. Please refresh and try again.';return;}
+      stats.className='profile-panel';stats.innerHTML='';
+      const metrics=[
+        ['Total posts',posts.length],['Followers',followersRes.count||0],['Total likes',likesRes.count||0],
+        ['Post views',views],['Profile views',profileViewsRes.count||0],['Posts · 30 days',posts30],
+        ['New followers · 30 days',newFollowersRes.count||0],['Likes · 30 days',likes30.count||0]
+      ];
+      const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px';
+      metrics.forEach(([label,value])=>{const tile=document.createElement('div');tile.className='notification-item';tile.style.margin='0';const n=document.createElement('strong');n.style.cssText='display:block;font-size:25px;color:#d7b5ff';n.textContent=Number(value||0).toLocaleString();const l=document.createElement('small');l.className='muted';l.textContent=label;tile.append(n,l);grid.appendChild(tile);});
+      stats.appendChild(grid);
+      const trend=document.getElementById('creatorAnalyticsTrend');trend.innerHTML='<b>Last 7 days · Posts published</b><div id="creatorAnalyticsBars" style="display:flex;align-items:end;gap:9px;height:150px;margin-top:16px"></div>';
+      const bars=document.getElementById('creatorAnalyticsBars');
+      const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(6-i));return d;});
+      const counts=days.map(d=>posts.filter(p=>{const x=new Date(p.created_at);return x.toDateString()===d.toDateString();}).length);
+      const max=Math.max(1,...counts);
+      days.forEach((d,i)=>{const col=document.createElement('div');col.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%;gap:6px';const value=document.createElement('small');value.className='muted';value.textContent=String(counts[i]);const bar=document.createElement('div');bar.style.cssText='width:100%;max-width:34px;height:'+Math.max(5,counts[i]/max*100)+'px;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#c084fc,#7137d8)';const label=document.createElement('small');label.className='muted';label.textContent=d.toLocaleDateString(undefined,{weekday:'short'});col.append(value,bar,label);bars.appendChild(col);});
+      const note=document.createElement('p');note.className='muted';note.style.fontSize='12px';note.textContent='Views use the view counts currently stored on your posts. This page does not estimate reach or unique viewers.';trend.appendChild(note);
+    }
+    async function loadNookBattles(){
+      feed.innerHTML='<div class="profile-panel"><button class="secondary" id="battlesBack">← Back to Studio</button><h2 style="margin-top:14px">🏁 Nook Battles</h2><p class="muted">Create friendly community challenges and let other members enter.</p><form id="battleCreateForm" style="display:grid;gap:9px;margin-top:14px"><input name="title" maxlength="100" required placeholder="Battle title" class="dm-search" style="margin:0"><textarea name="details" maxlength="2000" placeholder="Rules or details (optional)" class="dm-search" style="min-height:85px;margin:0"></textarea><label class="muted" style="font-size:12px">Entry deadline (optional)<input name="ends_at" type="datetime-local" class="dm-search" style="margin:5px 0 0"></label><button class="primary" type="submit">Create battle</button></form><div id="nookBattlesList" style="margin-top:18px">Loading battles…</div></div>';
+      document.getElementById('battlesBack').onclick=loadNookStudio;
+      document.getElementById('battleCreateForm').onsubmit=async ev=>{ev.preventDefault();const v=Object.fromEntries(new FormData(ev.currentTarget).entries());const row={creator_id:currentUser.id,title:v.title.trim(),details:v.details.trim(),ends_at:v.ends_at?new Date(v.ends_at).toISOString():null};const result=await db.from('nook_battles').insert(row);if(result.error)return showToast(result.error.message);ev.currentTarget.reset();showToast('Your Nook Battle is live!');renderBattles();};
+      async function renderBattles(){
+        const box=document.getElementById('nookBattlesList');if(!box)return;box.textContent='Loading battles…';
+        const [battleRes,entryRes]=await Promise.all([db.from('nook_battles').select('*').order('created_at',{ascending:false}).limit(50),db.from('nook_battle_entries').select('battle_id,user_id,entry_text').limit(500)]);
+        if(battleRes.error||entryRes.error){box.textContent='Battles could not load. Please try again.';return;}
+        box.innerHTML='';
+        if(!battleRes.data?.length){box.textContent='No battles yet. Create the first one!';return;}
+        const entries=entryRes.data||[];
+        for(const battle of battleRes.data){
+          const card=document.createElement('section');card.className='notification-item';card.style.margin='10px 0';
+          const title=document.createElement('h3');title.style.margin='0 0 5px';title.textContent=battle.title;
+          const detail=document.createElement('p');detail.className='muted';detail.textContent=battle.details||'No extra details.';
+          const meta=document.createElement('small');meta.className='muted';const ended=battle.ends_at&&new Date(battle.ends_at)<=new Date();meta.textContent=entries.filter(x=>x.battle_id===battle.id).length+' entries · '+(ended?'Deadline passed':battle.ends_at?'Ends '+new Date(battle.ends_at).toLocaleString(): 'No deadline');
+          card.append(title,detail,meta);
+          const own=battle.creator_id===currentUser.id,joined=entries.some(x=>x.battle_id===battle.id&&x.user_id===currentUser.id);
+          if(!own&&!joined&&battle.status==='open'&&!ended){
+            const form=document.createElement('form');form.style.cssText='display:flex;gap:8px;margin-top:10px';
+            const input=document.createElement('input');input.required=true;input.maxLength=1000;input.placeholder='Your entry or response';input.className='dm-search';input.style.margin='0';input.style.minWidth='0';
+            const btn=document.createElement('button');btn.className='primary';btn.type='submit';btn.textContent='Enter';
+            form.append(input,btn);form.onsubmit=async ev=>{ev.preventDefault();btn.disabled=true;const res=await db.from('nook_battle_entries').insert({battle_id:battle.id,user_id:currentUser.id,entry_text:input.value.trim()});if(res.error){showToast(res.error.message);btn.disabled=false;return;}showToast('You entered the battle!');renderBattles();};card.appendChild(form);
+          }else if(joined){const tag=document.createElement('small');tag.style.color='#cba7ff';tag.textContent='✓ You entered this battle';card.appendChild(tag);}
+          const ownEntries=entries.filter(x=>x.battle_id===battle.id);
+          if(ownEntries.length){const list=document.createElement('div');list.style.cssText='margin-top:10px;border-top:1px solid var(--line);padding-top:8px';ownEntries.slice(0,8).forEach(entry=>{const p=document.createElement('p');p.style.cssText='font-size:12px;margin:5px 0;color:#d8cce5';p.textContent=entry.entry_text;list.appendChild(p);});card.appendChild(list);}
+          box.appendChild(card);
+        }
+      }
+      renderBattles();
+    }
+    async function loadNookSupporters(){
+      feed.innerHTML='<div class="profile-panel"><button class="secondary" id="supportersBack">← Back to Studio</button><h2 style="margin-top:14px">💜 Nook Supporters</h2><p class="muted">Show creators some love with a free support. This version does not collect money or payment details.</p><input id="supportCreatorSearch" class="dm-search" placeholder="Find a creator by username"><div id="supportCreatorResults" class="muted">Search for a creator to support.</div><h3 style="margin-top:20px">Creators you support</h3><div id="supportedCreators" class="muted">Loading…</div></div>';
+      document.getElementById('supportersBack').onclick=loadNookStudio;
+      const input=document.getElementById('supportCreatorSearch'),results=document.getElementById('supportCreatorResults');
+      let timer;
+      input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(searchCreators,250);});
+      async function searchCreators(){
+        const term=input.value.trim().replace(/[,%()]/g,' ');
+        if(term.length<2){results.textContent='Type at least 2 letters.';return;}
+        const {data,error}=await db.from('profiles').select('id,username,display_name,avatar_url').ilike('username','%'+term+'%').limit(12);
+        if(error){results.textContent='Creator search could not load.';return;}
+        results.innerHTML='';
+        if(!data?.length){results.textContent='No creators found.';return;}
+        for(const person of data){
+          if(person.id===currentUser.id)continue;
+          const [supportRes,countRes]=await Promise.all([db.from('nook_supporters').select('id').eq('supporter_id',currentUser.id).eq('creator_id',person.id).maybeSingle(),db.from('nook_supporters').select('id',{count:'exact',head:true}).eq('creator_id',person.id)]);
+          const row=document.createElement('div');row.className='follow-person';
+          const info=document.createElement('div');info.className='info';const name=document.createElement('b');name.textContent=person.display_name||person.username;const handle=document.createElement('small');handle.textContent='@'+person.username+' · '+(countRes.count||0)+' supporters';info.append(name,handle);
+          const btn=document.createElement('button');btn.className='follow';btn.textContent=supportRes.data?'Supporting':'Support';btn.onclick=async()=>{btn.disabled=true;const res=supportRes.data?await db.from('nook_supporters').delete().eq('supporter_id',currentUser.id).eq('creator_id',person.id):await db.from('nook_supporters').insert({supporter_id:currentUser.id,creator_id:person.id});if(res.error){showToast(res.error.message);btn.disabled=false;return;}showToast(supportRes.data?'Support removed':'You are supporting '+(person.display_name||person.username));searchCreators();loadSupportedCreators();};
+          row.append(info,btn);results.appendChild(row);
+        }
+      }
+      async function loadSupportedCreators(){
+        const box=document.getElementById('supportedCreators');if(!box)return;
+        const {data,error}=await db.from('nook_supporters').select('creator_id').eq('supporter_id',currentUser.id);
+        if(error){box.textContent='Could not load your supported creators.';return;}
+        if(!data?.length){box.textContent='You are not supporting anyone yet.';return;}
+        const ids=data.map(x=>x.creator_id);const people=await db.from('profiles').select('id,username,display_name').in('id',ids);
+        box.innerHTML='';(people.data||[]).forEach(person=>{const p=document.createElement('p');p.className='muted';p.textContent=(person.display_name||person.username)+' · @'+person.username;box.appendChild(p);});
+      }
+      loadSupportedCreators();
+    }
     async function loadNookStudio(){
       const cards=[
         ['series','🎬 Video series','Group your videos into a show or episode collection.','Title','Description'],
@@ -1849,7 +1950,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         media:[['headline','Headline','text'],['about','About you','textarea'],['contact_link','Contact or website link','url'],['topics','Topics (comma separated)','text']],
         parties:[['title','Party name','text'],['video_url','Video URL','url'],['starts_at','Start date and time','datetime-local']]
       };
-      feed.innerHTML='<div class="profile-panel"><h2>✦ Nook Studio</h2><p class="muted">Extra tools for creators and the community. Some tools are early versions.</p><div id="nookRewind" class="profile-panel"><b>📼 Your Nook Rewind</b><p class="muted">Loading your activity…</p></div></div><div id="nookStudioGrid" style="display:grid;gap:14px"></div>';
+      feed.innerHTML=studioSubnav()+'<div class="profile-panel" id="nookRewind"><b>📼 Your Nook Rewind</b><p class="muted">Loading your activity…</p></div><div id="nookStudioGrid" style="display:grid;gap:14px"></div>';document.getElementById('openBattles').onclick=loadNookBattles;document.getElementById('openAnalyticsPlus').onclick=loadCreatorAnalyticsPlus;document.getElementById('openSupporters').onclick=loadNookSupporters;
       const rewind=document.getElementById('nookRewind');
       const [postsRes,followersRes,likesRes,viewsRes]=await Promise.all([
         db.from('posts').select('id',{count:'exact',head:true}).eq('author_id',currentUser.id),
