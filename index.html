@@ -787,6 +787,29 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       }
       loadPoll(post.id,card);
       const editButton=document.createElement('button');editButton.className='action edit-post';editButton.textContent='✎ Edit';if(post.author_id===currentUser.id){card.querySelector('.post-actions').appendChild(editButton);editButton.onclick=async()=>{const updated=prompt('Edit your post:',post.content||'');if(updated===null)return;const value=updated.trim();if(!value)return showToast('A post cannot be empty.');if(value.length>2000)return showToast('Posts can be up to 2,000 characters.');const result=await db.from('posts').update({content:value,edited_at:new Date().toISOString()}).eq('id',post.id);if(result.error)return showToast(result.error.message);post.content=value;card.querySelector('.post-content').textContent=value;showToast('Post updated!');};const historyButton=document.createElement('button');historyButton.className='action';historyButton.textContent='↶ Edit history';historyButton.onclick=async()=>{const {data:history,error}=await db.from('post_edit_history').select('previous_content,edited_at').eq('post_id',post.id).order('edited_at',{ascending:false}).limit(20);if(error)return showToast(error.message);alert((history||[]).map((h,i)=>(i+1)+'. '+new Date(h.edited_at).toLocaleString()+' — '+h.previous_content).join(' | ')||'No previous edits yet.');};card.querySelector('.post-actions').appendChild(historyButton);}
+      if(currentTab==='Profile'&&post.author_id===currentUser.id&&post.media_type!=='video'){
+        const deletePostButton=document.createElement('button');
+        deletePostButton.className='action delete-post';
+        deletePostButton.textContent='🗑 Delete post';
+        deletePostButton.onclick=async()=>{
+          if(!confirm('Delete this post from your Nook profile? This cannot be undone.'))return;
+          deletePostButton.disabled=true;deletePostButton.textContent='Deleting…';
+          const removed=await db.from('posts').delete().eq('id',post.id).eq('author_id',currentUser.id);
+          if(removed.error){deletePostButton.disabled=false;deletePostButton.textContent='🗑 Delete post';return showToast('Could not delete post: '+removed.error.message);}
+          const marker='/storage/v1/object/public/nook-media/';
+          const mediaUrl=post.media_url||'';
+          const markerIndex=mediaUrl.indexOf(marker);
+          if(markerIndex>=0){
+            const storagePath=decodeURIComponent(mediaUrl.slice(markerIndex+marker.length).split('?')[0]);
+            const storageResult=await db.storage.from('nook-media').remove([storagePath]);
+            if(storageResult.error)showToast('Post deleted, but its stored media file could not be removed.');
+          }
+          card.remove();
+          if(currentProfile?.pinned_post_id===post.id){currentProfile.pinned_post_id=null;await db.from('profiles').update({pinned_post_id:null}).eq('id',currentUser.id);}
+          showToast('Post deleted.');
+        };
+        card.querySelector('.post-actions').appendChild(deletePostButton);
+      }
       card.querySelector('.repost').onclick=async()=>{const quote=prompt('Add a message to your repost (leave blank for a regular repost):','');if(quote===null)return;if(quote.trim().length>1000)return showToast('Your quote can be up to 1,000 characters.');const result=await db.from('posts').insert({author_id:currentUser.id,content:quote.trim()||post.content||'Shared a post',quote_text:quote.trim()||null,media_url:post.media_url||null,media_type:post.media_type||null,repost_of:post.id});if(result.error)return showToast(result.error.message);showToast(quote.trim()?'Quote repost published!':'Reposted to your profile!');if(currentTab==='Home')loadFeed();if(currentTab==='Profile')showProfile();};
       card.querySelector('.react').onclick=()=>togglePostReactions(post.id,card);
       if(profile?.id && profile.id!==currentUser.id){
