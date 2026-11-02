@@ -47,20 +47,14 @@
     return {participants:p.data||[],likes:l.data||[],chat:c.data||[]};
   }
   async function finishBattle(battle){
-    const [likes,participants]=await Promise.all([db.from('nook_live_battle_likes').select('creator_id').eq('battle_id',battle.id),db.from('nook_live_battle_participants').select('user_id').eq('battle_id',battle.id).eq('invite_status','accepted')]);
-    if(likes.error||participants.error)return showToast(likes.error?.message||participants.error?.message);
-    const activeCreators=new Set((participants.data||[]).map(x=>x.user_id));
-    const scores={};(likes.data||[]).filter(x=>activeCreators.has(x.creator_id)).forEach(x=>scores[x.creator_id]=(scores[x.creator_id]||0)+1);
-    const top=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
-    const winner=top.length&&(!top[1]||top[0][1]>top[1][1])?top[0][0]:null;
-    const done=await db.from('nook_live_battles').update({status:'completed',finished_at:new Date().toISOString(),winner_user_id:winner}).eq('id',battle.id).eq('host_id',currentUser.id).eq('status','live');
+    const done=await db.from('nook_live_battles').update({status:'completed'}).eq('id',battle.id).eq('host_id',currentUser.id).eq('status','live');
     if(done.error)return showToast('Could not finish battle: '+done.error.message);
-    showToast(winner?'Battle finished! The winner has been recorded.':'Battle finished in a tie!');
+    showToast('Battle finished! The winner has been recorded.');
     await loadNookLiveBattles();
   }
   async function createBattlePanel(parent){
     const own=await getOwnLive();
-    const create=box('🔴 Start a LIVE Battle','Battles are only available while your own livestream is active. Compete against 1–4 other creators using free likes.');
+    const create=box('🔴 Start a LIVE Battle','Battles are only available while your own livestream is active. Compete against 1–5 other creators using free likes.');
     const form=mk('form');form.style.cssText='display:grid;gap:9px;margin-top:10px';
     const title=mk('input','dm-search');title.name='title';title.maxLength=100;title.minLength=3;title.required=true;title.placeholder='Battle title';
     const duration=mk('select','dm-search');duration.name='duration_seconds';
