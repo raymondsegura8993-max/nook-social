@@ -238,7 +238,7 @@ $('#recordStop').onclick=()=>{if(nookRecorder?.state==='recording')nookRecorder.
 $('#recordAgain').onclick=()=>{closeNookRecorder();$('#recordPanel').hidden=false;$('#recordStart').click();};
 $('#recordUse').onclick=()=>{
   if(!nookRecordChunks.length)return;
-  const type=nookRecorder?.mimeType||'video/webm',ext=type.includes('mp4')?'mp4':'webm';
+  const recorderType=nookRecorder?.mimeType||'video/webm',type=recorderType.split(';')[0],ext=type.includes('mp4')?'mp4':'webm';
   const blob=new Blob(nookRecordChunks,{type}),file=new File([blob],'nook-recording.'+ext,{type,lastModified:Date.now()});
   if(file.size>50*1024*1024)return showToast('This recording is over Nook’s 50 MB upload limit. Record a shorter video.');
   window.nookSelectedMediaFile=file;window.nookSelectedMediaType='video';window.nookRecordedVideo=true;$('#mediaChoice').textContent='Recorded video ready to post ('+(file.size/1024/1024).toFixed(1)+' MB).';closeNookRecorder();showToast('Recording added to your post. Add a caption and press Publish.');
