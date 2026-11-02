@@ -218,7 +218,16 @@
     feed.innerHTML='<div class="profile-panel"><button class="secondary" id="liveBattlesBack">← Back to Studio</button><h2 style="margin-top:14px">🔴 Nook LIVE Battles</h2><p class="nook-battle-muted">Free-for-all battles for 2–6 creators who are already LIVE. Viewers can give each creator one free like per battle. No money or gifts.</p><div id="nookLiveBattleContent" class="nook-battle-wrap">Loading LIVE Battles…</div></div>';
     byId('liveBattlesBack').onclick=loadNookStudio;
     await renderLiveBattleContent();
-    battleChannel=db.channel('nook-live-battles-updates').on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_likes'},()=>refreshBattleCards()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_participants'},()=>renderLiveBattleContent()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_chat'},()=>refreshBattleCards()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battles'},()=>renderLiveBattleContent()).subscribe();
+    subscribeBattleUpdates();
+  }
+  function subscribeBattleUpdates(){
+    if(battleChannel)db.removeChannel(battleChannel).catch(()=>{});
+    battleChannel=db.channel('nook-live-battles-updates')
+      .on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_likes'},()=>refreshBattleCards())
+      .on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_participants'},()=>renderLiveBattleContent())
+      .on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_chat'},()=>refreshBattleCards())
+      .on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battles'},()=>renderLiveBattleContent())
+      .subscribe();
   }
   async function renderLiveBattleContent(){
     const root=byId('nookLiveBattleContent');if(!root||battleRefreshBusy)return; battleRefreshBusy=true;
@@ -287,7 +296,12 @@
     await stopBattleWatch();
     await originalLoadLive();
     const panel=box('🔴 Nook LIVE Battles','Compete with 2–6 creators while everyone is LIVE. Free likes decide the winner.');
-    const open=btn('Open LIVE Battles','primary',loadNookLiveBattles);panel.append(open);feed.append(panel);
+    const open=btn('Show Battle Controls','primary',async()=>{
+      open.disabled=true;open.textContent='Loading…';
+      const area=mk('div','nook-battle-wrap');area.id='nookLiveBattleContent';panel.append(area);
+      await renderLiveBattleContent();subscribeBattleUpdates();open.remove();
+    });
+    panel.append(open);feed.append(panel);
   };
   loadNookBattles=loadNookLiveBattles;
   window.addEventListener('beforeunload',()=>{battleRooms.forEach(r=>r.disconnect());Object.values(battleTimers).forEach(clearInterval);});
