@@ -177,6 +177,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       <button class="primary auth-submit" id="authSubmit" type="submit">Log in</button>
       <p class="auth-message" id="authMessage" aria-live="polite"></p>
     </form>
+    <div style="display:flex;align-items:center;gap:10px;margin:17px 0;color:var(--muted);font-size:12px"><span style="height:1px;background:var(--line);flex:1"></span>OR<span style="height:1px;background:var(--line);flex:1"></span></div>
+    <button type="button" id="googleSignInBtn" class="secondary" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px"><span style="font-weight:800;background:white;color:#4285f4;border-radius:50%;width:21px;height:21px;display:grid;place-items:center">G</span>Continue with Google</button>
     <p class="auth-sub" style="margin:14px 0 0">Use an email address you can access. Never share your password.</p>
   </section>
 </div>
@@ -211,6 +213,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   const emailInput = document.getElementById("authEmail");
   const passwordInput = document.getElementById("authPassword");
   const submit = document.getElementById("authSubmit");
+  const googleSignInBtn = document.getElementById("googleSignInBtn");
   const loginTab = document.getElementById("loginTab");
   const signupTab = document.getElementById("signupTab");
   let mode = "login";
@@ -225,6 +228,22 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     passwordInput.autocomplete = mode === "signup" ? "new-password" : "current-password";
     message.textContent = "";
   }
+  googleSignInBtn.addEventListener("click", async () => {
+    message.textContent = "";
+    googleSignInBtn.disabled = true;
+    googleSignInBtn.textContent = "Connecting to Google...";
+    try {
+      const { error } = await authClient.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (error) throw error;
+    } catch (error) {
+      message.textContent = error.message || "Google sign-in could not start.";
+      googleSignInBtn.disabled = false;
+      googleSignInBtn.innerHTML = '<span style="font-weight:800;background:white;color:#4285f4;border-radius:50%;width:21px;height:21px;display:grid;place-items:center">G</span>Continue with Google';
+    }
+  });
   loginTab.addEventListener("click", () => setMode("login"));
   signupTab.addEventListener("click", () => setMode("signup"));
   function showSignedIn(user) {
