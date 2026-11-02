@@ -17,14 +17,13 @@
   .nook-battle-timer{font-size:22px;font-weight:800;color:#f1d8ff}
   `;
   document.head.appendChild(style);
-  let battleRooms=[],battleChannel=null,battleTimer=null,battleRefreshBusy=false,currentBattleWatch=null;
+  let battleRooms=[],battleChannel=null,battleTimer=null,battleTimers={},battleRefreshBusy=false,currentBattleWatch=null;
   const byId=id=>document.getElementById(id);
   const mk=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;};
   const btn=(txt,cls,fn)=>{const b=mk('button',cls||'secondary',txt);b.type='button';b.onclick=fn;return b;};
   const box=(title,desc)=>{const e=mk('section','nook-battle-card');if(title)e.append(mk('h3','',title));if(desc)e.append(mk('p','nook-battle-muted',desc));return e;};
-  async function stopBattleWatch(){
-    if(battleTimer){clearInterval(battleTimer);battleTimer=null;}
-    if(battleChannel){try{await db.removeChannel(battleChannel);}catch(_){}battleChannel=null;}
+  async function stopBattleWatch(keepChannel=false){
+    if(!keepChannel&&battleChannel){try{await db.removeChannel(battleChannel);}catch(_){}battleChannel=null;}
     await Promise.all(battleRooms.map(r=>r.disconnect().catch(()=>{})));battleRooms=[];
     currentBattleWatch=null;
   }
@@ -87,10 +86,12 @@
   }
   async function renderBattleCard(parent,battle,allLive){
     const data=await battleRows(battle.id);
-    const names=await getProfiles(data.participants.map(x=>x.user_id));
+    card.dataset.battleId=battle.id;
+    const visibleParticipants=battle.status==='live'?data.participants.filter(x=>x.invite_status==='accepted'):data.participants;
+    const names=await getProfiles([...data.participants.map(x=>x.user_id),...data.chat.map(x=>x.user_id)]);
     const card=box((battle.status==='live'?'🔴 LIVE · ':'')+battle.title,'Hosted by @'+(names.get(battle.host_id)?.username||'creator')+' · '+(battle.duration_seconds/60)+' minute timer');
     const list=mk('div','nook-battle-grid');
-    data.participants.forEach(p=>{
+    visibleParticipants.forEach(p=>{
       const person=names.get(p.user_id)||{};
       const score=data.likes.filter(l=>l.creator_id===p.user_id).length;
       const tile=mk('div','nook-battle-card');tile.style.padding='11px';
@@ -153,7 +154,7 @@
         timer.textContent='Time remaining: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
         if(left<=0&&battle.host_id===currentUser.id){clearInterval(battleTimer);await finishBattle(battle);}
       };
-      if(battleTimer)clearInterval(battleTimer);updateTimer();battleTimer=setInterval(updateTimer,1000);
+      if(battleTimers[battle.id])clearInterval(battleTimers[battle.id]);updateTimer();battleTimers[battle.id]=setInterval(updateTimer,1000);
       card.append(btn('Watch battle streams','primary',()=>watchBattle(battle.id,card)));
       if(battle.host_id===currentUser.id)card.append(btn('End battle early','secondary',()=>finishBattle(battle)));
       const chat=mk('div','nook-battle-chat');data.chat.forEach(m=>{const line=mk('div','nook-battle-chatline');const p=names.get(m.user_id);const b=mk('b','', '@'+(p?.username||'member')+': ');line.append(b,document.createTextNode(m.message));chat.append(line);});
@@ -179,11 +180,16 @@
   }
   async function refreshBattleCard(id,card,battle){
     if(!card?.isConnected)return;
-    const data=await battleRows(id);const scores=card.querySelectorAll('.nook-battle-score');
-    card.querySelectorAll('.nook-battle-grid .nook-battle-card').forEach((tile,i)=>{const p=data.participants[i];if(!p)return;const score=data.likes.filter(x=>x.creator_id===p.user_id).length;const el=tile.querySelector('.nook-battle-score');if(el)el.textContent=score.toLocaleString()+' ♥';});
+    const data=await battleRows(id);const names=await getProfiles(data.chat.map(x=>x.user_id));
+    card.querySelectorAll('.nook-battle-grid .nook-battle-card').forEach((tile,i)=>{const p=(battle.status==='live'?data.participants.filter(x=>x.invite_status==='accepted'):data.participants)[i];if(!p)return;const score=data.likes.filter(x=>x.creator_id===p.user_id).length;const el=tile.querySelector('.nook-battle-score');if(el)el.textContent=score.toLocaleString()+' ♥';});
+    const chat=card.querySelector('.nook-battle-chat');if(chat){chat.innerHTML='';data.chat.forEach(m=>{const line=mk('div','nook-battle-chatline');line.append(mk('b','', '@'+(names.get(m.user_id)?.username||'member')+': '),document.createTextNode(m.message));chat.append(line);});chat.scrollTop=chat.scrollHeight;}
+  }
+  async function refreshBattleCards(){
+    const cards=document.querySelectorAll('[data-battle-id]');
+    for(const card of cards){const id=card.dataset.battleId;await refreshBattleCard(id,card,{status:card.textContent.includes('LIVE')?'live':'inviting'});}
   }
   async function watchBattle(id,card){
-    await stopBattleWatch();currentBattleWatch=id;
+    await stopBattleWatch(true);currentBattleWatch=id;
     const stage=mk('section','nook-battle-card');stage.append(mk('h3','','LIVE battle streams'));
     const grid=mk('div','nook-battle-grid');stage.append(grid);
     const close=btn('Stop watching','secondary',stopBattleWatch);stage.append(close);card.append(stage);
@@ -213,9 +219,11 @@
   }
   async function loadNookLiveBattles(){
     await stopBattleWatch();
+    Object.values(battleTimers).forEach(clearInterval);battleTimers={};
     feed.innerHTML='<div class="profile-panel"><button class="secondary" id="liveBattlesBack">← Back to Studio</button><h2 style="margin-top:14px">🔴 Nook LIVE Battles</h2><p class="nook-battle-muted">Free-for-all battles for 2–5 creators who are already LIVE. Viewers can give each creator one free like per battle. No money or gifts.</p><div id="nookLiveBattleContent" class="nook-battle-wrap">Loading LIVE Battles…</div></div>';
     byId('liveBattlesBack').onclick=loadNookStudio;
     await renderLiveBattleContent();
+    battleChannel=db.channel('nook-live-battles-updates').on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_likes'},()=>refreshBattleCards()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_participants'},()=>renderLiveBattleContent()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_chat'},()=>refreshBattleCards()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battles'},()=>renderLiveBattleContent()).subscribe();
   }
   async function renderLiveBattleContent(){
     const root=byId('nookLiveBattleContent');if(!root||battleRefreshBusy)return; battleRefreshBusy=true;
@@ -229,7 +237,7 @@
         for(const invite of invites.data){
           const b=await db.from('nook_live_battles').select('*').eq('id',invite.battle_id).maybeSingle();if(!b.data||b.data.status!=='inviting')continue;
           const row=mk('div','nook-battle-row','Invitation: '+b.data.title);
-          row.append(btn('Open invitation','follow',async()=>{const all=await db.from('nook_live_battle_participants').select('*').eq('battle_id',invite.battle_id);const profiles=await getProfiles(all.data.map(x=>x.user_id));const live=await db.from('live_streams').select('id,host_id,title').eq('status','live');const fake=mk('div','nook-battle-card');await renderBattleCard(fake,b.data,(live.data||[]).map(x=>({...x,username:profiles.get(x.host_id)?.username})));root.prepend(fake);}));
+          row.append(btn('Open invitation','follow',async()=>{const all=await db.from('nook_live_battle_participants').select('*').eq('battle_id',invite.battle_id);const profiles=await getProfiles((all.data||[]).map(x=>x.user_id));const live=await db.from('live_streams').select('id,host_id,title').eq('status','live');const fake=mk('div','nook-battle-card');await renderBattleCard(fake,b.data,(live.data||[]).map(x=>({...x,username:profiles.get(x.host_id)?.username})));root.prepend(fake);}));
           section.append(row);
         }
         root.append(section);
@@ -274,5 +282,5 @@
     const open=btn('Open LIVE Battles','primary',loadNookLiveBattles);panel.append(open);feed.append(panel);
   };
   loadNookBattles=loadNookLiveBattles;
-  window.addEventListener('beforeunload',()=>{battleRooms.forEach(r=>r.disconnect());if(battleTimer)clearInterval(battleTimer);});
+  window.addEventListener('beforeunload',()=>{battleRooms.forEach(r=>r.disconnect());Object.values(battleTimers).forEach(clearInterval);});
 })();
