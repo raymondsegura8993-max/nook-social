@@ -1690,7 +1690,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         }
 
         const leave=document.getElementById('leaveLive');
-        if(leave){leave.hidden=false;leave.onclick=async()=>{await disconnectActiveLive();stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;document.getElementById('endLive').hidden=true;};}
+        if(leave){leave.hidden=false;leave.onclick=async()=>{if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);await disconnectActiveLive();stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;document.getElementById('endLive').hidden=true;};}
         const end=document.getElementById('endLive');
         if(end){end.hidden=role!=='host';end.onclick=async()=>{
           end.disabled=true;end.textContent='Saving replay…';
