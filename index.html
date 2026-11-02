@@ -129,6 +129,8 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 
 /* Nook social upgrades */
 .profile-visitors{border-color:rgba(165,107,255,.22)}.post-collab-credit{font-size:12px;margin:-5px 0 10px;padding-left:2px}.post-translate-wrap{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.translate-language{max-width:125px;background:#17121f;color:#eee;border:1px solid var(--line);border-radius:9px;padding:7px}.translated-post{padding:11px 13px;margin:8px 0 12px;background:rgba(165,107,255,.09);border:1px solid rgba(165,107,255,.18);border-radius:11px;white-space:pre-wrap;color:#eee8f5}.live-gift-panel{margin-top:12px;padding:11px;border:1px solid rgba(165,107,255,.2);border-radius:12px;background:rgba(165,107,255,.06)}.live-gift-buttons{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.live-gift-buttons button{padding:7px 9px;font-size:12px}.live-gift-feed{font-size:12px;display:grid;gap:4px;max-height:95px;overflow:auto}
+
+.record-panel{margin:12px 0;padding:14px;border:1px solid #594273;border-radius:14px;background:#100d16}.record-panel video{display:block;width:100%;max-height:420px;aspect-ratio:9/16;object-fit:contain;background:#050407;border-radius:12px;margin:10px auto}.record-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.record-status{font-size:12px;color:#cdb9e8;margin-top:7px}
 </style>
 </head>
 <body>
@@ -188,7 +190,7 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><button type="button" class="chip" id="recordOpen" style="margin-top:10px">🎥 Record yourself</button><section class="record-panel" id="recordPanel" hidden><b>Record a video for your post</b><video id="recordPreview" playsinline muted autoplay></video><div class="record-status" id="recordStatus">Allow camera and microphone access to begin.</div><div class="record-controls"><button type="button" class="primary" id="recordStart">Start recording</button><button type="button" class="secondary" id="recordStop" disabled>Stop</button><button type="button" class="secondary" id="recordUse" hidden>Use this video</button><button type="button" class="secondary" id="recordAgain" hidden>Record again</button><button type="button" class="secondary" id="recordClose">Close</button></div></section><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="modalback" id="followModal"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h2 id="followModalTitle">Followers</h2><button class="secondary" id="closeFollowModal">Close</button></div><div class="follow-list" id="followList"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -197,11 +199,51 @@ const modal=$('#modal'),toast=$('#toast');
 function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
 function openComposer(mediaType,pollMode=false){if(mediaType!=='image'&&mediaType!=='video')mediaType=null;window.nookPollMode=!!pollMode;$('#pollFields').hidden=!window.nookPollMode;window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
 $('#newPost').onclick=$('#composeOpen').onclick=openComposer;
-$('#cancel').onclick=()=>modal.classList.remove('show');
-modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
+$('#cancel').onclick=()=>{closeNookRecorder();modal.classList.remove('show');};
+modal.onclick=e=>{if(e.target===modal){closeNookRecorder();modal.classList.remove('show')}};
 $('#photoBtn').onclick=()=>openComposer('image');
 $('#videoBtn').onclick=()=>openComposer('video');
-function selectPostFile(file){if(!file)return;window.nookSelectedMediaFile=file;$('#mediaChoice').textContent='Selected: '+file.name;}
+function selectPostFile(file){if(!file)return;window.nookSelectedMediaFile=file;window.nookRecordedVideo=false;$('#mediaChoice').textContent='Selected: '+file.name;}
+let nookCameraStream=null,nookRecorder=null,nookRecordChunks=[],nookRecordTimer=null,nookRecordUrl=null;
+function stopNookCamera(){if(nookRecordTimer){clearTimeout(nookRecordTimer);nookRecordTimer=null;}if(nookRecorder&&nookRecorder.state!=='inactive'){try{nookRecorder.stop();}catch(e){}}if(nookCameraStream){nookCameraStream.getTracks().forEach(track=>track.stop());nookCameraStream=null;}const preview=$('#recordPreview');if(preview)preview.srcObject=null;}
+function closeNookRecorder(){stopNookCamera();if(nookRecordUrl){URL.revokeObjectURL(nookRecordUrl);nookRecordUrl=null;}const panel=$('#recordPanel');if(panel)panel.hidden=true;const preview=$('#recordPreview');if(preview){preview.removeAttribute('src');preview.load();preview.controls=false;preview.muted=true;}$('#recordStatus').textContent='Allow camera and microphone access to begin.';$('#recordStart').disabled=false;$('#recordStop').disabled=true;$('#recordUse').hidden=true;$('#recordAgain').hidden=true;}
+$('#recordOpen').onclick=()=>{$('#recordPanel').hidden=false;$('#recordStatus').textContent='Press Start recording, then allow camera and microphone access.';};
+$('#recordClose').onclick=closeNookRecorder;
+$('#recordStart').onclick=async()=>{
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return showToast('Camera recording is not supported in this browser.');
+  try{
+    closeNookRecorder();$('#recordPanel').hidden=false;
+    nookCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
+    const preview=$('#recordPreview');preview.srcObject=nookCameraStream;preview.muted=true;preview.controls=false;await preview.play();
+    const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
+    if(!mime)throw new Error('This browser cannot create a video recording format Nook supports.');
+    nookRecordChunks=[];nookRecorder=new MediaRecorder(nookCameraStream,{mimeType:mime,videoBitsPerSecond:1500000});
+    nookRecorder.ondataavailable=event=>{if(event.data?.size)nookRecordChunks.push(event.data);};
+    nookRecorder.onerror=()=>{$('#recordStatus').textContent='Recording failed. Please try again.';stopNookCamera();};
+    nookRecorder.onstop=()=>{
+      if(nookRecordTimer){clearTimeout(nookRecordTimer);nookRecordTimer=null;}
+      const blob=new Blob(nookRecordChunks,{type:nookRecorder.mimeType||mime});
+      if(!blob.size){$('#recordStatus').textContent='No video was captured. Try again.';return;}
+      if(nookRecordUrl)URL.revokeObjectURL(nookRecordUrl);
+      nookRecordUrl=URL.createObjectURL(blob);preview.srcObject=null;preview.src=nookRecordUrl;preview.controls=true;preview.muted=false;preview.play().catch(()=>{});
+      $('#recordStatus').textContent='Preview your recording. If you like it, use it in your post.';
+      $('#recordUse').hidden=false;$('#recordAgain').hidden=false;$('#recordStart').disabled=true;$('#recordStop').disabled=true;
+      if(nookCameraStream){nookCameraStream.getTracks().forEach(track=>track.stop());nookCameraStream=null;}
+    };
+    nookRecorder.start(1000);$('#recordStatus').textContent='🔴 Recording… maximum 60 seconds.';$('#recordStart').disabled=true;$('#recordStop').disabled=false;
+    nookRecordTimer=setTimeout(()=>{if(nookRecorder?.state==='recording')nookRecorder.stop();},60000);
+  }catch(error){stopNookCamera();$('#recordStatus').textContent=error.message||'Could not access your camera or microphone.';showToast(error.message||'Could not start recording.');$('#recordStart').disabled=false;$('#recordStop').disabled=true;}
+};
+$('#recordStop').onclick=()=>{if(nookRecorder?.state==='recording')nookRecorder.stop();};
+$('#recordAgain').onclick=()=>{closeNookRecorder();$('#recordPanel').hidden=false;$('#recordStart').click();};
+$('#recordUse').onclick=()=>{
+  if(!nookRecordChunks.length)return;
+  const type=nookRecorder?.mimeType||'video/webm',ext=type.includes('mp4')?'mp4':'webm';
+  const blob=new Blob(nookRecordChunks,{type}),file=new File([blob],'nook-recording.'+ext,{type,lastModified:Date.now()});
+  if(file.size>50*1024*1024)return showToast('This recording is over Nook’s 50 MB upload limit. Record a shorter video.');
+  window.nookSelectedMediaFile=file;window.nookSelectedMediaType='video';window.nookRecordedVideo=true;$('#mediaChoice').textContent='Recorded video ready to post ('+(file.size/1024/1024).toFixed(1)+' MB).';closeNookRecorder();showToast('Recording added to your post. Add a caption and press Publish.');
+};
+
 $('#mediaFile').onchange=event=>selectPostFile(event.target.files?.[0]);
 const dropZone=$('#fileDropZone');
 dropZone.onclick=()=>$('#mediaFile').click();
@@ -787,7 +829,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           try { dimensions = await getMediaDimensions(file); }
           catch (error) { return showToast(error.message); }
           const ratio = dimensions.width / dimensions.height;
-          if (Math.abs(ratio - (9/16)) > 0.01) return showToast('Videos must be vertical 9:16. This video is '+dimensions.width+' × '+dimensions.height+'.');
+          if (!window.nookRecordedVideo && Math.abs(ratio - (9/16)) > 0.01) return showToast('Videos must be vertical 9:16. This video is '+dimensions.width+' × '+dimensions.height+'.');
         }
       }
       const button = document.getElementById('publish');
@@ -832,7 +874,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       window.nookPollMode=false;document.getElementById('pollFields').hidden=true;
       document.getElementById('mediaFile').value='';
       document.getElementById('mediaChoice').textContent='';
-      window.nookSelectedMediaFile=null;window.nookSelectedMediaType=null;
+      window.nookSelectedMediaFile=null;window.nookSelectedMediaType=null;window.nookRecordedVideo=false;closeNookRecorder();
       document.getElementById('modal').classList.remove('show');
       showToast('Your post is now shared on Nook!');
       if (currentTab === 'Home') loadFeed();
