@@ -61,7 +61,14 @@ body.auth-required .auth-screen{display:grid}
 .follow-person b{display:block}
 .follow-person small{color:var(--muted)}
 
-.dm-layout{display:grid;grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr);gap:14px;min-height:420px}.dm-panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px;min-width:0}.dm-search{width:100%;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white;margin-bottom:10px}.dm-person,.dm-conversation{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}.dm-person:hover,.dm-conversation:hover{background:#211a2c}.dm-person .info,.dm-conversation .info{min-width:0;flex:1}.dm-person b,.dm-conversation b{display:block}.dm-person small,.dm-conversation small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-thread{display:flex;flex-direction:column;min-height:420px}.dm-thread-head{font-weight:750;padding:5px 4px 12px;border-bottom:1px solid var(--line)}.dm-messages{flex:1;min-height:290px;max-height:55vh;overflow:auto;padding:12px 2px;display:flex;flex-direction:column;gap:9px}.dm-bubble{max-width:82%;padding:9px 12px;border-radius:14px;background:#282233;overflow-wrap:anywhere;align-self:flex-start}.dm-bubble.mine{background:#58318b;align-self:flex-end}.dm-bubble small{display:block;opacity:.7;font-size:10px;margin-top:3px}.dm-compose{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px}.dm-compose textarea{flex:1;min-width:0;min-height:42px;max-height:110px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white}.dm-empty{color:var(--muted);font-size:13px;padding:18px 4px}@media(max-width:680px){.dm-layout{grid-template-columns:1fr}.dm-thread{min-height:360px}.dm-messages{min-height:220px}}
+.dm-layout{display:grid;grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr);gap:14px;min-height:420px}.dm-panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px;min-width:0}.dm-search{width:100%;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white;margin-bottom:10px}.dm-person,.dm-conversation{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}.dm-person:hover,.dm-conversation:hover{background:#211a2c}.dm-person .info,.dm-conversation .info{min-width:0;flex:1}.dm-person b,.dm-conversation b{display:block}.dm-person small,.dm-conversation small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-thread{display:flex;flex-direction:column;min-height:420px}.dm-thread-head{font-weight:750;padding:5px 4px 12px;border-bottom:1px solid var(--line)}.dm-messages{flex:1;min-height:290px;max-height:55vh;overflow:auto;padding:12px 2px;display:flex;flex-direction:column;gap:9px}.dm-bubble{max-width:82%;padding:9px 12px;border-radius:14px;background:#282233;overflow-wrap:anywhere;align-self:flex-start}.dm-bubble.mine{background:#58318b;align-self:flex-end}.dm-bubble small{display:block;opacity:.7;font-size:10px;margin-top:3px}.dm-compose{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px}.dm-compose textarea{flex:1;min-width:0;min-height:42px;max-height:110px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white}.dm-empty{color:var(--muted);font-size:13px;padding:18px 4px}
+.video-call-panel{position:fixed;inset:0;z-index:9999;background:rgba(5,3,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;color:white}
+.video-call-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;width:min(100%,900px);margin:18px 0}
+.video-call-grid video{width:100%;max-height:55vh;min-height:180px;object-fit:cover;background:#09070d;border-radius:16px}
+.video-call-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.video-call-controls button{border-radius:24px;padding:12px 18px}
+.video-call-incoming{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px;background:#251b33;border-radius:12px;margin:8px 0}
+@media(max-width:680px){.dm-layout{grid-template-columns:1fr}.dm-thread{min-height:360px}.dm-messages{min-height:220px}}
  .live-stage{min-height:220px;background:#09070d;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px}.live-stage video{background:#000}
 .live-chat-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,1fr);gap:14px}.live-viewers,.live-chat-box{background:#100d16;border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.live-viewer-list{display:flex;flex-wrap:wrap;gap:7px;max-height:180px;overflow:auto}.live-viewer-chip{background:#241a34;border:1px solid #46315f;border-radius:20px;padding:5px 9px;font-size:12px}.live-chat-messages{height:210px;overflow:auto;display:flex;flex-direction:column;gap:7px;padding:5px 0 10px}.live-chat-message{overflow-wrap:anywhere;font-size:13px}.live-chat-message b{color:#d2aaff;margin-right:6px}.live-chat-form{display:flex;gap:7px}.live-chat-form input{flex:1;min-width:0;background:#09070d;border:1px solid var(--line);border-radius:9px;padding:9px;color:white}.live-chat-form button{padding:8px 12px}.profile-links{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.profile-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #594273;border-radius:10px;background:#21172f;color:#dfc9ff;text-decoration:none;font-size:13px}.profile-link:hover{border-color:#a56bff;color:#fff}.profile-links-empty{font-size:12px;color:var(--muted);margin:10px 0}@media(max-width:680px){.live-chat-layout{grid-template-columns:1fr}}
 </style>
@@ -988,6 +995,58 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         }).subscribe();
     }
 
+    let activeVideoCallRoom=null;
+    let activeVideoCallId=null;
+    let activeVideoCallLocalTracks=[];
+    let incomingVideoCall=null;
+    async function finishNookVideoCall(callId=activeVideoCallId, finalStatus='ended'){
+      if(activeVideoCallRoom){try{await activeVideoCallRoom.disconnect();}catch(_){}activeVideoCallRoom=null;}
+      activeVideoCallLocalTracks.forEach(t=>{try{t.stop();}catch(_){}});activeVideoCallLocalTracks=[];
+      const panel=document.getElementById('nookVideoCallPanel');if(panel)panel.remove();
+      if(callId&&currentUser)await db.from('video_calls').update({status:finalStatus,ended_at:new Date().toISOString()}).eq('id',callId).in('status',['ringing','accepted']);
+      activeVideoCallId=null;
+      incomingVideoCall=null;
+    }
+    async function joinNookVideoCall(call,person){
+      if(activeVideoCallRoom)return showToast('You are already in a call.');
+      const {data,error}=await db.functions.invoke('nook-video-call-token',{body:{call_id:call.id}});
+      if(error||!data?.participant_token)return showToast(data?.error||error?.message||'Could not join the call.');
+      const panel=document.createElement('div');panel.id='nookVideoCallPanel';panel.className='video-call-panel';
+      panel.innerHTML='<h2 style="margin:0">Nook video call</h2><p class="muted" id="nookCallStatus">Connecting…</p><div class="video-call-grid" id="nookCallVideos"></div><div class="video-call-controls"><button class="secondary" id="nookCallMute">Mute microphone</button><button class="secondary" id="nookCallCamera">Turn camera off</button><button class="primary" id="nookCallHangup" style="background:#c43b55">Hang up</button></div>';
+      document.body.appendChild(panel);
+      try{
+        const LK=await import('https://esm.sh/livekit-client@2.23.0');
+        const room=new LK.Room({adaptiveStream:true,dynacast:true});activeVideoCallRoom=room;activeVideoCallId=call.id;
+        const videos=panel.querySelector('#nookCallVideos');
+        const attach=track=>{const el=track.attach();if(el.tagName==='VIDEO'){el.autoplay=true;el.playsInline=true;el.style.width='100%';el.style.maxHeight='55vh';el.style.objectFit='cover';}videos.appendChild(el);};
+        room.on(LK.RoomEvent.TrackSubscribed,track=>attach(track));
+        room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
+        room.on(LK.RoomEvent.ParticipantConnected',()=>{});
+        await room.connect(data.server_url,data.participant_token);
+        const local=await LK.createLocalTracks({audio:true,video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
+        activeVideoCallLocalTracks=local;
+        for(const track of local){await room.localParticipant.publishTrack(track);attach(track);}
+        panel.querySelector('#nookCallStatus').textContent='Connected with '+(person.display_name||person.username||'Nook member');
+        let muted=false,cameraOff=false;
+        panel.querySelector('#nookCallMute').onclick=async()=>{muted=!muted;await room.localParticipant.setMicrophoneEnabled(!muted);panel.querySelector('#nookCallMute').textContent=muted?'Unmute microphone':'Mute microphone';};
+        panel.querySelector('#nookCallCamera').onclick=async()=>{cameraOff=!cameraOff;await room.localParticipant.setCameraEnabled(!cameraOff);panel.querySelector('#nookCallCamera').textContent=cameraOff?'Turn camera on':'Turn camera off';};
+        panel.querySelector('#nookCallHangup').onclick=()=>finishNookVideoCall(call.id,'ended');
+        room.on(LK.RoomEvent.Disconnected,()=>{if(activeVideoCallId===call.id)finishNookVideoCall(call.id,'ended');});
+      }catch(e){console.error(e);await finishNookVideoCall(call.id,'ended');showToast('Could not start the video call. Check camera and microphone permissions.');}
+    }
+    async function handleIncomingVideoCall(call){
+      if(!call||call.callee_id!==currentUser.id||call.status!=='ringing'||incomingVideoCall?.id===call.id)return;
+      incomingVideoCall=call;
+      const thread=document.querySelector('.dm-thread');
+      if(!thread)return;
+      let banner=document.getElementById('nookIncomingCall');
+      if(!banner){banner=document.createElement('div');banner.id='nookIncomingCall';banner.className='video-call-incoming';thread.prepend(banner);}
+      const {data:profile}=await db.from('profiles').select('username,display_name').eq('id',call.caller_id).maybeSingle();
+      banner.innerHTML='<b>Incoming video call from '+esc(profile?.display_name||profile?.username||'Nook member')+'</b>';
+      const accept=document.createElement('button');accept.className='primary';accept.textContent='Accept';accept.onclick=async()=>{const r=await db.from('video_calls').update({status:'accepted',answered_at:new Date().toISOString()}).eq('id',call.id).eq('callee_id',currentUser.id);if(r.error)return showToast(r.error.message);banner.remove();await joinNookVideoCall({...call,status:'accepted'},profile||{});};
+      const decline=document.createElement('button');decline.className='secondary';decline.textContent='Decline';decline.onclick=async()=>{await db.from('video_calls').update({status:'declined',ended_at:new Date().toISOString()}).eq('id',call.id).eq('callee_id',currentUser.id);banner.remove();incomingVideoCall=null;};
+      banner.append(accept,decline);
+    }
     let activeConversationId=null;
     let messageChannel=null;
     async function startConversation(otherId) {
@@ -1065,7 +1124,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!layout){await loadMessages();layout=feed.querySelector('.dm-layout');}
       activeConversationId=conversationId;
       const thread=layout.querySelector('.dm-thread');
-      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span> · <small id="dmPresenceStatus" class="muted">Checking status…</small></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…"></textarea><input id="dmFile" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" hidden><button class="secondary" type="button" id="dmAttach">＋</button><button class="primary" type="submit">Send</button></form>';
+      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span> · <small id="dmPresenceStatus" class="muted">Checking status…</small> <button type="button" class="secondary" id="startVideoCall" style="float:right;padding:6px 10px">📹 Video call</button></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…"></textarea><input id="dmFile" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" hidden><button class="secondary" type="button" id="dmAttach">＋</button><button class="primary" type="submit">Send</button></form>';
       const messageBox=document.getElementById('dmMessages');
       async function refreshMessages(){
         if(activeConversationId!==conversationId)return;
@@ -1082,7 +1141,17 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         .on('presence',{event:'sync'},()=>{const state=messageChannel.presenceState();const online=Object.keys(state).some(key=>key!==currentUser.id);if(presenceStatus)presenceStatus.textContent=online?'Online':'Offline';})
         .on('broadcast',{event:'typing'},({payload})=>{if(presenceStatus&&payload?.user_id!==currentUser.id)presenceStatus.textContent=payload?.typing?'Typing…':'Online';})
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages())
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'video_calls',filter:'callee_id=eq.'+currentUser.id},payload=>{if(payload.new?.conversation_id===conversationId)handleIncomingVideoCall(payload.new);})
         .subscribe(async status=>{if(status==='SUBSCRIBED')await messageChannel.track({user_id:currentUser.id,online_at:new Date().toISOString()});});
+      document.getElementById('startVideoCall').onclick=async()=>{
+        if(activeVideoCallRoom)return showToast('You are already in a call.');
+        const pair=[currentUser.id,person.id].sort();
+        const roomName='nook-call-'+crypto.randomUUID();
+        const created=await db.from('video_calls').insert({conversation_id:conversationId,caller_id:currentUser.id,callee_id:person.id,room_name:roomName,status:'ringing'}).select('*').single();
+        if(created.error)return showToast(created.error.message);
+        showToast('Calling '+(person.display_name||person.username||'member')+'…');
+        await joinNookVideoCall(created.data,person);
+      };
       const attachButton=document.getElementById('dmAttach'),fileInput=document.getElementById('dmFile');attachButton.onclick=()=>fileInput.click();const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='secondary';voiceButton.textContent='🎙 Record voice';attachButton.after(voiceButton);let recorder=null,chunks=[];voiceButton.onclick=async()=>{if(recorder?.state==='recording'){recorder.stop();voiceButton.disabled=true;voiceButton.textContent='Saving…';return;}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return showToast('Voice recording is not supported here.');try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});const path=currentUser.id+'/voice-'+Date.now()+'.webm';const up=await db.storage.from('nook-media').upload(path,blob,{contentType:blob.type,upsert:false});if(up.error){voiceButton.disabled=false;voiceButton.textContent='🎙 Record voice';return showToast(up.error.message);}const url=db.storage.from('nook-media').getPublicUrl(path).data.publicUrl;const sent=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content:'Voice message',media_url:url,media_type:'audio'});voiceButton.disabled=false;voiceButton.textContent='🎙 Record voice';if(sent.error)return showToast(sent.error.message);await refreshMessages();};recorder.start();voiceButton.textContent='■ Stop recording';}catch(e){showToast('Allow microphone access to record a voice message.');}};
       const messageInput=document.getElementById('dmText');let typingTimer=null;
       messageInput.oninput=()=>{if(messageChannel)messageChannel.send({type:'broadcast',event:'typing',payload:{user_id:currentUser.id,typing:true}});clearTimeout(typingTimer);typingTimer=setTimeout(()=>{if(messageChannel)messageChannel.send({type:'broadcast',event:'typing',payload:{user_id:currentUser.id,typing:false}});},1000);};
