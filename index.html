@@ -131,6 +131,12 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 .profile-visitors{border-color:rgba(165,107,255,.22)}.post-collab-credit{font-size:12px;margin:-5px 0 10px;padding-left:2px}.post-translate-wrap{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.translate-language{max-width:125px;background:#17121f;color:#eee;border:1px solid var(--line);border-radius:9px;padding:7px}.translated-post{padding:11px 13px;margin:8px 0 12px;background:rgba(165,107,255,.09);border:1px solid rgba(165,107,255,.18);border-radius:11px;white-space:pre-wrap;color:#eee8f5}.live-gift-panel{margin-top:12px;padding:11px;border:1px solid rgba(165,107,255,.2);border-radius:12px;background:rgba(165,107,255,.06)}.live-gift-buttons{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.live-gift-buttons button{padding:7px 9px;font-size:12px}.live-gift-feed{font-size:12px;display:grid;gap:4px;max-height:95px;overflow:auto}
 
 .record-panel{margin:12px 0;padding:14px;border:1px solid #594273;border-radius:14px;background:#100d16}.record-panel video{display:block;width:100%;max-height:420px;aspect-ratio:9/16;object-fit:contain;background:#050407;border-radius:12px;margin:10px auto}.record-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.record-status{font-size:12px;color:#cdb9e8;margin-top:7px}
+
+/* Keep the Create Post window scrollable even when its contents are taller than the screen. */
+#modal.modalback.show{display:flex!important;align-items:flex-start!important;justify-content:center!important;overflow-y:auto!important;overflow-x:hidden!important;padding:10px!important;}
+#modal .modal{height:calc(100vh - 20px)!important;max-height:calc(100vh - 20px)!important;min-height:0!important;overflow-y:scroll!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box;width:min(520px,100%);}
+@supports(height:100dvh){#modal .modal{height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important;}}
+@media(max-width:680px){#modal.modalback.show{padding:6px!important}#modal .modal{height:calc(100vh - 12px)!important;max-height:calc(100vh - 12px)!important;padding:16px!important}@supports(height:100dvh){#modal .modal{height:calc(100dvh - 12px)!important;max-height:calc(100dvh - 12px)!important;}}}
 </style>
 </head>
 <body>
