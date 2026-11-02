@@ -50,7 +50,7 @@
     const done=await db.from('nook_live_battles').update({status:'completed'}).eq('id',battle.id).eq('host_id',currentUser.id).eq('status','live');
     if(done.error)return showToast('Could not finish battle: '+done.error.message);
     showToast('Battle finished! The winner has been recorded.');
-    await loadNookLiveBattles();
+    await renderLiveBattleContent();
   }
   async function createBattlePanel(parent){
     const own=await getOwnLive();
@@ -82,7 +82,7 @@
           if(joined.error)throw joined.error;
         }
         showToast('Battle lobby created! Invite live creators.');
-        await loadNookLiveBattles();
+        await renderLiveBattleContent();
       }catch(err){showToast('Could not create battle: '+(err.message||err));}
       finally{submit.disabled=!own;submit.textContent='Create battle lobby';}
     };
@@ -124,7 +124,7 @@
           const existing=new Set(accepted.map(p=>p.user_id));const missing=ids.filter(id=>!existing.has(id));
           if(missing.length){const added=await db.from('nook_live_battle_participants').insert(missing.map(user_id=>({battle_id:battle.id,user_id,live_stream_id:battle.host_stream_id,invite_status:'accepted',accepted_at:new Date().toISOString()})));if(added.error)return showToast(added.error.message);}
           const r=await db.from('nook_live_battles').update({status:'live'}).eq('id',battle.id).eq('host_id',currentUser.id);
-          if(r.error)return showToast(r.error.message);showToast('LIVE Battle started!');await loadNookLiveBattles();
+          if(r.error)return showToast(r.error.message);showToast('LIVE Battle started!');await renderLiveBattleContent();
         }) );}      }else{
         const mine=data.participants.find(x=>x.user_id===currentUser.id);
         if(mine?.invite_status==='invited'){
@@ -132,10 +132,10 @@
           actions.append(btn('Accept invitation','primary',async()=>{
             const own=await getOwnLive();if(!own||own.id!==mine.live_stream_id)return showToast('You must be LIVE on the invited stream to accept.');
             const r=await db.from('nook_live_battle_participants').update({invite_status:'accepted',accepted_at:new Date().toISOString()}).eq('id',mine.id).eq('user_id',currentUser.id);
-            if(r.error)return showToast(r.error.message);showToast('You joined the battle!');await loadNookLiveBattles();
+            if(r.error)return showToast(r.error.message);showToast('You joined the battle!');await renderLiveBattleContent();
           }),btn('Decline','secondary',async()=>{
             const r=await db.from('nook_live_battle_participants').update({invite_status:'declined'}).eq('id',mine.id).eq('user_id',currentUser.id);
-            if(r.error)return showToast(r.error.message);await loadNookLiveBattles();
+            if(r.error)return showToast(r.error.message);await renderLiveBattleContent();
           }));
           card.append(actions);
         }
@@ -167,7 +167,7 @@
         const r=await db.from('nook_live_battles').insert({host_id:currentUser.id,host_stream_id:own.id,title:battle.title+' · Rematch',duration_seconds:battle.duration_seconds,status:'inviting'}).select('id').single();
         if(r.error)return showToast(r.error.message);
         const h=await db.from('nook_live_battle_participants').insert({battle_id:r.data.id,user_id:currentUser.id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()});
-        if(h.error)return showToast(h.error.message);showToast('Rematch lobby created. Invite everyone again.');await loadNookLiveBattles();
+        if(h.error)return showToast(h.error.message);showToast('Rematch lobby created. Invite everyone again.');await renderLiveBattleContent();
       }));
     }
     parent.append(card);
