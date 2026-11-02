@@ -197,7 +197,20 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div id="mentionSuggestions" class="mention-suggestions" hidden></div><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><button type="button" class="chip" id="recordOpen" style="margin-top:10px">🎥 Record yourself</button><section class="record-panel" id="recordPanel" hidden><b>Record a video for your post</b><label for="recordFilter" style="display:block;margin:10px 0 5px;color:#cfc5dd;font-size:13px">🎨 Choose a filter</label><select id="recordFilter" style="width:100%;padding:10px;background:#211b2b;border:1px solid var(--line);border-radius:10px;color:white"><option value="none">Original</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="mono">Black &amp; white</option><option value="vintage">Vintage</option><option value="vivid">Vivid</option><option value="soft">Soft</option><option value="dreamy">Dreamy</option><option value="sepia">Sepia</option></select><video id="recordPreview" playsinline muted autoplay></video><div class="record-status" id="recordStatus">Allow camera and microphone access to begin.</div><div class="record-controls"><button type="button" class="primary" id="recordStart">Start recording</button><button type="button" class="secondary" id="recordStop" disabled>Stop</button><button type="button" class="secondary" id="recordUse" hidden>Use this video</button><button type="button" class="secondary" id="recordAgain" hidden>Record again</button><button type="button" class="secondary" id="recordClose">Close</button></div></section><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div id="mentionSuggestions" class="mention-suggestions" hidden></div><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div>
+<section id="videoEditor" class="record-panel" hidden style="margin-top:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>✂️ Nook Video Editor</b><button type="button" class="secondary" id="editorClose">Close editor</button></div>
+  <video id="editorPreview" controls playsinline style="display:block;width:100%;max-height:340px;object-fit:contain;background:#08070b;border-radius:12px;margin:10px 0"></video>
+  <label style="display:block;font-size:13px;margin:8px 0 4px">Trim start (seconds)</label><input id="editorStart" type="number" min="0" step=".1" value="0" style="width:100%;padding:9px;background:#100d16;border:1px solid var(--line);border-radius:9px;color:white">
+  <label style="display:block;font-size:13px;margin:8px 0 4px">Trim end (seconds)</label><input id="editorEnd" type="number" min="0" step=".1" style="width:100%;padding:9px;background:#100d16;border:1px solid var(--line);border-radius:9px;color:white">
+  <label style="display:block;font-size:13px;margin:8px 0 4px">Filter</label><select id="editorFilter" style="width:100%;padding:9px;background:#211b2b;border:1px solid var(--line);border-radius:9px;color:white"><option value="none">Original</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="mono">Black &amp; white</option><option value="vintage">Vintage</option><option value="vivid">Vivid</option><option value="soft">Soft</option><option value="dreamy">Dreamy</option><option value="sepia">Sepia</option></select>
+  <label style="display:block;font-size:13px;margin:8px 0 4px">Text on video (optional)</label><input id="editorText" maxlength="80" placeholder="Add a title or caption" style="width:100%;padding:9px;background:#100d16;border:1px solid var(--line);border-radius:9px;color:white">
+  <label style="display:block;font-size:13px;margin:8px 0 4px">Video speed</label><select id="editorSpeed" style="width:100%;padding:9px;background:#211b2b;border:1px solid var(--line);border-radius:9px;color:white"><option value="0.5">0.5× slow</option><option value="0.75">0.75×</option><option value="1" selected>1× normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2× fast</option></select>
+  <label style="display:flex;align-items:center;gap:8px;margin:10px 0"><input id="editorMute" type="checkbox"> Remove original audio</label>
+  <div id="editorStatus" class="record-status">Choose your edits, then press Export edited video.</div>
+  <button type="button" class="primary" id="editorExport" style="width:100%;margin-top:8px">Export edited video</button>
+</section>
+<button type="button" class="chip" id="recordOpen" style="margin-top:10px">🎥 Record yourself</button><section class="record-panel" id="recordPanel" hidden><b>Record a video for your post</b><label for="recordFilter" style="display:block;margin:10px 0 5px;color:#cfc5dd;font-size:13px">🎨 Choose a filter</label><select id="recordFilter" style="width:100%;padding:10px;background:#211b2b;border:1px solid var(--line);border-radius:10px;color:white"><option value="none">Original</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="mono">Black &amp; white</option><option value="vintage">Vintage</option><option value="vivid">Vivid</option><option value="soft">Soft</option><option value="dreamy">Dreamy</option><option value="sepia">Sepia</option></select><video id="recordPreview" playsinline muted autoplay></video><div class="record-status" id="recordStatus">Allow camera and microphone access to begin.</div><div class="record-controls"><button type="button" class="primary" id="recordStart">Start recording</button><button type="button" class="secondary" id="recordStop" disabled>Stop</button><button type="button" class="secondary" id="recordUse" hidden>Use this video</button><button type="button" class="secondary" id="recordAgain" hidden>Record again</button><button type="button" class="secondary" id="recordClose">Close</button></div></section><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="modalback" id="followModal"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h2 id="followModalTitle">Followers</h2><button class="secondary" id="closeFollowModal">Close</button></div><div class="follow-list" id="followList"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -210,7 +223,80 @@ $('#cancel').onclick=()=>{closeNookRecorder();modal.classList.remove('show');};
 modal.onclick=e=>{if(e.target===modal){closeNookRecorder();modal.classList.remove('show')}};
 $('#photoBtn').onclick=()=>openComposer('image');
 $('#videoBtn').onclick=()=>openComposer('video');
-function selectPostFile(file){if(!file)return;window.nookSelectedMediaFile=file;window.nookRecordedVideo=false;$('#mediaChoice').textContent='Selected: '+file.name;}
+let nookEditorUrl=null,nookEditorRecorder=null,nookEditorChunks=[],nookEditorFrame=0,nookEditorCanvas=null,nookEditorVideo=null;
+function closeNookVideoEditor(){
+  if(nookEditorFrame)cancelAnimationFrame(nookEditorFrame);
+  nookEditorFrame=0;
+  if(nookEditorRecorder&&nookEditorRecorder.state!=='inactive'){try{nookEditorRecorder.stop()}catch(e){}}
+  nookEditorRecorder=null;nookEditorChunks=[];
+  const v=$('#editorPreview');if(v){v.pause();v.removeAttribute('src');v.load();}
+  if(nookEditorUrl){URL.revokeObjectURL(nookEditorUrl);nookEditorUrl=null;}
+  $('#videoEditor').hidden=true;
+}
+function openNookVideoEditor(file){
+  if(!file||!file.type.startsWith('video/'))return;
+  closeNookVideoEditor();
+  nookEditorUrl=URL.createObjectURL(file);nookEditorVideo=$('#editorPreview');
+  nookEditorVideo.src=nookEditorUrl;$('#videoEditor').hidden=false;
+  $('#editorStatus').textContent='Loading video…';
+  nookEditorVideo.onloadedmetadata=()=>{
+    $('#editorStart').value='0';$('#editorEnd').value=String(Number(nookEditorVideo.duration.toFixed(1)));
+    $('#editorEnd').max=String(nookEditorVideo.duration);
+    $('#editorStatus').textContent='Preview your video and choose the edits you want.';
+  };
+}
+function selectPostFile(file){
+  if(!file)return;
+  window.nookSelectedMediaFile=file;window.nookRecordedVideo=false;
+  $('#mediaChoice').textContent='Selected: '+file.name;
+  if(file.type.startsWith('video/'))openNookVideoEditor(file);else closeNookVideoEditor();
+}
+async function exportNookEditedVideo(){
+  const video=$('#editorPreview'),status=$('#editorStatus'),start=Math.max(0,Number($('#editorStart').value)||0),end=Number($('#editorEnd').value),speed=Number($('#editorSpeed').value)||1;
+  if(!video||!Number.isFinite(video.duration)||!video.videoWidth)return showToast('Wait for the video to finish loading.');
+  if(!Number.isFinite(end)||end<=start||end>video.duration+0.05)return showToast('Set a valid trim end after the start.');
+  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return showToast('Video exporting is not supported in this browser.');
+  const canvas=document.createElement('canvas'),scale=Math.min(1,1280/Math.max(video.videoWidth,video.videoHeight));
+  canvas.width=Math.max(2,Math.round(video.videoWidth*scale));canvas.height=Math.max(2,Math.round(video.videoHeight*scale));
+  const ctx=canvas.getContext('2d');nookEditorCanvas=canvas;
+  const stream=canvas.captureStream(30);
+  if(!$('#editorMute').checked&&typeof video.captureStream==='function'){
+    try{video.captureStream().getAudioTracks().forEach(t=>stream.addTrack(t));}catch(e){}
+  }
+  const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  if(!mime)return showToast('This browser cannot export an edited video format Nook supports.');
+  nookEditorChunks=[];let recorder;
+  try{recorder=new MediaRecorder(stream,{mimeType:mime});}catch(e){return showToast('Could not start video export. Try a smaller video.');}
+  nookEditorRecorder=recorder;
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)nookEditorChunks.push(e.data);};
+  recorder.onerror=()=>{status.textContent='Export failed. Try a shorter video.';};
+  recorder.onstop=()=>{
+    stream.getTracks().forEach(t=>t.stop());
+    const blob=new Blob(nookEditorChunks,{type:mime.split(';')[0]});
+    const file=new File([blob],'nook-edited-video.webm',{type:'video/webm',lastModified:Date.now()});
+    if(file.size>50*1024*1024){status.textContent='Edited video is over Nook’s 50 MB upload limit. Trim it shorter.';return;}
+    window.nookSelectedMediaFile=file;window.nookSelectedMediaType='video';window.nookRecordedVideo=true;
+    $('#mediaChoice').textContent='Edited video ready to post ('+(file.size/1024/1024).toFixed(1)+' MB).';
+    status.textContent='Done! Your edited video is ready to publish.';
+    showToast('Edited video added to your post.');
+    video.pause();video.playbackRate=1;
+  };
+  const filter=nookFilterValues[$('#editorFilter').value]||'none',overlay=$('#editorText').value.trim();
+  video.pause();video.currentTime=start;video.playbackRate=speed;
+  await new Promise(resolve=>{if(Math.abs(video.currentTime-start)<.05)resolve();else video.onseeked=resolve;});
+  const draw=()=>{
+    if(video.readyState>=2){
+      ctx.filter=filter;ctx.drawImage(video,0,0,canvas.width,canvas.height);ctx.filter='none';
+      if(overlay){const fs=Math.max(22,Math.round(canvas.width*.055));ctx.font='bold '+fs+'px system-ui';ctx.textAlign='center';ctx.lineWidth=Math.max(3,fs*.14);ctx.strokeStyle='rgba(0,0,0,.8)';ctx.fillStyle='white';ctx.strokeText(overlay,canvas.width/2,canvas.height*.88,canvas.width*.9);ctx.fillText(overlay,canvas.width/2,canvas.height*.88,canvas.width*.9);}
+    }
+    if(video.currentTime>=end||video.ended){if(nookEditorFrame)cancelAnimationFrame(nookEditorFrame);nookEditorFrame=0;try{recorder.stop()}catch(e){}video.pause();return;}
+    nookEditorFrame=requestAnimationFrame(draw);
+  };
+  recorder.start(250);status.textContent='Exporting edited video… keep this window open.';
+  try{await video.play();draw();}catch(e){recorder.stop();status.textContent='Could not play the video for export.';}
+}
+$('#editorClose').onclick=closeNookVideoEditor;
+$('#editorExport').onclick=exportNookEditedVideo;
 let nookCameraStream=null,nookRecorder=null,nookRecordChunks=[],nookRecordTimer=null,nookRecordUrl=null,nookProcessedStream=null,nookFilterFrame=0,nookFilterSource=null;
 const nookFilterValues={none:'none',warm:'sepia(.18) saturate(1.25) contrast(1.04)',cool:'hue-rotate(12deg) saturate(.9) brightness(1.04)',mono:'grayscale(1)',vintage:'sepia(.42) contrast(.9) brightness(1.06) saturate(.8)',vivid:'saturate(1.65) contrast(1.12)',soft:'brightness(1.08) saturate(.82) blur(.25px)',dreamy:'brightness(1.12) saturate(1.2) contrast(.9)',sepia:'sepia(1)'};
 function stopNookCamera(){if(nookRecordTimer){clearTimeout(nookRecordTimer);nookRecordTimer=null;}if(nookRecorder&&nookRecorder.state!=='inactive'){try{nookRecorder.stop();}catch(e){}}if(nookFilterFrame){cancelAnimationFrame(nookFilterFrame);nookFilterFrame=0;}if(nookCameraStream){nookCameraStream.getTracks().forEach(track=>track.stop());nookCameraStream=null;}if(nookProcessedStream){nookProcessedStream.getTracks().forEach(track=>track.stop());nookProcessedStream=null;}if(nookFilterSource){nookFilterSource.pause();nookFilterSource.srcObject=null;nookFilterSource=null;}const preview=$('#recordPreview');if(preview)preview.srcObject=null;}
