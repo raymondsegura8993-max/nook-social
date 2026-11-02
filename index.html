@@ -1998,7 +1998,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         media:[['headline','Headline','text'],['about','About you','textarea'],['contact_link','Contact or website link','url'],['topics','Topics (comma separated)','text']],
         parties:[['title','Party name','text'],['video_url','Video URL','url'],['starts_at','Start date and time','datetime-local']]
       };
-      feed.innerHTML=studioSubnav()+'<div class="profile-panel" id="nookRewind"><b>📼 Your Nook Rewind</b><p class="muted">Loading your activity…</p></div><div id="nookStudioGrid" style="display:grid;gap:14px"></div>';document.getElementById('openBattles').onclick=loadNookBattles;document.getElementById('openAnalyticsPlus').onclick=loadCreatorAnalyticsPlus;document.getElementById('openSupporters').onclick=loadNookSupporters;
+      feed.innerHTML=studioSubnav()+'<div class="profile-panel" id="nookRewind"><b>📼 Your Nook Rewind</b><p class="muted">Loading your activity…</p></div><div id="nookStudioGrid" style="display:grid;gap:14px"></div>';document.getElementById('openBattles').onclick=()=>{if(typeof window.openNookLiveBattles==='function')window.openNookLiveBattles();else showToast('LIVE Battles are still loading. Refresh Nook and try again.');};document.getElementById('openAnalyticsPlus').onclick=loadCreatorAnalyticsPlus;document.getElementById('openSupporters').onclick=loadNookSupporters;
       const rewind=document.getElementById('nookRewind');
       const [postsRes,followersRes,likesRes,viewsRes]=await Promise.all([
         db.from('posts').select('id',{count:'exact',head:true}).eq('author_id',currentUser.id),
