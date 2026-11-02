@@ -75,6 +75,12 @@
         if(ins.error)throw ins.error;
         const host=await db.from('nook_live_battle_participants').insert({battle_id:ins.data.id,user_id:currentUser.id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()});
         if(host.error){await db.from('nook_live_battles').delete().eq('id',ins.data.id);throw host.error;}
+        const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',own.id).eq('host_id',currentUser.id).eq('status','accepted');
+        if(guests.error)throw guests.error;
+        if(guests.data?.length){
+          const joined=await db.from('nook_live_battle_participants').insert(guests.data.map(g=>({battle_id:ins.data.id,user_id:g.guest_id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()})));
+          if(joined.error)throw joined.error;
+        }
         showToast('Battle lobby created! Invite live creators.');
         await loadNookLiveBattles();
       }catch(err){showToast('Could not create battle: '+(err.message||err));}
@@ -110,25 +116,16 @@
     if(battle.status==='inviting'){
       card.append(mk('p','nook-battle-muted',accepted.length+' of 2–6 creators accepted. All creators must still be live to start.'));
       if(battle.host_id===currentUser.id){
-        const live=allLive||[];
-        const invited=new Set(data.participants.map(x=>x.user_id));
-        const inviteBox=mk('div','nook-battle-card');inviteBox.style.marginTop='10px';inviteBox.append(mk('b','','Invite creators who are LIVE'));
-        live.filter(s=>s.host_id!==currentUser.id&&!invited.has(s.host_id)).forEach(s=>{
-          const row=mk('div','nook-battle-row');const p=mk('span','','@'+(s.username||'creator')+' · '+s.title);const b=btn('Invite','follow',async()=>{
-            b.disabled=true;const r=await db.from('nook_live_battle_participants').insert({battle_id:battle.id,user_id:s.host_id,live_stream_id:s.id,invite_status:'invited'});
-            if(r.error){b.disabled=false;showToast(r.error.message);return;}showToast('Invitation sent.');await loadNookLiveBattles();
-          });row.append(p,b);inviteBox.append(row);
-        });
-        card.append(inviteBox);
         if(accepted.length>=2){card.append(btn('Start battle now','primary',async()=>{
-          const streams=await db.from('live_streams').select('id,host_id,status').in('id',accepted.map(x=>x.live_stream_id));
-          if(streams.error)return showToast(streams.error.message);
-          if((streams.data||[]).length!==accepted.length||(streams.data||[]).some(x=>x.status!=='live'))return showToast('Every accepted creator must still be LIVE.');
-          const now=new Date();const end=new Date(now.getTime()+battle.duration_seconds*1000);
-          const r=await db.from('nook_live_battles').update({status:'live',started_at:now.toISOString(),ends_at:end.toISOString()}).eq('id',battle.id).eq('host_id',currentUser.id);
+          const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',battle.host_stream_id).eq('host_id',battle.host_id).eq('status','accepted');
+          if(guests.error)return showToast(guests.error.message);
+          const ids=[battle.host_id,...(guests.data||[]).map(g=>g.guest_id)];
+          if(ids.length<2||ids.length>5)return showToast('A battle needs 2–5 people in this live.');
+          const existing=new Set(accepted.map(p=>p.user_id));const missing=ids.filter(id=>!existing.has(id));
+          if(missing.length){const added=await db.from('nook_live_battle_participants').insert(missing.map(user_id=>({battle_id:battle.id,user_id,live_stream_id:battle.host_stream_id,invite_status:'accepted',accepted_at:new Date().toISOString()})));if(added.error)return showToast(added.error.message);}
+          const r=await db.from('nook_live_battles').update({status:'live'}).eq('id',battle.id).eq('host_id',currentUser.id);
           if(r.error)return showToast(r.error.message);showToast('LIVE Battle started!');await loadNookLiveBattles();
-        }) );}
-      }else{
+        }) );}      }else{
         const mine=data.participants.find(x=>x.user_id===currentUser.id);
         if(mine?.invite_status==='invited'){
           const actions=mk('div','nook-battle-actions');
