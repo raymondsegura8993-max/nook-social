@@ -930,9 +930,19 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const people=(data||[]).filter(p=>p.username.toLowerCase().startsWith(prefix));
         mentionBox.replaceChildren();
         if(!people.length){hideMentionSuggestions();return;}
+        const ids=people.map(p=>p.id);
+        const {data:followerRows}=await db.from('follows').select('following_id').in('following_id',ids);
+        if(token!==mentionLookupToken)return;
+        const followerCounts={};
+        (followerRows||[]).forEach(row=>{followerCounts[row.following_id]=(followerCounts[row.following_id]||0)+1;});
         people.forEach(person=>{
           const option=document.createElement('button');option.type='button';
-          option.textContent=(person.display_name||person.username)+' · @'+person.username;
+          const identity=document.createElement('span');
+          identity.textContent=(person.display_name||person.username)+' · @'+person.username;
+          const followers=document.createElement('small');
+          followers.textContent=(followerCounts[person.id]||0).toLocaleString()+' followers';
+          followers.style.cssText='margin-left:auto;color:#b9a9ca;font-size:12px;white-space:nowrap';
+          option.append(identity,followers);
           option.onmousedown=event=>event.preventDefault();
           option.onclick=()=>{
             const start=caret-match[2].length-1;
