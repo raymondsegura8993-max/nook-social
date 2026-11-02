@@ -1878,7 +1878,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           if(key==='series'){table='nook_video_series';row={owner_id:currentUser.id,title:v.title,description:v.description};}
           if(key==='notes'){table='nook_community_notes';row={author_id:currentUser.id,post_id:v.post_id||null,body:v.body};}
           if(key==='clips'){table='nook_video_clips';row={owner_id:currentUser.id,post_id:v.post_id,title:v.title,start_seconds:Number(v.start_seconds),end_seconds:Number(v.end_seconds)};if(!Number.isInteger(row.start_seconds)||!Number.isInteger(row.end_seconds)||row.end_seconds<=row.start_seconds)return showToast('End seconds must be greater than start seconds.');}
-          if(key==='premieres'){table='nook_premieres';row={owner_id:currentUser.id,title:v.title,video_url:v.video_url,starts_at:new Date(v.starts_at).toISOString()};}
+          if(key==='premieres'){if(!v.starts_at||Number.isNaN(Date.parse(v.starts_at)))return showToast('Choose a valid date and time.');table='nook_premieres';row={owner_id:currentUser.id,title:v.title,video_url:v.video_url,starts_at:new Date(v.starts_at).toISOString()};}
           if(key==='translations'){table='nook_post_translations';row={owner_id:currentUser.id,post_id:v.post_id,language:v.language,translated_text:v.translated_text};}
           if(key==='challenges'){table='nook_challenges';row={owner_id:currentUser.id,title:v.title,details:v.details,ends_at:v.ends_at?new Date(v.ends_at).toISOString():null};}
           if(key==='feeds'){table='nook_custom_feeds';row={owner_id:currentUser.id,name:v.name,topics:v.topics.split(',').map(x=>x.trim()).filter(Boolean)};}
@@ -1903,7 +1903,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           feeds:['nook_custom_feeds','owner_id'],voice:['nook_voice_posts','owner_id'],playlists:['nook_playlists','owner_id'],
           guestbook:['nook_guestbook_entries','profile_id'],media:['nook_media_kits','owner_id'],parties:['nook_watch_parties','host_id']
         }[key];
-        const result=await db.from(config[0]).select('*').eq(config[1],currentUser.id).order('created_at',{ascending:false}).limit(10);
+        const result=await db.from(config[0]).select('*').eq(config[1],currentUser.id).order(key==='media'?'updated_at':'created_at',{ascending:false}).limit(10);
         if(result.error){box.textContent='Could not load this section yet.';return;}
         if(!result.data?.length){box.textContent=key==='guestbook'?'No guestbook messages yet.':'Nothing here yet.';return;}
         box.innerHTML='';
