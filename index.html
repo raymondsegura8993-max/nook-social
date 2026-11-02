@@ -1822,7 +1822,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 
 
     function studioSubnav(){
-      return '<div class="profile-panel"><h2>✦ Nook Studio</h2><p class="muted">Creator tools, community features, and deeper insights.</p><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><button class="primary" id="openBattles">🏁 Nook Battles</button><button class="secondary" id="openAnalyticsPlus">📊 Analytics Plus</button><button class="secondary" id="openSupporters">💜 Nook Supporters</button></div></div>';
+      return '<div class="profile-panel"><h2>✦ Nook Studio</h2><p class="muted">Creator tools, community features, and deeper insights.</p><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><button class="primary" id="openBattles">🔴 LIVE Battles</button><button class="secondary" id="openAnalyticsPlus">📊 Analytics Plus</button><button class="secondary" id="openSupporters">💜 Nook Supporters</button></div></div>';
     }
     async function loadCreatorAnalyticsPlus(){
       feed.innerHTML='<div class="profile-panel"><button class="secondary" id="analyticsBack">← Back to Studio</button><h2 style="margin-top:14px">📊 Creator Analytics Plus</h2><p class="muted">A clearer look at how your Nook account is growing. Stats refresh when you open this page.</p><div id="creatorAnalyticsStats" class="empty-feed muted">Loading your analytics…</div><div id="creatorAnalyticsTrend" class="profile-panel">Loading your 7-day activity…</div></div>';
@@ -2084,5 +2084,6 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
  dismiss.addEventListener('click',()=>{dismissedText=message.textContent;banner.classList.remove('show');});render();setInterval(render,60000);
 })();
 </script>
+<script src="./live-battles.js"></script>
 </body>
 </html>
