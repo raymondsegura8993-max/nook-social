@@ -1705,7 +1705,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(isPlatformOwner)ownerCommandForm.onsubmit=async e=>{
         e.preventDefault();
         const command=ownerCommandInput.value.trim();
-        const parts=command.split(/\\s+/);
+        const parts=command.split(/\s+/);
         const name=(parts[1]||'').replace(/^@/,'').toLowerCase();
         const status=ownerCommandStatus;
         const runButton=ownerCommandForm.querySelector('button');
@@ -1723,7 +1723,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           const cmd=parts[0].toLowerCase();
           if(cmd==='/help'&&parts.length===1){
             setResult('Here are your available owner commands. The full list is shown below the command box.');
-          }else if(cmd==='/likes'&&parts.length===3&&/^@?[a-z0-9_]{3,20}$/i.test(parts[1])&&/^\\d{1,5}$/.test(parts[2])){
+          }else if(cmd==='/likes'&&parts.length===3&&/^@?[a-z0-9_]{3,20}$/i.test(parts[1])&&/^\d{1,5}$/.test(parts[2])){
             const amount=Number(parts[2]);if(amount<1||amount>10000)throw new Error('Choose an amount from 1 to 10000.');
             const result=await db.rpc('owner_gift_likes',{p_username:parts[1],p_amount:amount});
             if(result.error)throw result.error;
@@ -1747,8 +1747,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             const r=await db.from('profiles').select('id,username,display_name,created_at').eq('username',name).maybeSingle();if(r.error)throw r.error;if(!r.data)throw new Error('Username not found.');
             const [posts,followers,following]=await Promise.all([
               db.from('posts').select('id',{count:'exact',head:true}).eq('author_id',r.data.id),
-              db.from('follows').select('id',{count:'exact',head:true}).eq('following_id',r.data.id),
-              db.from('follows').select('id',{count:'exact',head:true}).eq('follower_id',r.data.id)
+              db.from('follows').select('*',{count:'exact',head:true}).eq('following_id',r.data.id),
+              db.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',r.data.id)
             ]);
             if(posts.error||followers.error||following.error)throw (posts.error||followers.error||following.error);
             setResult('Member account: @'+r.data.username,[ 'Display name: '+(r.data.display_name||'Not set'),'Joined: '+new Date(r.data.created_at).toLocaleDateString(),'Posts: '+(posts.count||0),'Followers: '+(followers.count||0),'Following: '+(following.count||0)]);
