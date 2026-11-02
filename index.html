@@ -118,6 +118,11 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 @media(max-width:680px){body{background:linear-gradient(180deg,#100c17 0%,#0b0910 65%)}.app{padding:14px 12px 92px;gap:12px}.top{margin:2px 0 16px}.top h1{font-size:24px}.composer{padding:14px;border-radius:16px}.post{padding:15px;border-radius:16px}.profile-panel{padding:15px;border-radius:16px}.feed-tabs{gap:17px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}.feed-tabs::-webkit-scrollbar{display:none}.compose-actions{margin-left:0;flex-wrap:wrap}.comment-form{align-items:stretch}.right{height:auto}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
+
+/* Creator leaderboard */
+.leaderboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}.leaderboard-card{min-width:0;padding:15px}.leaderboard-card h3{margin:0 0 4px;font-size:16px}.leaderboard-card>p{font-size:12px;min-height:34px;margin:0 0 12px}.leaderboard-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid rgba(177,151,207,.13);min-width:0}.leaderboard-rank{width:21px;height:21px;display:grid;place-items:center;border-radius:7px;background:rgba(165,107,255,.13);color:#d7baff;font-size:11px;font-weight:800;flex:none}.leaderboard-person{min-width:0;flex:1}.leaderboard-person b,.leaderboard-person small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.leaderboard-person b{font-size:12px}.leaderboard-person small{font-size:10px;color:var(--muted)}.leaderboard-score{font-size:12px;text-align:right;white-space:nowrap}.leaderboard-score small{display:block;color:var(--muted);font-size:9px;font-weight:500}.verified-mark{color:#c49aff;font-size:13px}
+@media(max-width:1050px){.leaderboard-grid{grid-template-columns:1fr}}
+@media(max-width:680px){.nav{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}.nav button{flex:0 0 auto;min-width:57px}.leaderboard-card{padding:13px}}
 </style>
 </head>
 <body>
@@ -127,7 +132,7 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 <div class="brand"><div class="mark">N</div><span>Nook</span></div>
 <nav class="nav" aria-label="Main navigation">
 <button class="active" data-tab="Home"><span class="ico">⌂</span><span class="navlabel">Home</span></button>
-<button data-tab="Explore"><span class="ico">⌕</span><span class="navlabel">Explore</span></button>
+<button data-tab="Explore"><span class="ico">⌕</span><span class="navlabel">Explore</span></button><button data-tab="Leaderboard"><span class="ico">🏆</span><span class="navlabel">Leaders</span></button>
 <button data-tab="Videos"><span class="ico">▷</span><span class="navlabel">Videos</span></button>
 <button data-tab="Communities"><span class="ico">◉</span><span class="navlabel">Communities</span></button><button data-tab="Live"><span class="ico">●</span><span class="navlabel">Live</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
@@ -888,7 +893,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       ]);
       if (followersRes.error || followingRes.error) return showToast('Could not load your follower counts.');
       const followerCount=(followersRes.data||[]).length, followingCount=(followingRes.data||[]).length;
-      feed.innerHTML = '<section class="profile-panel"><div id="profileCover" style="height:115px;border-radius:13px;margin-bottom:15px;background:linear-gradient(120deg,#6d35b5,#241633);background-size:cover;background-position:center;'+(currentProfile.cover_url?'background-image:url('+esc(currentProfile.cover_url)+')':'')+'"></div><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+(ownVerified?' <span title="Verified account" style="color:#b98cff">✓</span>':'')+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><div class="follow-stats"><button class="follow-stat" id="showFollowers"><b>'+followerCount+'</b> Followers</button><button class="follow-stat" id="showFollowing"><b>'+followingCount+'</b> Following</button></div><button class="secondary" id="shareProfileLink">Share profile link</button> '+profileLinksMarkup(currentProfile.profile_links)+'<button class="secondary" id="editProfileLinks">Edit profile links</button> <button class="secondary" id="changeAvatar">Change profile picture</button> <button class="secondary" id="changeCover">Change banner</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><label style="display:flex;align-items:center;gap:9px;margin-top:12px"><input id="privateAccountToggle" type="checkbox" style="width:18px;height:18px" '+(currentProfile.is_private?'checked':'')+'> Private account</label><select id="profileTheme" class="secondary" style="margin-top:10px"><option value="purple">Purple theme</option><option value="midnight">Midnight theme</option><option value="ocean">Ocean theme</option><option value="sunset">Sunset theme</option></select><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden><input id="coverFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><div id="creatorAnalytics" class="profile-panel"><b>Creator analytics</b><p class="muted">Loading your stats…</p></div><div id="profileAchievements"></div><h3>Your posts</h3>';
+      feed.innerHTML = '<section class="profile-panel"><div id="profileCover" style="height:115px;border-radius:13px;margin-bottom:15px;background:linear-gradient(120deg,#6d35b5,#241633);background-size:cover;background-position:center;'+(currentProfile.cover_url?'background-image:url('+esc(currentProfile.cover_url)+')':'')+'"></div><div class="avatar">'+profileAvatar+'</div><h2>'+esc(currentProfile.display_name||currentProfile.username)+(ownVerified?' <span title="Verified account" style="color:#b98cff">✓</span>':'')+'</h2><div class="muted">@'+esc(currentProfile.username)+'</div><p>'+esc(currentProfile.bio||'No bio yet.')+'</p><div class="follow-stats"><button class="follow-stat" id="showFollowers"><b>'+followerCount+'</b> Followers</button><button class="follow-stat" id="showFollowing"><b>'+followingCount+'</b> Following</button></div><button class="secondary" id="shareProfileLink">Share profile link</button> '+profileLinksMarkup(currentProfile.profile_links)+'<button class="secondary" id="editProfileLinks">Edit profile links</button> <button class="secondary" id="changeAvatar">Change profile picture</button> <button class="secondary" id="changeCover">Change banner</button> <button class="primary profile-edit" id="editProfile">Edit profile</button><label style="display:flex;align-items:center;gap:9px;margin-top:12px"><input id="privateAccountToggle" type="checkbox" style="width:18px;height:18px" '+(currentProfile.is_private?'checked':'')+'> Private account</label><label for="profileTheme" style="display:block;margin-top:12px;color:var(--muted);font-size:12px">Profile appearance</label><select id="profileTheme" class="secondary" style="margin-top:6px;width:100%"><option value="purple">Classic purple</option><option value="midnight">Midnight</option><option value="ocean">Ocean blue</option><option value="sunset">Sunset</option><option value="plum">Deep plum</option><option value="emerald">Emerald</option><option value="rose">Rose</option><option value="amber">Amber glow</option></select><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden><input id="coverFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></section><div id="creatorAnalytics" class="profile-panel"><b>Creator analytics</b><p class="muted">Loading your stats…</p></div><div id="profileAchievements"></div><h3>Your posts</h3>';
       document.getElementById('profileAchievements').innerHTML=await achievementsMarkup(currentUser.id,true);
       document.getElementById('showFollowers').onclick=()=>openFollowList('followers');
       document.getElementById('showFollowing').onclick=()=>openFollowList('following');
@@ -896,7 +901,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       document.getElementById('editProfileLinks').onclick=async()=>{const labels=['YouTube','Twitch','TikTok','Discord','Website'];const current=Array.isArray(currentProfile.profile_links)?currentProfile.profile_links:[];const updated=[];for(const label of labels){const existing=current.find(item=>item.label===label)?.url||'';const value=prompt(label+' link (leave blank to remove):',existing);if(value===null)return;const url=value.trim();if(!url)continue;let parsed;try{parsed=new URL(url.includes('://')?url:'https://'+url);}catch{return showToast('That '+label+' link is not valid.');}if(!['http:','https:'].includes(parsed.protocol))return showToast('Use a website link starting with https://');updated.push({label,url:parsed.href});}const result=await db.from('profiles').update({profile_links:updated,updated_at:new Date().toISOString()}).eq('id',currentUser.id).select().single();if(result.error)return showToast(result.error.message);currentProfile=result.data;showToast('Profile links saved!');showProfile();};document.getElementById('privateAccountToggle').onchange=async event=>{const result=await db.from('profiles').update({is_private:event.target.checked}).eq('id',currentUser.id);if(result.error){event.target.checked=!event.target.checked;return showToast(result.error.message);}currentProfile.is_private=event.target.checked;showToast(event.target.checked?'Your account is now private.':'Your account is now public.');};
       document.getElementById('changeAvatar').onclick = () => document.getElementById('avatarFile').click();
       const theme=document.getElementById('profileTheme');theme.value=currentProfile.profile_theme||'purple';
-      const applyTheme=()=>{const colors={purple:'#15121d',midnight:'#090a13',ocean:'#10212a',sunset:'#2a171d'};const panel=feed.querySelector('.profile-panel');if(panel)panel.style.background=colors[theme.value]||colors.purple;};applyTheme();
+      const applyTheme=()=>{const colors={purple:'linear-gradient(145deg,#241735,#15121d)',midnight:'linear-gradient(145deg,#151827,#090a13)',ocean:'linear-gradient(145deg,#173442,#10212a)',sunset:'linear-gradient(145deg,#48242d,#2a171d)',plum:'linear-gradient(145deg,#382044,#1d1227)',emerald:'linear-gradient(145deg,#173b32,#10231e)',rose:'linear-gradient(145deg,#482538,#291722)',amber:'linear-gradient(145deg,#49351d,#261b10)'};const panel=feed.querySelector('.profile-panel');if(panel)panel.style.background=colors[theme.value]||colors.purple;};applyTheme();
       theme.onchange=async()=>{const result=await db.from('profiles').update({profile_theme:theme.value}).eq('id',currentUser.id);if(result.error)return showToast(result.error.message);currentProfile.profile_theme=theme.value;applyTheme();showToast('Profile theme updated.');};
       document.getElementById('changeCover').onclick=()=>document.getElementById('coverFile').click();
       document.getElementById('coverFile').onchange=async event=>{const file=event.target.files?.[0];if(!file)return;if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))return showToast('Choose a JPG, PNG, WEBP, or GIF banner.');if(file.size>5*1024*1024)return showToast('Banner must be 5 MB or smaller.');const ext=file.type==='image/jpeg'?'jpg':file.type.split('/')[1],path=currentUser.id+'/cover-'+Date.now()+'.'+ext;const upload=await db.storage.from('nook-avatars').upload(path,file,{contentType:file.type,upsert:false});if(upload.error)return showToast(upload.error.message);const url=db.storage.from('nook-avatars').getPublicUrl(path).data.publicUrl;const result=await db.from('profiles').update({cover_url:url}).eq('id',currentUser.id).select().single();if(result.error)return showToast(result.error.message);currentProfile=result.data;showToast('Banner updated!');showProfile();};
@@ -2120,6 +2125,51 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const media=await db.from('nook_media_kits').select('*').eq('owner_id',currentUser.id).maybeSingle();
       if(media.data){const form=document.querySelector('[data-feature="media"]');for(const [k,v] of Object.entries(media.data)){const input=form.elements[k];if(input)input.value=Array.isArray(v)?v.join(', '):v||'';}}
     }
+    async function loadNookLeaderboards(){
+      if(!currentUser)return;
+      feed.innerHTML='<div class="empty-feed muted">Loading this week\'s creator rankings…</div>';
+      const cutoff=new Date(Date.now()-7*24*60*60*1000).toISOString();
+      const [postsRes,followsRes]=await Promise.all([
+        db.from('posts').select('id,author_id').gte('created_at',cutoff).order('created_at',{ascending:false}).limit(1500),
+        db.from('follows').select('following_id').gte('created_at',cutoff).limit(3000)
+      ]);
+      if(postsRes.error||followsRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load creator rankings. '+esc((postsRes.error||followsRes.error).message)+'</div>';return;}
+      const posts=postsRes.data||[],postIds=posts.map(p=>p.id);
+      const likesRes=postIds.length?await db.from('post_likes').select('post_id').in('post_id',postIds).limit(5000):{data:[],error:null};
+      if(likesRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load like rankings. '+esc(likesRes.error.message)+'</div>';return;}
+      const counts=(rows,key)=>{const map=new Map();rows.forEach(row=>{const id=row[key];map.set(id,(map.get(id)||0)+1);});return map;};
+      const postCounts=counts(posts,'author_id'),followerCounts=counts(followsRes.data||[],'following_id'),likesByPost=counts(likesRes.data||[],'post_id');
+      const likesByCreator=new Map();posts.forEach(p=>{const n=likesByPost.get(p.id)||0;likesByCreator.set(p.author_id,(likesByCreator.get(p.author_id)||0)+n);});
+      const categories=[
+        {title:'Most active',subtitle:'Creators sharing the most this week',map:postCounts,metric:'posts'},
+        {title:'Most loved',subtitle:'Most likes earned on this week’s posts',map:likesByCreator,metric:'likes'},
+        {title:'Rising creators',subtitle:'New followers gained this week',map:followerCounts,metric:'new followers'}
+      ];
+      const allIds=[...new Set(categories.flatMap(c=>[...c.map.keys()]))];
+      if(!allIds.length){feed.innerHTML='<section class="profile-panel"><h2>🏆 Creator Leaderboards</h2><p class="muted">No rankings yet this week. Start posting and connecting to appear here!</p></section>';return;}
+      const [profilesRes,verifiedRes]=await Promise.all([
+        db.from('profiles').select('id,username,display_name,avatar_url').in('id',allIds),
+        db.from('verified_profiles').select('user_id').in('user_id',allIds)
+      ]);
+      if(profilesRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load creator profiles.</div>';return;}
+      const profileMap=new Map((profilesRes.data||[]).map(p=>[p.id,p])),verified=new Set((verifiedRes.data||[]).map(v=>v.user_id));
+      const heading=document.createElement('section');heading.className='profile-panel leaderboard-heading';
+      heading.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h2 style="margin:0">🏆 Creator Leaderboards</h2><p class="muted" style="margin:5px 0 0">Top Nook creators · rolling 7 days</p></div><button class="secondary" id="refreshLeaderboards">↻ Refresh</button></div>';
+      feed.replaceChildren(heading);
+      document.getElementById('refreshLeaderboards').onclick=loadNookLeaderboards;
+      const grid=document.createElement('div');grid.className='leaderboard-grid';
+      categories.forEach(category=>{
+        const ranked=[...category.map.entries()].map(([id,value])=>({id,value,profile:profileMap.get(id)})).filter(x=>x.profile).sort((a,b)=>b.value-a.value||a.profile.username.localeCompare(b.profile.username)).slice(0,10);
+        const card=document.createElement('section');card.className='profile-panel leaderboard-card';
+        const rows=ranked.length?ranked.map((item,index)=>{
+          const p=item.profile,avatar=p.avatar_url?'<img src="'+esc(p.avatar_url)+'" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:50%">':'<span class="avatar small">'+esc(initials(p.display_name||p.username))+'</span>';
+          return '<div class="leaderboard-row"><span class="leaderboard-rank">'+(index+1)+'</span>'+avatar+'<div class="leaderboard-person"><b>'+esc(p.display_name||p.username)+(verified.has(p.id)?' <span class="verified-mark" title="Verified creator">✓</span>':'')+'</b><small>@'+esc(p.username)+'</small></div><strong class="leaderboard-score">'+item.value+'<small> '+category.metric+'</small></strong></div>';
+        }).join(''):'<p class="muted">No creators ranked yet.</p>';
+        card.innerHTML='<h3>'+category.title+'</h3><p class="muted">'+category.subtitle+'</p>'+rows;
+        grid.appendChild(card);
+      });
+      feed.appendChild(grid);
+    }
     async function onTab(tab) {
       currentTab=tab;
       const livePanel=document.getElementById('livePersistent');
@@ -2131,6 +2181,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Notifications') return loadNotifications();
       if (tab==='Messages') return loadMessages();
       if (tab==='Explore') return loadExplore();
+      if (tab==='Leaderboard') return loadNookLeaderboards();
       if (tab==='Videos') return loadFilteredPosts('video');
       if (tab==='Communities') return loadCommunities();
       if (tab==='Live') return loadLive();
