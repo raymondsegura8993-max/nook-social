@@ -1860,8 +1860,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
  const client=window.nookClient;if(!client)return;
  const banner=document.getElementById('nookAnnouncementBanner'),message=document.getElementById('nookAnnouncementText'),dismiss=document.getElementById('nookAnnouncementDismiss');
  if(!banner||!message||!dismiss)return;
- const render=async()=>{const {data,error}=await client.from('nook_public_announcements').select('text,pinned,publish_at').eq('id','current').maybeSingle();if(error){console.warn('Nook announcement could not load:',error.message);return;}const value=data||{},text=String(value.text||'').trim(),scheduled=value.publish_at?new Date(value.publish_at).getTime():0;const visible=!!text&&(!scheduled||scheduled<=Date.now());message.textContent=text;banner.classList.toggle('show',visible);banner.style.position=value.pinned===true?'sticky':'relative';};
- dismiss.addEventListener('click',()=>banner.classList.remove('show'));render();setInterval(render,60000);
+ let dismissedText='';
+ const render=async()=>{const {data,error}=await client.from('nook_public_announcements').select('text,pinned,publish_at').eq('id','current').maybeSingle();if(error){console.warn('Nook announcement could not load:',error.message);return;}const value=data||{},text=String(value.text||'').trim(),scheduled=value.publish_at?new Date(value.publish_at).getTime():0;const visible=!!text&&text!==dismissedText&&(!scheduled||scheduled<=Date.now());message.textContent=text;banner.classList.toggle('show',visible);banner.style.position=value.pinned===true?'sticky':'relative';};
+ dismiss.addEventListener('click',()=>{dismissedText=message.textContent;banner.classList.remove('show');});render();setInterval(render,60000);
 })();
 </script>
 </body>
