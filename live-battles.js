@@ -303,6 +303,7 @@
     });
     panel.append(open);feed.append(panel);
   };
+  window.openNookLiveBattles=loadNookLiveBattles;
   loadNookBattles=loadNookLiveBattles;
   window.addEventListener('beforeunload',()=>{battleRooms.forEach(r=>r.disconnect());Object.values(battleTimers).forEach(clearInterval);});
 })();
