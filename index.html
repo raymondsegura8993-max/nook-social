@@ -217,6 +217,20 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 #searchBtn::after{content:"Search";font-size:10px;position:absolute;opacity:0;transform:translateY(24px);transition:opacity .15s}
 #searchBtn:hover::after{opacity:.8}
 
+
+/* Daily conversation card */
+.daily-nook-card{position:relative;overflow:hidden;margin:0 0 17px;padding:19px 20px;border:1px solid rgba(177,129,255,.25);border-radius:17px;background:radial-gradient(ellipse at 95% 0%,rgba(157,91,255,.24),transparent 48%),linear-gradient(125deg,#21172f,#15111e 72%);box-shadow:0 12px 30px rgba(0,0,0,.16)}
+.daily-nook-card:after{content:"✦";position:absolute;right:22px;bottom:-35px;font-size:120px;line-height:1;color:rgba(190,145,255,.055);pointer-events:none}
+.daily-nook-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.daily-nook-kicker{font-size:10px;letter-spacing:1.35px;font-weight:850;color:#c9a7ff}
+.daily-nook-day{font-size:9px;letter-spacing:1px;color:#b5a7c5;border:1px solid rgba(198,166,255,.2);padding:4px 8px;border-radius:99px}
+.daily-nook-card h2{font-size:clamp(17px,2vw,21px);line-height:1.35;letter-spacing:-.35px;margin:0 0 7px;max-width:520px}
+.daily-nook-card p{font-size:12px;color:#bdb1cb;margin:0 0 14px}
+.daily-nook-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.daily-nook-actions .primary{border:0;border-radius:10px;padding:9px 13px;background:linear-gradient(110deg,#a66bff,#713bd1);color:white;font-weight:750;font-size:12px}
+.daily-nook-note{font-size:10px;color:#9589a4}
+@media(max-width:760px){.daily-nook-card{padding:15px;border-radius:14px}.daily-nook-card h2{font-size:17px}}
+
 </style>
 </head>
 <body>
@@ -243,7 +257,13 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 <div class="compose-row"><div class="avatar">Y</div><button class="compose-input" id="composeOpen">What's happening in your nook?</button></div>
 <div class="compose-actions"><button class="chip" id="photoBtn">▧ Photo</button><button class="chip" id="videoBtn">▷ Video</button><button class="chip" id="pollBtn">▥ Poll</button><button class="chip" id="linkBtn">↗ Link</button></div>
 </section>
-<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="storyCloseFriends" type="checkbox" style="width:15px;height:15px;vertical-align:middle"> Close Friends only</label><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div><div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Latest">Latest</button><button data-feed="Hashtags">Hashtags</button><button data-feed="Trending">Trending</button></div>
+<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="storyCloseFriends" type="checkbox" style="width:15px;height:15px;vertical-align:middle"> Close Friends only</label><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div><section class="daily-nook-card" id="dailyNookCard">
+<div class="daily-nook-top"><span class="daily-nook-kicker">✦ TODAY ON NOOK</span><span class="daily-nook-day" id="dailyNookDay">DAILY PROMPT</span></div>
+<h2 id="dailyNookQuestion">What is something you learned recently that you wish you knew sooner?</h2>
+<p>Share your answer, discover how others think, and start a conversation.</p>
+<div class="daily-nook-actions"><button class="primary" id="answerDailyPrompt">Answer this prompt</button><span class="daily-nook-note">A new conversation every day</span></div>
+</section>
+<div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Latest">Latest</button><button data-feed="Hashtags">Hashtags</button><button data-feed="Trending">Trending</button></div>
 <div id="livePersistent" class="live-persistent" hidden></div>
 <div id="feed">
 <article class="post">
@@ -2686,5 +2706,31 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 })();
 </script>
 
+<script>
+(()=>{
+ const questions=[
+ "What is something you learned recently that you wish you knew sooner?",
+ "What are you working on that you are proud of?",
+ "What game, hobby, or topic could you talk about for hours?",
+ "What is one small win you had this week?",
+ "What is a skill you would love to learn?",
+ "What is a creator or community that inspired you lately?",
+ "What is one thing that always makes your day better?",
+ "If you could start a project today, what would it be?",
+ "What is a tip you would give someone just starting out?",
+ "What is something you are looking forward to?"
+ ];
+ const card=document.getElementById('dailyNookCard');if(!card)return;
+ const now=new Date(),day=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);
+ const question=questions[((day%questions.length)+questions.length)%questions.length];
+ document.getElementById('dailyNookQuestion').textContent=question;
+ document.getElementById('dailyNookDay').textContent='DAILY PROMPT · '+now.toLocaleDateString(undefined,{month:'short',day:'numeric'}).toUpperCase();
+ document.getElementById('answerDailyPrompt').addEventListener('click',()=>{
+  document.getElementById('composeOpen')?.click();
+  const field=document.getElementById('postText');
+  if(field){field.value=question+'\n\n';field.focus();field.setSelectionRange(field.value.length,field.value.length);}
+ });
+})();
+</script>
 </body>
 </html>
