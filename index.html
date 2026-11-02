@@ -1766,9 +1766,6 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             const usernames=new Map((p.data||[]).map(x=>[x.id,x.username]));
             setResult('10 newest posts',(r.data||[]).map((x,i)=>(i+1)+'. @'+(usernames.get(x.author_id)||'unknown')+' · '+String(x.content||'').replace(/\\s+/g,' ').slice(0,90)+' · '+new Date(x.created_at).toLocaleDateString()));
             if(!r.data?.length)setResult('No posts have been published yet.');
-          }else if(cmd==='/visits'&&parts.length===1){
-            const r=await db.from('website_analytics').select('total_visits,unique_visitors').single();if(r.error)throw r.error;
-            setResult('Website traffic',[(r.data?.total_visits||0)+' total visits',(r.data?.unique_visitors||0)+' unique browsers']);
           }else if(cmd==='/commentcount'&&parts.length===2&&/^@?[a-z0-9_]{3,20}$/i.test(parts[1])){
             const member=await db.from('profiles').select('id,username').eq('username',name).maybeSingle();if(member.error)throw member.error;if(!member.data)throw new Error('Username not found.');
             const posts=await db.from('posts').select('id').eq('author_id',member.data.id).limit(2000);if(posts.error)throw posts.error;
