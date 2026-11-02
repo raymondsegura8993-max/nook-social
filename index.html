@@ -1715,6 +1715,13 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     async function loadLiveList(){
       const target=document.getElementById('liveList');if(!target)return;
+      const pending=await db.from('nook_live_guests').select('id,live_stream_id,host_id').eq('guest_id',currentUser.id).eq('status','invited');
+      if(pending.data?.length){const invites=document.createElement('section');invites.className='profile-panel';invites.innerHTML='<h3>📨 Live invitations</h3>';
+        for(const invite of pending.data){const [streamRes,hostRes]=await Promise.all([db.from('live_streams').select('id,host_id,title,room_name,created_at').eq('id',invite.live_stream_id).eq('status','live').maybeSingle(),db.from('profiles').select('username').eq('id',invite.host_id).maybeSingle()]);if(!streamRes.data)continue;
+          const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';const label=document.createElement('span');label.textContent='@'+(hostRes.data?.username||'creator')+' invited you to '+streamRes.data.title;row.appendChild(label);
+          const accept=document.createElement('button');accept.className='primary';accept.textContent='Join with camera';accept.onclick=async()=>{accept.disabled=true;const u=await db.from('nook_live_guests').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',invite.id).eq('guest_id',currentUser.id);if(u.error){accept.disabled=false;showToast(u.error.message);return;}await connectLiveStream(streamRes.data,'guest');};
+          const decline=document.createElement('button');decline.className='secondary';decline.textContent='Decline';decline.onclick=async()=>{const d=await db.from('nook_live_guests').update({status:'declined'}).eq('id',invite.id);if(d.error)return showToast(d.error.message);row.remove();};row.append(accept,decline);invites.appendChild(row);}
+        target.before(invites);}
       const {data:streams,error}=await db.from('live_streams').select('id,host_id,title,room_name,created_at').eq('status','live').order('created_at',{ascending:false}).limit(30);
       if(error){target.textContent='Could not load live streams: '+error.message;return;}
       if(!streams?.length){target.textContent='Nobody is live right now.';return;}
