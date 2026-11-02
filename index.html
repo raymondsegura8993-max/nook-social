@@ -130,6 +130,7 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 /* Nook social upgrades */
 .profile-visitors{border-color:rgba(165,107,255,.22)}.post-collab-credit{font-size:12px;margin:-5px 0 10px;padding-left:2px}.post-translate-wrap{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.translate-language{max-width:125px;background:#17121f;color:#eee;border:1px solid var(--line);border-radius:9px;padding:7px}.translated-post{padding:11px 13px;margin:8px 0 12px;background:rgba(165,107,255,.09);border:1px solid rgba(165,107,255,.18);border-radius:11px;white-space:pre-wrap;color:#eee8f5}.live-gift-panel{margin-top:12px;padding:11px;border:1px solid rgba(165,107,255,.2);border-radius:12px;background:rgba(165,107,255,.06)}.live-gift-buttons{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.live-gift-buttons button{padding:7px 9px;font-size:12px}.live-gift-feed{font-size:12px;display:grid;gap:4px;max-height:95px;overflow:auto}
 
+.mention-suggestions{display:grid;gap:4px;max-height:180px;overflow:auto;margin:5px 0 10px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#1a1522}.mention-suggestions button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;text-align:left;border:0;border-radius:8px;background:transparent;color:white}.mention-suggestions button:hover{background:#30213f}.post-mention{color:#c49aff;font-weight:700;cursor:pointer;text-decoration:none}.post-mention:hover{text-decoration:underline}
 .record-panel{margin:12px 0;padding:14px;border:1px solid #594273;border-radius:14px;background:#100d16}.record-panel video{display:block;width:100%;max-height:420px;aspect-ratio:9/16;object-fit:contain;background:#050407;border-radius:12px;margin:10px auto}.record-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.record-status{font-size:12px;color:#cdb9e8;margin-top:7px}
 
 /* Keep the Create Post window scrollable even when its contents are taller than the screen. */
@@ -196,7 +197,7 @@ input::placeholder,textarea::placeholder{color:#81788d;opacity:1}.input:focus,in
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><button type="button" class="chip" id="recordOpen" style="margin-top:10px">🎥 Record yourself</button><section class="record-panel" id="recordPanel" hidden><b>Record a video for your post</b><label for="recordFilter" style="display:block;margin:10px 0 5px;color:#cfc5dd;font-size:13px">🎨 Choose a filter</label><select id="recordFilter" style="width:100%;padding:10px;background:#211b2b;border:1px solid var(--line);border-radius:10px;color:white"><option value="none">Original</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="mono">Black &amp; white</option><option value="vintage">Vintage</option><option value="vivid">Vivid</option><option value="soft">Soft</option><option value="dreamy">Dreamy</option><option value="sepia">Sepia</option></select><video id="recordPreview" playsinline muted autoplay></video><div class="record-status" id="recordStatus">Allow camera and microphone access to begin.</div><div class="record-controls"><button type="button" class="primary" id="recordStart">Start recording</button><button type="button" class="secondary" id="recordStop" disabled>Stop</button><button type="button" class="secondary" id="recordUse" hidden>Use this video</button><button type="button" class="secondary" id="recordAgain" hidden>Record again</button><button type="button" class="secondary" id="recordClose">Close</button></div></section><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
+<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div id="mentionSuggestions" class="mention-suggestions" hidden></div><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div><button type="button" class="chip" id="recordOpen" style="margin-top:10px">🎥 Record yourself</button><section class="record-panel" id="recordPanel" hidden><b>Record a video for your post</b><label for="recordFilter" style="display:block;margin:10px 0 5px;color:#cfc5dd;font-size:13px">🎨 Choose a filter</label><select id="recordFilter" style="width:100%;padding:10px;background:#211b2b;border:1px solid var(--line);border-radius:10px;color:white"><option value="none">Original</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="mono">Black &amp; white</option><option value="vintage">Vintage</option><option value="vivid">Vivid</option><option value="soft">Soft</option><option value="dreamy">Dreamy</option><option value="sepia">Sepia</option></select><video id="recordPreview" playsinline muted autoplay></video><div class="record-status" id="recordStatus">Allow camera and microphone access to begin.</div><div class="record-controls"><button type="button" class="primary" id="recordStart">Start recording</button><button type="button" class="secondary" id="recordStop" disabled>Stop</button><button type="button" class="secondary" id="recordUse" hidden>Use this video</button><button type="button" class="secondary" id="recordAgain" hidden>Record again</button><button type="button" class="secondary" id="recordClose">Close</button></div></section><div id="pollFields" hidden style="margin-top:12px"><strong>Poll options</strong><input id="pollOption1" maxlength="120" placeholder="Option 1" style="width:100%;margin:8px 0;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption2" maxlength="120" placeholder="Option 2" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption3" maxlength="120" placeholder="Option 3 (optional)" style="width:100%;margin:0 0 8px;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><input id="pollOption4" maxlength="120" placeholder="Option 4 (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="media-hint">Add 2–4 choices. People can vote once.</p></div><div class="media-hint">Photos can be any shape. Videos must be vertical 9:16. Maximum file size: 50 MB.</div><div class="modalbar"><button class="secondary" id="saveDraft">Save draft</button><button class="secondary" id="loadDraft">Load latest</button><button class="secondary" id="cancel">Cancel</button><button class="primary" id="publish">Publish</button></div></div></div>
 <div class="modalback" id="followModal"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center"><h2 id="followModalTitle">Followers</h2><button class="secondary" id="closeFollowModal">Close</button></div><div class="follow-list" id="followList"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -541,6 +542,23 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       card.querySelector('.post-actions').before(panel);
     }
 
+    async function renderPostMentions(node, content) {
+      const matches=[...String(content||'').matchAll(/(^|[^A-Za-z0-9_.])@([A-Za-z0-9_]{3,20})/g)];
+      if(!matches.length){node.textContent=content||'';return;}
+      const names=[...new Set(matches.map(m=>m[2].toLowerCase()))];
+      const {data:people}=await db.from('profiles').select('id,username,display_name').in('username',names);
+      const byName=Object.fromEntries((people||[]).map(p=>[p.username.toLowerCase(),p]));
+      node.replaceChildren();let cursor=0;
+      for(const match of matches){
+        const start=match.index+match[1].length,end=start+match[2].length+1;
+        node.append(document.createTextNode(String(content).slice(cursor,start)));
+        const person=byName[match[2].toLowerCase()];
+        if(person){const link=document.createElement('a');link.className='post-mention';link.href='#';link.textContent='@'+person.username;link.onclick=event=>{event.preventDefault();openPublicProfile(person);};node.append(link);}
+        else node.append(document.createTextNode(String(content).slice(start,end)));
+        cursor=end;
+      }
+      node.append(document.createTextNode(String(content).slice(cursor)));
+    }
     function renderPost(post, profile, liked, likeCount, commentCount, saved=false, container=feed) {
       const card = document.createElement('article');
       card.className = 'post';
@@ -549,7 +567,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
       card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><span class="action view-count">▣ '+(post.view_count||0)+' views</span><button class="action react">☺ Reactions</button><button class="action repost">↻ Repost</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
       const nameNode=card.querySelector('.postname');if(profile?.id&&profile.id!==currentUser.id){nameNode.style.cursor='pointer';nameNode.onclick=()=>openPublicProfile(profile);}if(post.author_id!==currentUser.id){db.from('post_views').upsert({post_id:post.id,viewer_id:currentUser.id},{onConflict:'post_id,viewer_id',ignoreDuplicates:true});}if(post.repost_of){db.from('posts').select('id,author_id,content').eq('id',post.repost_of).maybeSingle().then(async({data:original})=>{if(!original||!card.isConnected)return;const {data:op}=await db.from('profiles').select('username').eq('id',original.author_id).maybeSingle();const quote=document.createElement('div');quote.className='profile-panel';quote.innerHTML='<b>↻ Original post · @'+esc(op?.username||'member')+'</b><p>'+esc(original.content||'')+'</p>';const content=card.querySelector('.post-content');if(content)content.after(quote);});}
-      card.querySelector('.post-content').textContent = post.content || '';
+      renderPostMentions(card.querySelector('.post-content'),post.content||'');
       db.from('post_collaborators').select('collaborator_id').eq('post_id',post.id).eq('status','accepted').then(async({data:rows})=>{if(!rows?.length||!card.isConnected)return;const ids=rows.map(x=>x.collaborator_id);const {data:people}=await db.from('profiles').select('id,username').in('id',ids);if(!people?.length||!card.isConnected)return;const credit=document.createElement('div');credit.className='post-collab-credit muted';credit.textContent='🤝 In collaboration with '+people.map(p=>'@'+p.username).join(', ');card.querySelector('.posthead').after(credit);});
       if(profile?.id)db.from('verified_profiles').select('user_id').eq('user_id',profile.id).maybeSingle().then(({data})=>{if(data){const nameNode=card.querySelector('.postname');if(nameNode)nameNode.insertAdjacentHTML('beforeend',' <span title="Verified account" style="color:#b98cff">✓</span>');}});
       if (!post.content) card.querySelector('.post-content').remove();
@@ -895,6 +913,38 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (currentTab === 'Home') loadFeed();
       if (currentTab === 'Profile') showProfile();
     }
+    const mentionBox=document.getElementById('mentionSuggestions'),mentionInput=document.getElementById('postText');
+    let mentionLookupTimer=null,mentionLookupToken=0;
+    function hideMentionSuggestions(){mentionBox.hidden=true;mentionBox.replaceChildren();}
+    mentionInput.addEventListener('input',()=>{
+      if(mentionLookupTimer)clearTimeout(mentionLookupTimer);
+      const caret=mentionInput.selectionStart,text=mentionInput.value.slice(0,caret);
+      const match=text.match(/(^|[^A-Za-z0-9_.])@([A-Za-z0-9_]{0,20})$/);
+      if(!match){hideMentionSuggestions();return;}
+      const prefix=match[2].toLowerCase(),token=++mentionLookupToken;
+      mentionLookupTimer=setTimeout(async()=>{
+        let query=db.from('profiles').select('id,username,display_name').neq('id',currentUser?.id||'00000000-0000-0000-0000-000000000000').order('username').limit(7);
+        if(prefix)query=query.ilike('username',prefix+'%');
+        const {data,error}=await query;
+        if(token!==mentionLookupToken||error)return hideMentionSuggestions();
+        const people=(data||[]).filter(p=>p.username.toLowerCase().startsWith(prefix));
+        mentionBox.replaceChildren();
+        if(!people.length){hideMentionSuggestions();return;}
+        people.forEach(person=>{
+          const option=document.createElement('button');option.type='button';
+          option.textContent=(person.display_name||person.username)+' · @'+person.username;
+          option.onmousedown=event=>event.preventDefault();
+          option.onclick=()=>{
+            const start=caret-match[2].length-1;
+            const before=mentionInput.value.slice(0,start),after=mentionInput.value.slice(caret);
+            mentionInput.value=before+'@'+person.username+' '+after;
+            const next=before.length+person.username.length+2;mentionInput.focus();mentionInput.setSelectionRange(next,next);hideMentionSuggestions();
+          };
+          mentionBox.append(option);
+        });
+        mentionBox.hidden=false;
+      },180);
+    });
     document.getElementById('publish').onclick = publishPost;
     document.getElementById('saveDraft').onclick=async()=>{
       if(!currentUser)return showToast('Sign in to save drafts.');
@@ -1115,14 +1165,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       items.forEach(n=>{
         const person=people[n.actor_id]||{},comment=comments[n.comment_id]||{},message=messages[n.message_id]||{};
         const item=document.createElement('div');item.className='notification-item'+(n.read_at?'':' unread');
-        const activity=n.type==='direct_message'?'sent you a message':n.type==='live_started'?'is live now':n.type==='live_raid'?'invited you to join a live raid':n.type==='collab_invite'?'invited you to collaborate on a post':n.type==='collab_accepted'?'accepted your collaboration invite':(n.type==='comment_reply'?'replied to your comment':'commented on your post');
-        const detail=n.type==='direct_message'?(message.content||'Message unavailable'):n.type==='live_started'?'Join their livestream on Nook.':n.type==='live_raid'?'Open Live to review the raid invitation.':(n.type==='collab_invite'||n.type==='collab_accepted'?'Open the post to see the collaboration.':(comment.content||'Comment unavailable'));
+        const activity=n.type==='direct_message'?'sent you a message':n.type==='post_mention'?'mentioned you in a post':n.type==='live_started'?'is live now':n.type==='live_raid'?'invited you to join a live raid':n.type==='collab_invite'?'invited you to collaborate on a post':n.type==='collab_accepted'?'accepted your collaboration invite':(n.type==='comment_reply'?'replied to your comment':'commented on your post');
+        const detail=n.type==='direct_message'?(message.content||'Message unavailable'):n.type==='post_mention'?'They mentioned you in a post. Open Nook to see it.':n.type==='live_started'?'Join their livestream on Nook.':n.type==='live_raid'?'Open Live to review the raid invitation.':(n.type==='collab_invite'||n.type==='collab_accepted'?'Open the post to see the collaboration.':(comment.content||'Comment unavailable'));
         item.innerHTML='<b>'+esc(person.display_name||person.username||'Someone')+'</b> '+activity+'<p>'+esc(detail)+'</p><small class="muted">'+esc(timeAgo(n.created_at))+'</small>';
         item.onclick=async()=>{
           if(!n.read_at){await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('user_id',currentUser.id);n.read_at=new Date().toISOString();item.classList.remove('unread');await loadNotificationCount();}
           if(n.type==='direct_message'&&message.conversation_id){const {data:conv}=await db.from('conversations').select('user_one,user_two').eq('id',message.conversation_id).maybeSingle();if(conv){const otherId=conv.user_one===currentUser.id?conv.user_two:conv.user_one;const {data:other}=await db.from('profiles').select('id,username,display_name').eq('id',otherId).maybeSingle();await openConversation(message.conversation_id,other||{id:otherId,username:'Nook member'});}}
           if(n.type==='live_started'){await onTab('Live');const {data:stream}=await db.from('live_streams').select('id,host_id,title,room_name').eq('host_id',n.actor_id).eq('status','live').order('created_at',{ascending:false}).limit(1).maybeSingle();if(stream)await connectLiveStream(stream,'viewer');}
-          if(n.type==='live_raid')await onTab('Live');
+          if(n.type==='live_raid')await onTab('Live');if(n.type==='post_mention')await onTab('Home');
           if(n.type==='collab_invite'||n.type==='collab_accepted')await onTab('Home');
         };
         feed.appendChild(item);
