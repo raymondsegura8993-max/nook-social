@@ -67,7 +67,7 @@
     const submit=mk('button','primary','Create battle lobby');submit.type='submit';submit.disabled=!own;
     form.append(title,mk('label','nook-battle-muted','Battle name'),duration,submit);
     create.append(form);
-    const note=mk('div','nook-battle-muted',own?'You are LIVE as '+(own.title||'your stream')+'. Invite up to four creators who are also live.':'Go to the Live tab and start your livestream first. The battle button unlocks automatically when your stream is live.');
+    const note=mk('div','nook-battle-muted',own?'You are LIVE as '+(own.title||'your stream')+'. Invite up to five other creators who are also live.':'Go to the Live tab and start your livestream first. The battle button unlocks automatically when your stream is live.');
     create.append(note);parent.append(create);
     form.onsubmit=async e=>{
       e.preventDefault();if(!own)return showToast('Start your livestream before creating a battle.');
@@ -111,7 +111,7 @@
     card.append(list);
     const accepted=data.participants.filter(x=>x.invite_status==='accepted');
     if(battle.status==='inviting'){
-      card.append(mk('p','nook-battle-muted',accepted.length+' of 2–5 creators accepted. All creators must still be live to start.'));
+      card.append(mk('p','nook-battle-muted',accepted.length+' of 2–6 creators accepted. All creators must still be live to start.'));
       if(battle.host_id===currentUser.id){
         const live=allLive||[];
         const invited=new Set(data.participants.map(x=>x.user_id));
