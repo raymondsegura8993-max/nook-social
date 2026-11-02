@@ -1594,7 +1594,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             if(followsRes.error||invitesRes.error){list.textContent=followsRes.error?.message||invitesRes.error?.message;return;}
             const invited=new Map((invitesRes.data||[]).map(x=>[x.guest_id,x]));
             const active=(invitesRes.data||[]).filter(x=>['invited','accepted','joined'].includes(x.status));
-            const count=document.createElement('p');count.className='muted';count.textContent=(1+active.filter(x=>x.status==='accepted').length)+' of 5 people in the live · '+Math.max(0,4-active.length)+' guest spots available';list.appendChild(count);
+            const count=document.createElement('p');count.className='muted';count.textContent=(1+active.filter(x=>x.status==='accepted'||x.status==='joined').length)+' of 5 people in the live · '+Math.max(0,4-active.length)+' guest spots available';list.appendChild(count);
             const ids=(followsRes.data||[]).map(x=>x.following_id).filter(id=>id!==currentUser.id);
             if(!ids.length){list.append('Follow people on Nook to invite them here.');return;}
             const prof=await db.from('profiles').select('id,username').in('id',ids);
