@@ -226,7 +226,7 @@ $('#recordStart').onclick=async()=>{
     const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1280;
     const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Video filters are not supported in this browser.');
     nookFilterSource=document.createElement('video');nookFilterSource.srcObject=nookCameraStream;nookFilterSource.muted=true;nookFilterSource.playsInline=true;await nookFilterSource.play();
-    const drawFilteredFrame=()=>{if(!nookFilterSource||nookFilterSource.readyState<2)return;nookFilterSource.videoWidth&&nookFilterSource.videoHeight&&(canvas.width=nookFilterSource.videoWidth,canvas.height=nookFilterSource.videoHeight);ctx.filter=nookFilterValues[$('#recordFilter')?.value||'none']||'none';ctx.drawImage(nookFilterSource,0,0,canvas.width,canvas.height);nookFilterFrame=requestAnimationFrame(drawFilteredFrame);};
+    const drawFilteredFrame=()=>{if(nookFilterSource&&nookFilterSource.readyState>=2){const sw=nookFilterSource.videoWidth,sh=nookFilterSource.videoHeight,target=9/16;let sx=0,sy=0,cw=sw,ch=sh;if(sw/sh>target){cw=sh*target;sx=(sw-cw)/2;}else{ch=sw/target;sy=(sh-ch)/2;}ctx.filter=nookFilterValues[$('#recordFilter')?.value||'none']||'none';ctx.drawImage(nookFilterSource,sx,sy,cw,ch,0,0,canvas.width,canvas.height);}nookFilterFrame=requestAnimationFrame(drawFilteredFrame);};
     drawFilteredFrame();
     nookProcessedStream=canvas.captureStream(30);nookCameraStream.getAudioTracks().forEach(track=>nookProcessedStream.addTrack(track));
     preview.srcObject=nookProcessedStream;preview.muted=true;preview.controls=false;await preview.play();
