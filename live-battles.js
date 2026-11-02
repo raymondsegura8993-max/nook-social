@@ -54,40 +54,41 @@
   }
   async function createBattlePanel(parent){
     const own=await getOwnLive();
-    const create=box('🔴 Start a LIVE Battle','Battles are only available while your own livestream is active. Compete with up to 4 invited guests. Free likes decide the winner.');
+    const create=box('🔴 Start a LIVE Battle','Only the host can start battles. You and your accepted camera guests compete using free likes.');
     const form=mk('form');form.style.cssText='display:grid;gap:9px;margin-top:10px';
     const title=mk('input','dm-search');title.name='title';title.maxLength=100;title.minLength=3;title.required=true;title.placeholder='Battle title';
     const titleLabel=mk('label','nook-battle-muted','Battle name');titleLabel.append(title);
     const duration=mk('select','dm-search');duration.name='duration_seconds';
     [['60','1 minute'],['120','2 minutes'],['180','3 minutes'],['300','5 minutes'],['600','10 minutes'],['900','15 minutes'],['1800','30 minutes'],['3600','60 minutes']].forEach(([v,l])=>{const o=mk('option','',l);o.value=v;if(v==='300')o.selected=true;duration.append(o);});
     const durationLabel=mk('label','nook-battle-muted','Choose when the battle ends');durationLabel.append(duration);
-    const submit=mk('button','primary','Create battle lobby');submit.type='submit';submit.disabled=!own;
-    form.append(titleLabel,durationLabel,submit);
-    create.append(form);
-    const note=mk('div','nook-battle-muted',own?'You are LIVE as '+(own.title||'your stream')+'. Invite up to four people you follow. They join this live with their cameras.':'Go to the Live tab and start your livestream first. The battle button unlocks automatically when your stream is live.');
+    const submit=mk('button','primary','Start Battles');submit.type='submit';submit.disabled=!own;
+    form.append(titleLabel,durationLabel,submit);create.append(form);
+    const note=mk('div','nook-battle-muted',own?'You are LIVE. Invite up to four people you follow above, then press Start Battles.':'Go to the Live tab and start your camera livestream first.');
     create.append(note);parent.append(create);
     form.onsubmit=async e=>{
-      e.preventDefault();if(!own)return showToast('Start your livestream before creating a battle.');
-      submit.disabled=true;submit.textContent='Creating…';
+      e.preventDefault();if(!own)return showToast('Start your livestream before starting battles.');
+      if(title.value.trim().length<3)return showToast('Battle titles must be 3–100 characters long.');
+      submit.disabled=true;submit.textContent='Starting…';
+      let battleId=null;
       try{
         const check=await getOwnLive();if(!check||check.id!==own.id)throw new Error('Your livestream is no longer active.');
-        const ins=await db.from('nook_live_battles').insert({host_id:currentUser.id,host_stream_id:own.id,title:title.value.trim(),duration_seconds:Number(duration.value),status:'inviting'}).select('id').single();
-        if(ins.error)throw ins.error;
-        const host=await db.from('nook_live_battle_participants').insert({battle_id:ins.data.id,user_id:currentUser.id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()});
-        if(host.error){await db.from('nook_live_battles').delete().eq('id',ins.data.id);throw host.error;}
         const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',own.id).eq('host_id',currentUser.id).eq('status','accepted');
         if(guests.error)throw guests.error;
-        if(guests.data?.length){
-          const joined=await db.from('nook_live_battle_participants').insert(guests.data.map(g=>({battle_id:ins.data.id,user_id:g.guest_id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()})));
-          if(joined.error)throw joined.error;
-        }
-        showToast('Battle lobby created! Invite live creators.');
-        await renderLiveBattleContent();
-      }catch(err){showToast('Could not create battle: '+(err.message||err));}
-      finally{submit.disabled=!own;submit.textContent='Create battle lobby';}
+        const guestIds=(guests.data||[]).map(g=>g.guest_id);if(guestIds.length<1)throw new Error('Invite at least one person and wait for them to join with their camera.');
+        if(guestIds.length>4)throw new Error('A live can have no more than 5 people total, including the host.');
+        const ins=await db.from('nook_live_battles').insert({host_id:currentUser.id,host_stream_id:own.id,title:title.value.trim(),duration_seconds:Number(duration.value),status:'inviting'}).select('id').single();
+        if(ins.error)throw ins.error;battleId=ins.data.id;
+        const host=await db.from('nook_live_battle_participants').insert({battle_id:battleId,user_id:currentUser.id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()});
+        if(host.error)throw host.error;
+        const joined=await db.from('nook_live_battle_participants').insert(guestIds.map(user_id=>({battle_id:battleId,user_id,live_stream_id:own.id,invite_status:'accepted',accepted_at:new Date().toISOString()})));
+        if(joined.error)throw joined.error;
+        const started=await db.from('nook_live_battles').update({status:'live'}).eq('id',battleId).eq('host_id',currentUser.id);
+        if(started.error)throw started.error;
+        showToast('LIVE Battle started!');await renderLiveBattleContent();
+      }catch(err){if(battleId)await db.from('nook_live_battles').delete().eq('id',battleId).eq('host_id',currentUser.id);showToast('Could not start battle: '+(err.message||err));}
+      finally{submit.disabled=!own;submit.textContent='Start Battles';}
     };
-  }
-  async function renderBattleCard(parent,battle,allLive){
+  }  async function renderBattleCard(parent,battle,allLive){
     const data=await battleRows(battle.id);
     const visibleParticipants=battle.status==='live'?data.participants.filter(x=>x.invite_status==='accepted'):data.participants;
     const names=await getProfiles([...data.participants.map(x=>x.user_id),...data.chat.map(x=>x.user_id)]);
