@@ -1503,6 +1503,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         if(role==='guest'){
           const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:{facingMode:'user',width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}}});
           for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}
+          await db.from('nook_live_guests').update({status:'joined'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id).eq('status','accepted');
           activeLiveAudioTrack=tracks.find(track=>track.kind==='audio')||null;
           const controls=document.createElement('div');controls.className='profile-panel';controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
           const mic=document.createElement('button');mic.className='secondary';mic.textContent='Mute microphone';
@@ -1592,7 +1593,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             const [followsRes,invitesRes]=await Promise.all([db.from('follows').select('following_id').eq('follower_id',currentUser.id),db.from('nook_live_guests').select('id,guest_id,status').eq('live_stream_id',stream.id)]);
             if(followsRes.error||invitesRes.error){list.textContent=followsRes.error?.message||invitesRes.error?.message;return;}
             const invited=new Map((invitesRes.data||[]).map(x=>[x.guest_id,x]));
-            const active=(invitesRes.data||[]).filter(x=>['invited','accepted'].includes(x.status));
+            const active=(invitesRes.data||[]).filter(x=>['invited','accepted','joined'].includes(x.status));
             const count=document.createElement('p');count.className='muted';count.textContent=(1+active.filter(x=>x.status==='accepted').length)+' of 5 people in the live · '+Math.max(0,4-active.length)+' guest spots available';list.appendChild(count);
             const ids=(followsRes.data||[]).map(x=>x.following_id).filter(id=>id!==currentUser.id);
             if(!ids.length){list.append('Follow people on Nook to invite them here.');return;}
@@ -1601,7 +1602,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
               const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';
               const label=document.createElement('span');label.textContent='@'+(person.username||'member');row.appendChild(label);
               const existing=invited.get(person.id);const action=document.createElement('button');action.className='follow';
-              if(existing?.status==='accepted'){action.textContent='Joined';action.disabled=true;}
+              if(existing?.status==='joined'){action.textContent='Joined';action.disabled=true;} else if(existing?.status==='accepted'){action.textContent='Connecting…';action.disabled=true;}
               else if(existing?.status==='invited'){action.textContent='Invited';action.disabled=true;}
               else{action.textContent='Invite';action.disabled=active.length>=4;action.onclick=async()=>{action.disabled=true;const r=existing?await db.from('nook_live_guests').update({status:'invited',accepted_at:null}).eq('id',existing.id):await db.from('nook_live_guests').insert({live_stream_id:stream.id,host_id:currentUser.id,guest_id:person.id,status:'invited'});if(r.error){action.disabled=false;showToast(r.error.message);return;}showToast('Live invitation sent.');await refreshInvites();};}
               row.appendChild(action);list.appendChild(row);
