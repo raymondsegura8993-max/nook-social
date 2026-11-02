@@ -295,7 +295,7 @@
   loadLive=async function(){
     await stopBattleWatch();
     await originalLoadLive();
-    const panel=box('🔴 Nook LIVE Battles','Compete with 2–5 people while everyone is LIVE. Free likes decide the winner.');
+    const panel=box('🔴 Nook LIVE Battles','Compete with 2–5 people while everyone is LIVE. Free likes decide the winner.');panel.id='nookLiveBattlePanel';panel.hidden=!(await getOwnLive());
     const open=btn('Show Battle Controls','primary',async()=>{
       open.disabled=true;open.textContent='Loading…';
       const area=mk('div','nook-battle-wrap');area.id='nookLiveBattleContent';panel.append(area);
