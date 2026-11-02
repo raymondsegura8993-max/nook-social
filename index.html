@@ -1603,7 +1603,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
               const existing=invited.get(person.id);const action=document.createElement('button');action.className='follow';
               if(existing?.status==='accepted'){action.textContent='Joined';action.disabled=true;}
               else if(existing?.status==='invited'){action.textContent='Invited';action.disabled=true;}
-              else{action.textContent='Invite';action.disabled=active.length>=4;action.onclick=async()=>{action.disabled=true;const r=await db.from('nook_live_guests').insert({live_stream_id:stream.id,host_id:currentUser.id,guest_id:person.id,status:'invited'});if(r.error){action.disabled=false;showToast(r.error.message);return;}showToast('Live invitation sent.');await refreshInvites();};}
+              else{action.textContent='Invite';action.disabled=active.length>=4;action.onclick=async()=>{action.disabled=true;const r=existing?await db.from('nook_live_guests').update({status:'invited',accepted_at:null}).eq('id',existing.id):await db.from('nook_live_guests').insert({live_stream_id:stream.id,host_id:currentUser.id,guest_id:person.id,status:'invited'});if(r.error){action.disabled=false;showToast(r.error.message);return;}showToast('Live invitation sent.');await refreshInvites();};}
               row.appendChild(action);list.appendChild(row);
             });
           };
