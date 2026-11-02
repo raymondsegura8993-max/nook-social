@@ -255,6 +255,19 @@
       for(const b of relevant){await renderBattleCard(section,b,live);}
       if(!relevant.length)section.append(mk('p','nook-battle-muted','No battles yet. Start your livestream to create one.'));
       root.append(section);
+      const myPart=await db.from('nook_live_battle_participants').select('battle_id').eq('user_id',currentUser.id);
+      const myBattleIds=[...new Set((myPart.data||[]).map(x=>x.battle_id))];
+      const myHistory=myBattleIds.length?await db.from('nook_live_battles').select('id,winner_user_id,status').in('id',myBattleIds).eq('status','completed'):{data:[]};
+      const completed=myHistory.data||[];
+      const wins=completed.filter(x=>x.winner_user_id===currentUser.id).length;
+      const losses=completed.filter(x=>x.winner_user_id&&x.winner_user_id!==currentUser.id).length;
+      const ties=completed.filter(x=>!x.winner_user_id).length;
+      const record=box('📜 Your Battle Record','Your completed LIVE battle history.');
+      record.append(mk('div','nook-battle-grid'));
+      record.lastChild.append(mk('div','nook-battle-score',String(wins)),mk('div','nook-battle-muted','Wins'));
+      record.lastChild.append(mk('div','nook-battle-score',String(losses)),mk('div','nook-battle-muted','Losses'));
+      record.lastChild.append(mk('div','nook-battle-score',String(ties)),mk('div','nook-battle-muted','Ties'));
+      root.append(record);
       const top=await db.from('nook_live_battle_likes').select('creator_id').limit(5000);
       if(!top.error){
         const counts={};(top.data||[]).forEach(x=>counts[x.creator_id]=(counts[x.creator_id]||0)+1);
