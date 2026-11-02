@@ -1031,7 +1031,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const videos=panel.querySelector('#nookCallVideos');
         const attach=track=>{const el=track.attach();if(el.tagName==='VIDEO'){el.autoplay=true;el.playsInline=true;el.style.width='100%';el.style.maxHeight='55vh';el.style.objectFit='cover';}videos.appendChild(el);};
         room.on(LK.RoomEvent.TrackSubscribed,track=>attach(track));
-        room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
+        room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>{const tile=el.closest?.('div[style*="border:1px solid #40334f"]');if(tile)tile.remove();else el.remove();}));
         await room.connect(data.server_url,data.participant_token);
         const local=await LK.createLocalTracks({audio:true,video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
         activeVideoCallLocalTracks=local;
@@ -1495,14 +1495,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       try{
         const LK=await import('https://esm.sh/livekit-client@2.23.0');
         const room=new LK.Room({adaptiveStream:true,dynacast:true});activeLiveRoom=room;activeLiveStreamId=stream.id;
-        const attachTrack=track=>{const el=track.attach();if(el.tagName==='VIDEO'){el.autoplay=true;el.playsInline=true;el.style.width='100%';el.style.maxHeight='480px';el.style.objectFit='contain';el.style.borderRadius='14px';}stage.appendChild(el);};
-        room.on(LK.RoomEvent.TrackSubscribed,track=>attachTrack(track));
+        const liveNames=new Map();const ids=[stream.host_id];const guestRows=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',stream.id).in('status',['accepted','joined']);(guestRows.data||[]).forEach(g=>ids.push(g.guest_id));if(currentUser?.id)ids.push(currentUser.id);const people=await db.from('profiles').select('id,username,display_name').in('id',[...new Set(ids)]);(people.data||[]).forEach(p=>liveNames.set(p.id,p.username||p.display_name||'creator'));const attachTrack=(track,participant)=>{const el=track.attach();if(el.tagName==='VIDEO'){el.autoplay=true;el.playsInline=true;el.style.width='100%';el.style.maxHeight='480px';el.style.objectFit='contain';el.style.borderRadius='14px';const tile=document.createElement('div');tile.style.cssText='position:relative;display:inline-flex;flex-direction:column;vertical-align:top;width:min(100%,560px);margin:5px;padding:7px;background:#17131f;border:1px solid #40334f;border-radius:14px;box-sizing:border-box';const name=document.createElement('div');name.textContent='@'+(liveNames.get(participant?.identity)||'creator');name.style.cssText='font-weight:800;color:#e6d5ff;padding:2px 4px 8px;overflow-wrap:anywhere';tile.append(name,el);stage.appendChild(tile);}else stage.appendChild(el);};
+        room.on(LK.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachTrack(track,participant));
         room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
         room.on(LK.RoomEvent.Disconnected,()=>{if(status)status.textContent='Disconnected';});
         await room.connect(data.server_url,data.participant_token);
         if(role==='guest'){
           const tracks=await LK.createLocalTracks({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:{facingMode:'user',width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}}});
-          for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track);}
+          for(const track of tracks){await room.localParticipant.publishTrack(track);attachTrack(track,room.localParticipant);}
           await db.from('nook_live_guests').update({status:'joined'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id).eq('status','accepted');
           activeLiveAudioTrack=tracks.find(track=>track.kind==='audio')||null;
           const controls=document.createElement('div');controls.className='profile-panel';controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
