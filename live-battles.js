@@ -72,7 +72,7 @@
       let battleId=null;
       try{
         const check=await getOwnLive();if(!check||check.id!==own.id)throw new Error('Your livestream is no longer active.');
-        const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',own.id).eq('host_id',currentUser.id).eq('status','accepted');
+        const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',own.id).eq('host_id',currentUser.id).eq('status','joined');
         if(guests.error)throw guests.error;
         const guestIds=(guests.data||[]).map(g=>g.guest_id);if(guestIds.length<1)throw new Error('Invite at least one person and wait for them to join with their camera.');
         if(guestIds.length>4)throw new Error('A live can have no more than 5 people total, including the host.');
@@ -118,7 +118,7 @@
       card.append(mk('p','nook-battle-muted',accepted.length+' of 2–5 people accepted. All creators must still be live to start.'));
       if(battle.host_id===currentUser.id){
         if(accepted.length>=2){card.append(btn('Start battle now','primary',async()=>{
-          const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',battle.host_stream_id).eq('host_id',battle.host_id).eq('status','accepted');
+          const guests=await db.from('nook_live_guests').select('guest_id').eq('live_stream_id',battle.host_stream_id).eq('host_id',battle.host_id).eq('status','joined');
           if(guests.error)return showToast(guests.error.message);
           const ids=[battle.host_id,...(guests.data||[]).map(g=>g.guest_id)];
           if(ids.length<2||ids.length>5)return showToast('A battle needs 2–5 people in this live.');
