@@ -209,9 +209,18 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 @media(max-width:760px){.app{display:block;padding:14px 12px 88px}.sidebar{position:fixed;z-index:999;left:0;right:0;top:auto;bottom:0;height:auto;min-height:0;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:rgba(15,12,21,.96);border-top:1px solid rgba(190,160,225,.18);backdrop-filter:blur(18px)}.brand,.profile-mini,.newpost{display:none}.nav{display:flex;flex-direction:row;gap:3px;justify-content:space-between;padding:0;overflow-x:auto}.nav button{flex:1 0 54px;min-width:0;min-height:52px;padding:6px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:10px}.nav .ico{width:auto;font-size:17px}.navlabel{font-size:9px;line-height:1.2}.top{padding-bottom:12px}.top h1{font-size:24px}.composer{padding:12px}.post{padding:14px;border-radius:14px}.feed-tabs{overflow-x:auto;white-space:nowrap}.feed-tabs button{flex:none}.live-persistent.is-floating{bottom:78px!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.nav button:hover:not(:disabled){transform:none}}
 
+
+/* Accessibility and quick navigation */
+.nook-skip-link{position:fixed;top:10px;left:10px;z-index:20000;transform:translateY(-160%);padding:10px 14px;border-radius:10px;background:#fff;color:#21152f;font-weight:800;box-shadow:0 8px 30px #0008}
+.nook-skip-link:focus{transform:translateY(0);outline:3px solid #a978ff;outline-offset:3px}
+#searchBtn{font-size:23px;display:grid;place-items:center}
+#searchBtn::after{content:"Search";font-size:10px;position:absolute;opacity:0;transform:translateY(24px);transition:opacity .15s}
+#searchBtn:hover::after{opacity:.8}
+
 </style>
 </head>
 <body>
+<a class="nook-skip-link" href="#feed">Skip to feed</a>
 <div id="nookAnnouncementBanner" class="nook-announcement" role="status"><span id="nookAnnouncementText"></span><button id="nookAnnouncementDismiss" type="button" aria-label="Dismiss announcement">Dismiss</button></div>
 <div class="app">
 <aside class="sidebar">
@@ -2652,5 +2661,30 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 })();
 </script>
 <script src="./live-battles.js"></script>
+
+<script>
+(()=> {
+  const button=document.getElementById('searchBtn');
+  if(!button)return;
+  button.title='Search Nook ( / )';
+  const openSearch=()=>{
+    const exploreButton=document.querySelector('.nav button[data-tab="Explore"]');
+    if(exploreButton)exploreButton.click();
+    requestAnimationFrame(()=>{
+      const input=document.getElementById('exploreSearch');
+      if(input){input.focus();input.scrollIntoView({behavior:'smooth',block:'center'});}
+    });
+  };
+  button.addEventListener('click',openSearch);
+  document.addEventListener('keydown',event=>{
+    const target=event.target;
+    const typing=target&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+    if(event.key==='/'&&!typing&&!event.metaKey&&!event.ctrlKey&&!event.altKey){
+      event.preventDefault();openSearch();
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
