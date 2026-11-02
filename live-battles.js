@@ -54,7 +54,7 @@
   }
   async function createBattlePanel(parent){
     const own=await getOwnLive();
-    const create=box('🔴 Start a LIVE Battle','Battles are only available while your own livestream is active. Compete against 1–5 other creators using free likes.');
+    const create=box('🔴 Start a LIVE Battle','Battles are only available while your own livestream is active. Compete with up to 4 invited guests. Free likes decide the winner.');
     const form=mk('form');form.style.cssText='display:grid;gap:9px;margin-top:10px';
     const title=mk('input','dm-search');title.name='title';title.maxLength=100;title.minLength=3;title.required=true;title.placeholder='Battle title';
     const titleLabel=mk('label','nook-battle-muted','Battle name');titleLabel.append(title);
@@ -64,7 +64,7 @@
     const submit=mk('button','primary','Create battle lobby');submit.type='submit';submit.disabled=!own;
     form.append(titleLabel,durationLabel,submit);
     create.append(form);
-    const note=mk('div','nook-battle-muted',own?'You are LIVE as '+(own.title||'your stream')+'. Invite up to five other creators who are also live.':'Go to the Live tab and start your livestream first. The battle button unlocks automatically when your stream is live.');
+    const note=mk('div','nook-battle-muted',own?'You are LIVE as '+(own.title||'your stream')+'. Invite up to four people you follow. They join this live with their cameras.':'Go to the Live tab and start your livestream first. The battle button unlocks automatically when your stream is live.');
     create.append(note);parent.append(create);
     form.onsubmit=async e=>{
       e.preventDefault();if(!own)return showToast('Start your livestream before creating a battle.');
@@ -152,7 +152,7 @@
         if(left<=0&&battle.host_id===currentUser.id){clearInterval(battleTimers[battle.id]);delete battleTimers[battle.id];await finishBattle(battle);}
       };
       if(battleTimers[battle.id])clearInterval(battleTimers[battle.id]);updateTimer();battleTimers[battle.id]=setInterval(updateTimer,1000);
-      card.append(btn('Watch battle streams','primary',()=>watchBattle(battle.id,card)));
+      card.append(btn('View live camera stage','primary',()=>watchBattle(battle.id,card)));
       if(battle.host_id===currentUser.id)card.append(btn('End battle early','secondary',()=>finishBattle(battle)));
       const chat=mk('div','nook-battle-chat');data.chat.forEach(m=>{const line=mk('div','nook-battle-chatline');const p=names.get(m.user_id);const b=mk('b','', '@'+(p?.username||'member')+': ');line.append(b,document.createTextNode(m.message));chat.append(line);});
       card.append(mk('b','','Battle chat'),chat);
