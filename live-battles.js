@@ -47,9 +47,10 @@
     return {participants:p.data||[],likes:l.data||[],chat:c.data||[]};
   }
   async function finishBattle(battle){
-    const likes=await db.from('nook_live_battle_likes').select('creator_id').eq('battle_id',battle.id);
-    if(likes.error)return showToast(likes.error.message);
-    const scores={};(likes.data||[]).forEach(x=>scores[x.creator_id]=(scores[x.creator_id]||0)+1);
+    const [likes,participants]=await Promise.all([db.from('nook_live_battle_likes').select('creator_id').eq('battle_id',battle.id),db.from('nook_live_battle_participants').select('user_id').eq('battle_id',battle.id).eq('invite_status','accepted')]);
+    if(likes.error||participants.error)return showToast(likes.error?.message||participants.error?.message);
+    const activeCreators=new Set((participants.data||[]).map(x=>x.user_id));
+    const scores={};(likes.data||[]).filter(x=>activeCreators.has(x.creator_id)).forEach(x=>scores[x.creator_id]=(scores[x.creator_id]||0)+1);
     const top=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
     const winner=top.length&&(!top[1]||top[0][1]>top[1][1])?top[0][0]:null;
     const done=await db.from('nook_live_battles').update({status:'completed',finished_at:new Date().toISOString(),winner_user_id:winner}).eq('id',battle.id).eq('host_id',currentUser.id).eq('status','live');
