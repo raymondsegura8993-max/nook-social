@@ -1397,14 +1397,12 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         if(result.error){document.getElementById('adminSettingsStatus').textContent=result.error.message;return;}
         const values=Object.fromEntries((result.data||[]).map(x=>[x.key,x.value]));
         document.getElementById('adminMaintenance').value=String(values.maintenance_mode?.enabled===true);
-        document.getElementById('adminAnnouncement').value=values.announcement?.text||'';document.getElementById('adminAnnouncementPinned').checked=values.announcement?.pinned===true;document.getElementById('adminAnnouncementSchedule').value=values.announcement?.publish_at?new Date(values.announcement.publish_at).toISOString().slice(0,16):'';
+        const announcement=await db.from('nook_public_announcements').select('text,pinned,publish_at').eq('id','current').maybeSingle();if(announcement.error){document.getElementById('adminSettingsStatus').textContent=announcement.error.message;return;}document.getElementById('adminAnnouncement').value=announcement.data?.text||'';document.getElementById('adminAnnouncementPinned').checked=announcement.data?.pinned===true;document.getElementById('adminAnnouncementSchedule').value=announcement.data?.publish_at?new Date(announcement.data.publish_at).toISOString().slice(0,16):'';
       }
       document.getElementById('adminSaveSettings').onclick=async()=>{
-        const settings=[
-          {key:'maintenance_mode',value:{enabled:document.getElementById('adminMaintenance').value==='true'}},
-          {key:'announcement',value:{text:document.getElementById('adminAnnouncement').value.trim(),pinned:document.getElementById('adminAnnouncementPinned').checked,publish_at:document.getElementById('adminAnnouncementSchedule').value?new Date(document.getElementById('adminAnnouncementSchedule').value).toISOString():null}}
-        ];
+        const settings=[{key:'maintenance_mode',value:{enabled:document.getElementById('adminMaintenance').value==='true'}}];
         for(const setting of settings){const saved=await db.from('nook_platform_settings').upsert({...setting,updated_at:new Date().toISOString(),updated_by:currentUser.id},{onConflict:'key'});if(saved.error){document.getElementById('adminSettingsStatus').textContent=saved.error.message;return;}}
+        const announcementSaved=await db.from('nook_public_announcements').upsert({id:'current',text:document.getElementById('adminAnnouncement').value.trim(),pinned:document.getElementById('adminAnnouncementPinned').checked,publish_at:document.getElementById('adminAnnouncementSchedule').value?new Date(document.getElementById('adminAnnouncementSchedule').value).toISOString():null,updated_at:new Date().toISOString(),updated_by:currentUser.id},{onConflict:'id'});if(announcementSaved.error){document.getElementById('adminSettingsStatus').textContent=announcementSaved.error.message;return;}
         await writeAdminAudit('updated_platform_settings','settings',null,{label:'Announcement and maintenance setting'});
         document.getElementById('adminSettingsStatus').textContent='Settings saved. The announcement will appear to everyone when its scheduled time arrives.';
         await refreshAdminAudit();showToast('Platform settings saved.');
@@ -1862,7 +1860,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
  const client=window.nookClient;if(!client)return;
  const banner=document.getElementById('nookAnnouncementBanner'),message=document.getElementById('nookAnnouncementText'),dismiss=document.getElementById('nookAnnouncementDismiss');
  if(!banner||!message||!dismiss)return;
- const render=async()=>{const {data,error}=await client.from('nook_platform_settings').select('value').eq('key','announcement').maybeSingle();if(error){console.warn('Nook announcement could not load:',error.message);return;}const value=data?.value||{},text=String(value.text||'').trim(),scheduled=value.publish_at?new Date(value.publish_at).getTime():0;const visible=!!text&&(!scheduled||scheduled<=Date.now());message.textContent=text;banner.classList.toggle('show',visible);banner.style.position=value.pinned===true?'sticky':'relative';};
+ const render=async()=>{const {data,error}=await client.from('nook_public_announcements').select('text,pinned,publish_at').eq('id','current').maybeSingle();if(error){console.warn('Nook announcement could not load:',error.message);return;}const value=data||{},text=String(value.text||'').trim(),scheduled=value.publish_at?new Date(value.publish_at).getTime():0;const visible=!!text&&(!scheduled||scheduled<=Date.now());message.textContent=text;banner.classList.toggle('show',visible);banner.style.position=value.pinned===true?'sticky':'relative';};
  dismiss.addEventListener('click',()=>banner.classList.remove('show'));render();setInterval(render,60000);
 })();
 </script>
