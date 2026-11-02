@@ -57,10 +57,12 @@
     const create=box('🔴 Start a LIVE Battle','Battles are only available while your own livestream is active. Compete against 1–5 other creators using free likes.');
     const form=mk('form');form.style.cssText='display:grid;gap:9px;margin-top:10px';
     const title=mk('input','dm-search');title.name='title';title.maxLength=100;title.minLength=3;title.required=true;title.placeholder='Battle title';
+    const titleLabel=mk('label','nook-battle-muted','Battle name');titleLabel.append(title);
     const duration=mk('select','dm-search');duration.name='duration_seconds';
     [['60','1 minute'],['120','2 minutes'],['180','3 minutes'],['300','5 minutes'],['600','10 minutes'],['900','15 minutes'],['1800','30 minutes'],['3600','60 minutes']].forEach(([v,l])=>{const o=mk('option','',l);o.value=v;if(v==='300')o.selected=true;duration.append(o);});
+    const durationLabel=mk('label','nook-battle-muted','Choose when the battle ends');durationLabel.append(duration);
     const submit=mk('button','primary','Create battle lobby');submit.type='submit';submit.disabled=!own;
-    form.append(title,mk('label','nook-battle-muted','Battle name'),duration,submit);
+    form.append(titleLabel,durationLabel,submit);
     create.append(form);
     const note=mk('div','nook-battle-muted',own?'You are LIVE as '+(own.title||'your stream')+'. Invite up to five other creators who are also live.':'Go to the Live tab and start your livestream first. The battle button unlocks automatically when your stream is live.');
     create.append(note);parent.append(create);
