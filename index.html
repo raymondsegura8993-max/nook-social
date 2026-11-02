@@ -1000,7 +1000,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     let activeVideoCallLocalTracks=[];
     let incomingVideoCall=null;
     async function finishNookVideoCall(callId=activeVideoCallId, finalStatus='ended'){
-      if(activeVideoCallRoom){try{await activeVideoCallRoom.disconnect();}catch(_){}activeVideoCallRoom=null;}
+      if(activeVideoCallRoom){const room=activeVideoCallRoom;activeVideoCallRoom=null;try{await room.disconnect();}catch(_){}}
       activeVideoCallLocalTracks.forEach(t=>{try{t.stop();}catch(_){}});activeVideoCallLocalTracks=[];
       const panel=document.getElementById('nookVideoCallPanel');if(panel)panel.remove();
       if(callId&&currentUser)await db.from('video_calls').update({status:finalStatus,ended_at:new Date().toISOString()}).eq('id',callId).in('status',['ringing','accepted']);
@@ -1021,7 +1021,6 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const attach=track=>{const el=track.attach();if(el.tagName==='VIDEO'){el.autoplay=true;el.playsInline=true;el.style.width='100%';el.style.maxHeight='55vh';el.style.objectFit='cover';}videos.appendChild(el);};
         room.on(LK.RoomEvent.TrackSubscribed,track=>attach(track));
         room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
-        room.on(LK.RoomEvent.ParticipantConnected',()=>{});
         await room.connect(data.server_url,data.participant_token);
         const local=await LK.createLocalTracks({audio:true,video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
         activeVideoCallLocalTracks=local;
