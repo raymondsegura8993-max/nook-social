@@ -1709,6 +1709,29 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           };
           const refresh=document.createElement('button');refresh.className='secondary';refresh.textContent='Refresh invitations';refresh.onclick=refreshInvites;invitePanel.appendChild(refresh);
           stage.appendChild(invitePanel);await refreshInvites();
+          const queuePanel=document.createElement('section');queuePanel.className='profile-panel';queuePanel.style.marginTop='12px';
+          const queueTitle=document.createElement('h3');queueTitle.textContent='🙋 Co-host request queue';queuePanel.appendChild(queueTitle);
+          const queueHelp=document.createElement('p');queueHelp.className='muted';queueHelp.textContent='Viewers can ask to join your live. Accepting lets them connect after they approve camera and microphone access.';queuePanel.appendChild(queueHelp);
+          const queueList=document.createElement('div');queuePanel.appendChild(queueList);
+          const refreshQueue=async()=>{
+            queueList.innerHTML='';
+            const req=await db.from('nook_live_guests').select('id,guest_id,created_at').eq('live_stream_id',stream.id).eq('status','requested').order('created_at',{ascending:true});
+            if(req.error){queueList.textContent=req.error.message;return;}
+            if(!req.data?.length){queueList.textContent='No one is waiting right now.';return;}
+            const profiles=await db.from('profiles').select('id,username,display_name').in('id',req.data.map(x=>x.guest_id));
+            const names=new Map((profiles.data||[]).map(x=>[x.id,x.username||x.display_name||'member']));
+            req.data.forEach(request=>{
+              const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';
+              const who=document.createElement('b');who.textContent='@'+(names.get(request.guest_id)||'member');row.appendChild(who);
+              const acceptRequest=document.createElement('button');acceptRequest.className='primary';acceptRequest.textContent='Accept';
+              acceptRequest.onclick=async()=>{acceptRequest.disabled=true;const u=await db.from('nook_live_guests').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',request.id).eq('host_id',currentUser.id).eq('status','requested');if(u.error){acceptRequest.disabled=false;showToast(u.error.message);return;}showToast('Request accepted. They can now join with camera and microphone.');await refreshQueue();};
+              const declineRequest=document.createElement('button');declineRequest.className='secondary';declineRequest.textContent='Decline';
+              declineRequest.onclick=async()=>{const u=await db.from('nook_live_guests').update({status:'declined'}).eq('id',request.id).eq('host_id',currentUser.id).eq('status','requested');if(u.error)return showToast(u.error.message);await refreshQueue();};
+              row.append(acceptRequest,declineRequest);queueList.appendChild(row);
+            });
+          };
+          const refreshQueueButton=document.createElement('button');refreshQueueButton.className='secondary';refreshQueueButton.textContent='Refresh requests';refreshQueueButton.onclick=refreshQueue;queuePanel.appendChild(refreshQueueButton);
+          stage.appendChild(queuePanel);await refreshQueue();
         }
 
         const panel=document.getElementById('liveCommunity');
@@ -1839,11 +1862,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     async function loadLiveList(){
       const target=document.getElementById('liveList');if(!target)return;
-      const pending=await db.from('nook_live_guests').select('id,live_stream_id,host_id').eq('guest_id',currentUser.id).eq('status','invited');
+      const pending=await db.from('nook_live_guests').select('id,live_stream_id,host_id,status').eq('guest_id',currentUser.id).in('status',['invited','accepted']);
       if(pending.data?.length){const invites=document.createElement('section');invites.className='profile-panel';invites.innerHTML='<h3>📨 Live invitations</h3>';
         for(const invite of pending.data){const [streamRes,hostRes]=await Promise.all([db.from('live_streams').select('id,host_id,title,room_name,created_at').eq('id',invite.live_stream_id).eq('status','live').maybeSingle(),db.from('profiles').select('username').eq('id',invite.host_id).maybeSingle()]);if(!streamRes.data)continue;
           const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';const label=document.createElement('span');label.textContent='@'+(hostRes.data?.username||'creator')+' invited you to '+streamRes.data.title;row.appendChild(label);
-          const accept=document.createElement('button');accept.className='primary';accept.textContent='Join with camera';accept.onclick=async()=>{accept.disabled=true;const u=await db.from('nook_live_guests').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',invite.id).eq('guest_id',currentUser.id);if(u.error){accept.disabled=false;showToast(u.error.message);return;}await connectLiveStream(streamRes.data,'guest');};
+          const accept=document.createElement('button');accept.className='primary';accept.textContent=invite.status==='accepted'?'Join with camera':'Accept & join with camera';accept.onclick=async()=>{accept.disabled=true;const u=await db.from('nook_live_guests').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',invite.id).eq('guest_id',currentUser.id);if(u.error){accept.disabled=false;showToast(u.error.message);return;}await connectLiveStream(streamRes.data,'guest');};
           const decline=document.createElement('button');decline.className='secondary';decline.textContent='Decline';decline.onclick=async()=>{const d=await db.from('nook_live_guests').update({status:'declined'}).eq('id',invite.id);if(d.error)return showToast(d.error.message);row.remove();};row.append(accept,decline);invites.appendChild(row);}
         target.before(invites);}
       const {data:streams,error}=await db.from('live_streams').select('id,host_id,title,room_name,created_at').eq('status','live').order('created_at',{ascending:false}).limit(30);
@@ -1851,7 +1874,23 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!streams?.length){target.textContent='Nobody is live right now.';return;}
       const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',streams.map(x=>x.host_id));
       const byId=Object.fromEntries((profiles||[]).map(x=>[x.id,x]));target.innerHTML='';
-      streams.forEach(stream=>{const person=byId[stream.host_id]||{username:'member'};const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';row.style.padding='12px 0';const info=document.createElement('div');info.innerHTML='<b>🔴 '+esc(stream.title)+'</b><small class="muted" style="display:block">by @'+esc(person.username)+'</small>';const join=document.createElement('button');join.className='follow';join.textContent=stream.host_id===currentUser.id?'Reconnect':'Watch';join.onclick=()=>connectLiveStream(stream,stream.host_id===currentUser.id?'host':'viewer');row.append(info,join);target.appendChild(row);});
+      streams.forEach(stream=>{const person=byId[stream.host_id]||{username:'member'};const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';row.style.padding='12px 0';const info=document.createElement('div');info.innerHTML='<b>🔴 '+esc(stream.title)+'</b><small class="muted" style="display:block">by @'+esc(person.username)+'</small>';const join=document.createElement('button');join.className='follow';join.textContent=stream.host_id===currentUser.id?'Reconnect':'Watch';join.onclick=()=>connectLiveStream(stream,stream.host_id===currentUser.id?'host':'viewer');row.append(info,join);
+        if(stream.host_id!==currentUser.id){
+          const request=document.createElement('button');request.className='secondary';request.textContent='Request to Join';
+          request.onclick=async()=>{
+            request.disabled=true;
+            const existing=await db.from('nook_live_guests').select('id,status').eq('live_stream_id',stream.id).eq('guest_id',currentUser.id).maybeSingle();
+            if(existing.error){request.disabled=false;showToast(existing.error.message);return;}
+            if(existing.data&&['requested','accepted','joined','invited'].includes(existing.data.status)){request.textContent=existing.data.status==='requested'?'Request sent':existing.data.status==='accepted'?'Accepted — join below':existing.data.status==='joined'?'Already joined':'Already invited';return;}
+            const result=existing.data
+              ?await db.from('nook_live_guests').update({status:'requested',accepted_at:null}).eq('id',existing.data.id).eq('guest_id',currentUser.id)
+              :await db.from('nook_live_guests').insert({live_stream_id:stream.id,host_id:stream.host_id,guest_id:currentUser.id,status:'requested'});
+            if(result.error){request.disabled=false;showToast(result.error.message);return;}
+            request.textContent='Request sent';showToast('Your co-host request was sent to the host.');
+          };
+          row.appendChild(request);
+        }
+        target.appendChild(row);});
     }
 
     async function loadCommunities() {
