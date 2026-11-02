@@ -1582,6 +1582,34 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           status.textContent='You are live. Keep this page open until you press End broadcast so the replay can be saved.';
         }
         else if(role==='guest'){} else status.textContent='Watching live: '+stream.title;
+        if(role==='host'){
+          const invitePanel=document.createElement('section');invitePanel.className='profile-panel';invitePanel.style.marginTop='12px';
+          const heading=document.createElement('h3');heading.textContent='👥 Invite people you follow';invitePanel.appendChild(heading);
+          const helper=document.createElement('p');helper.className='muted';helper.textContent='Up to 5 people total, including you. Invite up to 4 guests.';invitePanel.appendChild(helper);
+          const list=document.createElement('div');invitePanel.appendChild(list);
+          const refreshInvites=async()=>{
+            list.innerHTML='';
+            const [followsRes,invitesRes]=await Promise.all([db.from('follows').select('following_id').eq('follower_id',currentUser.id),db.from('nook_live_guests').select('id,guest_id,status').eq('live_stream_id',stream.id)]);
+            if(followsRes.error||invitesRes.error){list.textContent=followsRes.error?.message||invitesRes.error?.message;return;}
+            const invited=new Map((invitesRes.data||[]).map(x=>[x.guest_id,x]));
+            const active=(invitesRes.data||[]).filter(x=>['invited','accepted'].includes(x.status));
+            const count=document.createElement('p');count.className='muted';count.textContent=(1+active.filter(x=>x.status==='accepted').length)+' of 5 people in the live · '+Math.max(0,4-active.length)+' guest spots available';list.appendChild(count);
+            const ids=(followsRes.data||[]).map(x=>x.following_id).filter(id=>id!==currentUser.id);
+            if(!ids.length){list.append('Follow people on Nook to invite them here.');return;}
+            const prof=await db.from('profiles').select('id,username').in('id',ids);
+            (prof.data||[]).forEach(person=>{
+              const row=document.createElement('div');row.className='follow-person';row.style.justifyContent='space-between';
+              const label=document.createElement('span');label.textContent='@'+(person.username||'member');row.appendChild(label);
+              const existing=invited.get(person.id);const action=document.createElement('button');action.className='follow';
+              if(existing?.status==='accepted'){action.textContent='Joined';action.disabled=true;}
+              else if(existing?.status==='invited'){action.textContent='Invited';action.disabled=true;}
+              else{action.textContent='Invite';action.disabled=active.length>=4;action.onclick=async()=>{action.disabled=true;const r=await db.from('nook_live_guests').insert({live_stream_id:stream.id,host_id:currentUser.id,guest_id:person.id,status:'invited'});if(r.error){action.disabled=false;showToast(r.error.message);return;}showToast('Live invitation sent.');await refreshInvites();};}
+              row.appendChild(action);list.appendChild(row);
+            });
+          };
+          const refresh=document.createElement('button');refresh.className='secondary';refresh.textContent='Refresh invitations';refresh.onclick=refreshInvites;invitePanel.appendChild(refresh);
+          stage.appendChild(invitePanel);await refreshInvites();
+        }
 
         const panel=document.getElementById('liveCommunity');
         if(panel){
