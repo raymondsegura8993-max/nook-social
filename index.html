@@ -88,7 +88,7 @@ body.auth-required .auth-screen{display:grid}
 <div class="compose-row"><div class="avatar">Y</div><button class="compose-input" id="composeOpen">What's happening in your nook?</button></div>
 <div class="compose-actions"><button class="chip" id="photoBtn">▧ Photo</button><button class="chip" id="videoBtn">▷ Video</button><button class="chip" id="pollBtn">▥ Poll</button><button class="chip" id="linkBtn">↗ Link</button></div>
 </section>
-<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="storyCloseFriends" type="checkbox" style="width:15px;height:15px;vertical-align:middle"> Close Friends only</label><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div><div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Trending">Trending</button></div>
+<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="storyCloseFriends" type="checkbox" style="width:15px;height:15px;vertical-align:middle"> Close Friends only</label><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div><div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Latest">Latest</button><button data-feed="Trending">Trending</button></div>
 <div id="feed">
 <article class="post">
 <div class="posthead"><div class="avatar">N</div><div><div class="postname">Nook <span class="muted">✦</span></div><div class="handle">@nook · Welcome</div></div><span class="posttime">Pinned</span><button class="dots">···</button></div>
@@ -421,8 +421,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const name = profile?.display_name || profile?.username || 'Nook member';
       const handle = profile?.username || 'member';
       const postAvatar = profile?.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" alt="Profile picture">' : esc(initials(name));
-      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><button class="action react">☺ Reactions</button><button class="action repost">↻ Repost</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
-      const nameNode=card.querySelector('.postname');if(profile?.id&&profile.id!==currentUser.id){nameNode.style.cursor='pointer';nameNode.onclick=()=>openPublicProfile(profile);}if(post.repost_of){db.from('posts').select('id,author_id,content').eq('id',post.repost_of).maybeSingle().then(async({data:original})=>{if(!original||!card.isConnected)return;const {data:op}=await db.from('profiles').select('username').eq('id',original.author_id).maybeSingle();const quote=document.createElement('div');quote.className='profile-panel';quote.innerHTML='<b>↻ Original post · @'+esc(op?.username||'member')+'</b><p>'+esc(original.content||'')+'</p>';const content=card.querySelector('.post-content');if(content)content.after(quote);});}
+      card.innerHTML = '<div class="posthead"><div class="avatar">'+postAvatar+'</div><div><div class="postname">'+esc(name)+'</div><div class="handle">@'+esc(handle)+' · '+esc(timeAgo(post.created_at))+'</div></div>'+(profile?.id && profile.id!==currentUser.id?'<button class="follow-inline">'+(currentFollowing.has(profile.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>':'')+'</div><p class="post-content"></p><div class="post-actions"><button class="action like">'+(liked?'♥':'♡')+' <span>'+(liked?'Liked':'Like')+'</span> · <span class="like-count">'+likeCount+'</span></button><button class="action comment">▢ Comment · '+commentCount+'</button><span class="action view-count">▣ '+(post.view_count||0)+' views</span><button class="action react">☺ Reactions</button><button class="action repost">↻ Repost</button><button class="action share">↗ Share</button></div><div class="comment-list" hidden></div>';
+      const nameNode=card.querySelector('.postname');if(profile?.id&&profile.id!==currentUser.id){nameNode.style.cursor='pointer';nameNode.onclick=()=>openPublicProfile(profile);}if(post.author_id!==currentUser.id){db.from('post_views').upsert({post_id:post.id,viewer_id:currentUser.id},{onConflict:'post_id,viewer_id',ignoreDuplicates:true});}if(post.repost_of){db.from('posts').select('id,author_id,content').eq('id',post.repost_of).maybeSingle().then(async({data:original})=>{if(!original||!card.isConnected)return;const {data:op}=await db.from('profiles').select('username').eq('id',original.author_id).maybeSingle();const quote=document.createElement('div');quote.className='profile-panel';quote.innerHTML='<b>↻ Original post · @'+esc(op?.username||'member')+'</b><p>'+esc(original.content||'')+'</p>';const content=card.querySelector('.post-content');if(content)content.after(quote);});}
       card.querySelector('.post-content').textContent = post.content || '';
       if(profile?.id)db.from('verified_profiles').select('user_id').eq('user_id',profile.id).maybeSingle().then(({data})=>{if(data){const nameNode=card.querySelector('.postname');if(nameNode)nameNode.insertAdjacentHTML('beforeend',' <span title="Verified account" style="color:#b98cff">✓</span>');}});
       if (!post.content) card.querySelector('.post-content').remove();
@@ -467,6 +467,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         safety.append(report,block);card.querySelector('.post-actions').after(safety);
       }
       if(post.author_id===currentUser.id){
+        const collab=document.createElement('button');collab.className='action';collab.textContent='＋ Invite collaborator';collab.onclick=async()=>{const username=(prompt('Enter the Nook username to invite:')||'').trim().replace(/^@/,'').toLowerCase();if(!username)return;const {data:person,error}=await db.from('profiles').select('id,username').eq('username',username).maybeSingle();if(error||!person)return showToast('Username not found.');if(person.id===currentUser.id)return showToast('You cannot invite yourself.');const result=await db.from('post_collaborators').insert({post_id:post.id,collaborator_id:person.id,invited_by:currentUser.id});if(result.error)return showToast(result.error.code==='23505'?'That person has already been invited.':result.error.message);showToast('Collaboration invite sent!');};card.querySelector('.post-actions').appendChild(collab);
         const pin=document.createElement('button');pin.className='action pin-post';pin.textContent=currentProfile?.pinned_post_id===post.id?'📌 Pinned':'📌 Pin';
         pin.onclick=async()=>{const result=await db.from('profiles').update({pinned_post_id:post.id}).eq('id',currentUser.id);if(result.error)return showToast(result.error.message);currentProfile.pinned_post_id=post.id;showToast('Post pinned to your profile.');if(currentTab==='Profile')showProfile();};
         card.querySelector('.post-actions').appendChild(pin);
@@ -595,6 +596,23 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       });
     }
 
+
+    async function loadHashtagDiscovery(){
+      const results=document.getElementById('hashtagResults'),input=document.getElementById('hashtagSearch');if(!results||!input)return;
+      const [{data:tags},{data:mine}]=await Promise.all([db.from('hashtags').select('id,tag').order('tag').limit(100),db.from('user_hashtag_follows').select('hashtag_id').eq('user_id',currentUser.id)]);
+      const followed=new Set((mine||[]).map(x=>x.hashtag_id));
+      function draw(filter=''){results.innerHTML='';const list=(tags||[]).filter(t=>t.tag.includes(filter.replace(/^#/,'').toLowerCase())).slice(0,30);if(!list.length){results.textContent='No hashtags found yet. Use a hashtag in a post first.';return;}list.forEach(tag=>{const row=document.createElement('div');row.className='follow-person';row.innerHTML='<div class="info"><b>#'+esc(tag.tag)+'</b></div>';const b=document.createElement('button');b.className='follow';b.textContent=followed.has(tag.id)?'Following':'Follow';b.onclick=async()=>{const result=followed.has(tag.id)?await db.from('user_hashtag_follows').delete().eq('user_id',currentUser.id).eq('hashtag_id',tag.id):await db.from('user_hashtag_follows').insert({user_id:currentUser.id,hashtag_id:tag.id});if(result.error)return showToast(result.error.message);if(followed.has(tag.id))followed.delete(tag.id);else followed.add(tag.id);b.textContent=followed.has(tag.id)?'Following':'Follow';};row.appendChild(b);results.appendChild(row);});}
+      draw();input.oninput=()=>draw(input.value.trim());
+    }
+    async function loadCollaborationInvites(){
+      const {data:invites,error}=await db.from('post_collaborators').select('post_id,invited_by').eq('collaborator_id',currentUser.id).eq('status','pending').limit(20);
+      if(error||!invites?.length)return;
+      const inviterIds=[...new Set(invites.map(x=>x.invited_by))];const [{data:people},{data:posts}]=await Promise.all([db.from('profiles').select('id,username,display_name').in('id',inviterIds),db.from('posts').select('id,content').in('id',invites.map(x=>x.post_id))]);
+      const names=Object.fromEntries((people||[]).map(x=>[x.id,x.username]));const postMap=Object.fromEntries((posts||[]).map(x=>[x.id,x]));
+      const panel=document.createElement('section');panel.className='profile-panel';panel.innerHTML='<h3>Collaboration invites</h3>';
+      invites.forEach(invite=>{const row=document.createElement('div');row.className='follow-person';row.innerHTML='<div class="info"><b>@'+esc(names[invite.invited_by]||'member')+' invited you</b><small>'+esc((postMap[invite.post_id]?.content||'Post collaboration').slice(0,100))+'</small></div>';for(const status of ['accepted','declined']){const b=document.createElement('button');b.className='follow';b.textContent=status==='accepted'?'Accept':'Decline';b.onclick=async()=>{const result=await db.from('post_collaborators').update({status}).eq('post_id',invite.post_id).eq('collaborator_id',currentUser.id);if(result.error)return showToast(result.error.message);row.remove();showToast(status==='accepted'?'Collaboration accepted!':'Invite declined.');};row.appendChild(b);}panel.appendChild(row);});
+      feed.prepend(panel);
+    }
     async function loadFeed() {
       if (!currentUser) return;
       await loadStories();
@@ -602,7 +620,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const {data:followRows,error:followError} = await db.from('follows').select('following_id').eq('follower_id',currentUser.id);
       if (followError) { feed.innerHTML='<div class="empty-feed muted">Could not load followed accounts: '+esc(followError.message)+'</div>'; return; }
       currentFollowing = new Set((followRows||[]).map(row=>row.following_id));
-      let postsQuery = db.from('posts').select('id,author_id,content,media_url,media_type,created_at,repost_of,quote_text').order('created_at',{ascending:false}).limit(50);
+      let postsQuery = db.from('posts').select('id,author_id,content,media_url,media_type,created_at,repost_of,quote_text,view_count').order('created_at',{ascending:false}).limit(50);
       if (currentFeed === 'Following') {
         const followedIds = [...currentFollowing];
         if (!followedIds.length) { feed.innerHTML='<div class="empty-feed muted">Your Following feed is empty. Follow some people to see their posts here.</div>'; return; }
@@ -630,7 +648,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       currentSavedPostIds = new Set((savedRes.data||[]).map(x=>x.post_id));
       const commentCounts = {};
       (commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
+      if(currentFeed==='For you') visiblePosts.sort((a,b)=>((counts[b.id]||0)+(commentCounts[b.id]||0)*2)-((counts[a.id]||0)+(commentCounts[a.id]||0)*2));
       feed.innerHTML='';
+      await loadCollaborationInvites();
       visiblePosts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function getMediaDimensions(file) {
@@ -1526,7 +1546,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       visiblePosts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,false));
     }
     async function loadExplore() {
-      feed.innerHTML='<div class="profile-panel"><h2>Explore Nook</h2><p>Find people and posts.</p><input id="exploreSearch" class="dm-search" placeholder="Search usernames or posts…" aria-label="Search Nook"><div id="exploreResults" class="muted">Start typing to search.</div></div>';
+      feed.innerHTML='<div class="profile-panel"><h2>Explore Nook</h2><p>Find people, posts, and hashtags.</p><section id="hashtagDiscovery" style="margin:12px 0"><h3>Follow hashtags</h3><input id="hashtagSearch" class="dm-search" placeholder="Search or enter a hashtag"><div id="hashtagResults" class="muted">Loading hashtags…</div></section><input id="exploreSearch" class="dm-search" placeholder="Search usernames or posts…" aria-label="Search Nook"><div id="exploreResults" class="muted">Start typing to search.</div></div>';
+      loadHashtagDiscovery();
       const input=document.getElementById('exploreSearch'),results=document.getElementById('exploreResults');
       let timer;
       input.addEventListener('input',()=>{
