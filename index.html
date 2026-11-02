@@ -1064,6 +1064,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         item.onclick=async()=>{
           if(!n.read_at){await db.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('user_id',currentUser.id);n.read_at=new Date().toISOString();item.classList.remove('unread');await loadNotificationCount();}
           if(n.type==='direct_message'&&message.conversation_id){const {data:conv}=await db.from('conversations').select('user_one,user_two').eq('id',message.conversation_id).maybeSingle();if(conv){const otherId=conv.user_one===currentUser.id?conv.user_two:conv.user_one;const {data:other}=await db.from('profiles').select('id,username,display_name').eq('id',otherId).maybeSingle();await openConversation(message.conversation_id,other||{id:otherId,username:'Nook member'});}}
+          if(n.type==='live_started'){await onTab('Live');const {data:stream}=await db.from('live_streams').select('id,host_id,title,room_name').eq('host_id',n.actor_id).eq('status','live').order('created_at',{ascending:false}).limit(1).maybeSingle();if(stream)await connectLiveStream(stream,'viewer');}
+          if(n.type==='collab_invite'||n.type==='collab_accepted')await onTab('Home');
         };
         feed.appendChild(item);
       });
@@ -1787,6 +1789,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           };
         }
 
+        await refreshNookLiveGifts();
         const leave=document.getElementById('leaveLive');
         if(leave){leave.hidden=false;leave.onclick=async()=>{if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);await disconnectActiveLive();stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;document.getElementById('endLive').hidden=true;};}
         const end=document.getElementById('endLive');
