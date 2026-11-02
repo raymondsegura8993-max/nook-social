@@ -86,10 +86,10 @@
   }
   async function renderBattleCard(parent,battle,allLive){
     const data=await battleRows(battle.id);
-    card.dataset.battleId=battle.id;
     const visibleParticipants=battle.status==='live'?data.participants.filter(x=>x.invite_status==='accepted'):data.participants;
     const names=await getProfiles([...data.participants.map(x=>x.user_id),...data.chat.map(x=>x.user_id)]);
     const card=box((battle.status==='live'?'🔴 LIVE · ':'')+battle.title,'Hosted by @'+(names.get(battle.host_id)?.username||'creator')+' · '+(battle.duration_seconds/60)+' minute timer');
+    card.dataset.battleId=battle.id;
     const list=mk('div','nook-battle-grid');
     visibleParticipants.forEach(p=>{
       const person=names.get(p.user_id)||{};
@@ -152,7 +152,7 @@
       const updateTimer=async()=>{
         const left=Math.max(0,Math.ceil((new Date(battle.ends_at).getTime()-Date.now())/1000));
         timer.textContent='Time remaining: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
-        if(left<=0&&battle.host_id===currentUser.id){clearInterval(battleTimer);await finishBattle(battle);}
+        if(left<=0&&battle.host_id===currentUser.id){clearInterval(battleTimers[battle.id]);delete battleTimers[battle.id];await finishBattle(battle);}
       };
       if(battleTimers[battle.id])clearInterval(battleTimers[battle.id]);updateTimer();battleTimers[battle.id]=setInterval(updateTimer,1000);
       card.append(btn('Watch battle streams','primary',()=>watchBattle(battle.id,card)));
@@ -192,7 +192,7 @@
     await stopBattleWatch(true);currentBattleWatch=id;
     const stage=mk('section','nook-battle-card');stage.append(mk('h3','','LIVE battle streams'));
     const grid=mk('div','nook-battle-grid');stage.append(grid);
-    const close=btn('Stop watching','secondary',stopBattleWatch);stage.append(close);card.append(stage);
+    const close=btn('Stop watching','secondary',()=>stopBattleWatch(true));stage.append(close);card.append(stage);
     const p=await db.from('nook_live_battle_participants').select('user_id,live_stream_id,invite_status').eq('battle_id',id).eq('invite_status','accepted');
     if(p.error){grid.textContent=p.error.message;return;}
     const ids=p.data.map(x=>x.user_id);const names=await getProfiles(ids);
@@ -220,7 +220,7 @@
   async function loadNookLiveBattles(){
     await stopBattleWatch();
     Object.values(battleTimers).forEach(clearInterval);battleTimers={};
-    feed.innerHTML='<div class="profile-panel"><button class="secondary" id="liveBattlesBack">← Back to Studio</button><h2 style="margin-top:14px">🔴 Nook LIVE Battles</h2><p class="nook-battle-muted">Free-for-all battles for 2–5 creators who are already LIVE. Viewers can give each creator one free like per battle. No money or gifts.</p><div id="nookLiveBattleContent" class="nook-battle-wrap">Loading LIVE Battles…</div></div>';
+    feed.innerHTML='<div class="profile-panel"><button class="secondary" id="liveBattlesBack">← Back to Studio</button><h2 style="margin-top:14px">🔴 Nook LIVE Battles</h2><p class="nook-battle-muted">Free-for-all battles for 2–6 creators who are already LIVE. Viewers can give each creator one free like per battle. No money or gifts.</p><div id="nookLiveBattleContent" class="nook-battle-wrap">Loading LIVE Battles…</div></div>';
     byId('liveBattlesBack').onclick=loadNookStudio;
     await renderLiveBattleContent();
     battleChannel=db.channel('nook-live-battles-updates').on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_likes'},()=>refreshBattleCards()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_participants'},()=>renderLiveBattleContent()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battle_chat'},()=>refreshBattleCards()).on('postgres_changes',{event:'*',schema:'public',table:'nook_live_battles'},()=>renderLiveBattleContent()).subscribe();
@@ -291,7 +291,7 @@
   loadLive=async function(){
     await stopBattleWatch();
     await originalLoadLive();
-    const panel=box('🔴 Nook LIVE Battles','Compete with 2–5 creators while everyone is LIVE. Free likes decide the winner.');
+    const panel=box('🔴 Nook LIVE Battles','Compete with 2–6 creators while everyone is LIVE. Free likes decide the winner.');
     const open=btn('Open LIVE Battles','primary',loadNookLiveBattles);panel.append(open);feed.append(panel);
   };
   loadNookBattles=loadNookLiveBattles;
