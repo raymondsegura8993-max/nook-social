@@ -2184,11 +2184,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const allIds=[...new Set(categories.flatMap(c=>[...c.map.keys()]))];
       if(!allIds.length){feed.innerHTML='<section class="profile-panel"><h2>🏆 Creator Leaderboards</h2><p class="muted">No rankings yet this week. Start posting and connecting to appear here!</p></section>';return;}
       const [profilesRes,verifiedRes]=await Promise.all([
-        db.from('profiles').select('id,username,display_name,avatar_url').in('id',allIds),
+        db.from('profiles').select('id,username,display_name,avatar_url,is_private').in('id',allIds),
         db.from('verified_profiles').select('user_id').in('user_id',allIds)
       ]);
       if(profilesRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load creator profiles.</div>';return;}
-      const profileMap=new Map((profilesRes.data||[]).map(p=>[p.id,p])),verified=new Set((verifiedRes.data||[]).map(v=>v.user_id));
+      const profileMap=new Map((profilesRes.data||[]).filter(p=>!p.is_private).map(p=>[p.id,p])),verified=new Set((verifiedRes.data||[]).map(v=>v.user_id));
       const heading=document.createElement('section');heading.className='profile-panel leaderboard-heading';
       heading.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h2 style="margin:0">🏆 Creator Leaderboards</h2><p class="muted" style="margin:5px 0 0">Top Nook creators · rolling 7 days</p></div><button class="secondary" id="refreshLeaderboards">↻ Refresh</button></div>';
       feed.replaceChildren(heading);
