@@ -1330,19 +1330,44 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (!currentUser) return;
       const target = document.getElementById('discoverPeople');
       if (!target) return;
-      const [{data:people,error:peopleError},{data:followRows,error:followError}] = await Promise.all([
-        db.from('profiles').select('id,username,display_name,avatar_url').neq('id',currentUser.id).order('created_at',{ascending:false}).limit(8),
+      const [profilesRes, followerRowsRes, ownerRes, myFollowsRes] = await Promise.all([
+        db.from('profiles').select('id,username,display_name,avatar_url,is_private,created_at').eq('is_private',false).neq('id',currentUser.id).limit(1000),
+        db.from('follows').select('following_id').limit(10000),
+        db.from('nook_admins').select('user_id').order('granted_at',{ascending:true}).limit(1),
         db.from('follows').select('following_id').eq('follower_id',currentUser.id)
       ]);
-      if (peopleError || followError) { target.innerHTML='<div class="muted" style="font-size:12px">Could not load people right now.</div>'; return; }
-      currentFollowing = new Set((followRows||[]).map(row=>row.following_id));
-      if (!people?.length) { target.innerHTML='<div class="muted" style="font-size:12px">More people will appear here as they join Nook.</div>'; return; }
+      if (profilesRes.error || followerRowsRes.error || ownerRes.error || myFollowsRes.error) {
+        target.innerHTML='<div class="muted" style="font-size:12px">Could not load people right now.</div>';
+        return;
+      }
+      currentFollowing = new Set((myFollowsRes.data||[]).map(row=>row.following_id));
+      const followerCounts = new Map();
+      (followerRowsRes.data||[]).forEach(row=>followerCounts.set(row.following_id,(followerCounts.get(row.following_id)||0)+1));
+      const ownerId=ownerRes.data?.[0]?.user_id||null;
+      let people=profilesRes.data||[];
+      if(ownerId && ownerId!==currentUser.id && !people.some(person=>person.id===ownerId)){
+        const {data:ownerProfile}=await db.from('profiles').select('id,username,display_name,avatar_url,is_private,created_at').eq('id',ownerId).maybeSingle();
+        if(ownerProfile && !ownerProfile.is_private)people.push(ownerProfile);
+      }
+      people.sort((a,b)=>{
+        if(a.id===ownerId)return -1;
+        if(b.id===ownerId)return 1;
+        return (followerCounts.get(b.id)||0)-(followerCounts.get(a.id)||0)
+          || new Date(b.created_at||0)-new Date(a.created_at||0);
+      });
+      people=people.slice(0,8);
+      if (!people.length) {
+        target.innerHTML='<div class="muted" style="font-size:12px">More people will appear here as they join Nook.</div>';
+        return;
+      }
       target.innerHTML='';
       people.forEach(person=>{
         const name=person.display_name||person.username||'Nook member';
         const avatar=person.avatar_url?'<img src="'+esc(person.avatar_url)+'" alt="" loading="lazy">':esc(initials(name));
+        const followers=followerCounts.get(person.id)||0;
+        const isOwner=person.id===ownerId;
         const item=document.createElement('div');item.className='suggest';
-        item.innerHTML='<div class="avatar small">'+avatar+'</div><div class="info"><b>'+esc(name)+'</b><small>@'+esc(person.username)+'</small></div><button class="follow">'+(currentFollowing.has(person.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>';
+        item.innerHTML='<div class="avatar small">'+avatar+'</div><div class="info"><b>'+esc(name)+(isOwner?' <span style="color:#bd8cff;font-size:10px">★ NOOK CREATOR</span>':'')+'</b><small>@'+esc(person.username)+' · '+followers.toLocaleString()+' followers</small></div><button class="follow">'+(currentFollowing.has(person.id)?'Following':'Follow')+'</button><button class="follow-message">Message</button>';
         item.querySelector('.follow').onclick=()=>toggleFollow(person.id);
         item.querySelector('.follow-message').onclick=()=>startConversation(person.id);
         target.appendChild(item);
