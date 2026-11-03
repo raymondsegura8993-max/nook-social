@@ -1041,7 +1041,24 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       currentSavedPostIds = new Set((savedRes.data||[]).map(x=>x.post_id));
       const commentCounts = {};
       (commentsRes.data||[]).forEach(x=>commentCounts[x.post_id]=(commentCounts[x.post_id]||0)+1);
-      if(currentFeed==='For you') visiblePosts.sort((a,b)=>((counts[b.id]||0)+(commentCounts[b.id]||0)*2)-((counts[a.id]||0)+(commentCounts[a.id]||0)*2));
+      if(currentFeed==='For you'){
+        const [{data:tagFollows},{data:postTags}]=await Promise.all([
+          db.from('user_hashtag_follows').select('hashtag_id').eq('user_id',currentUser.id),
+          db.from('post_hashtags').select('post_id,hashtag_id').in('post_id',postIds)
+        ]);
+        const followedTagIds=new Set((tagFollows||[]).map(x=>x.hashtag_id));
+        const topicMatches={};
+        (postTags||[]).forEach(row=>{if(followedTagIds.has(row.hashtag_id))topicMatches[row.post_id]=(topicMatches[row.post_id]||0)+1;});
+        const relevanceScore=post=>{
+          const ageHours=Math.max(0,(Date.now()-new Date(post.created_at).getTime())/3600000);
+          const freshness=14/(1+ageHours/18);
+          const creatorAffinity=currentFollowing.has(post.author_id)?9:0;
+          const topicAffinity=Math.min(16,(topicMatches[post.id]||0)*8);
+          const engagement=Math.min(12,Math.log1p(counts[post.id]||0)*2+Math.log1p(commentCounts[post.id]||0)*3);
+          return freshness+creatorAffinity+topicAffinity+engagement;
+        };
+        visiblePosts.sort((a,b)=>relevanceScore(b)-relevanceScore(a));
+      }
       feed.innerHTML='';
       await loadCollaborationInvites();
       visiblePosts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,currentSavedPostIds.has(p.id)));
@@ -1241,6 +1258,22 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       }).join('');
       return '<section class="profile-panel"><h3>🏅 Achievements &amp; Badges</h3><p class="muted">'+earnedMap.size+' of '+(definitions||[]).length+' earned</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px">'+cards+'</div></section>';
     }
+    async function reputationCardMarkup(userId, profile, verified) {
+      const [postsRes,commentsRes,achievementsRes,collabsRes,communitiesRes]=await Promise.all([
+        db.from('posts').select('id',{count:'exact',head:true}).eq('author_id',userId),
+        db.from('post_comments').select('id',{count:'exact',head:true}).eq('author_id',userId),
+        db.from('user_achievements').select('id',{count:'exact',head:true}).eq('user_id',userId),
+        db.from('post_collaborators').select('post_id',{count:'exact',head:true}).eq('collaborator_id',userId).eq('status','accepted'),
+        db.from('community_members').select('community_id',{count:'exact',head:true}).eq('user_id',userId)
+      ]);
+      const postCount=postsRes.count||0,commentCount=commentsRes.count||0,achievementCount=achievementsRes.count||0,collabCount=collabsRes.count||0,communityCount=communitiesRes.count||0;
+      const ageDays=Math.max(0,Math.floor((Date.now()-new Date(profile.created_at||Date.now()).getTime())/86400000));
+      const profilePoints=(profile.avatar_url?75:0)+(profile.bio?.trim()?75:0)+(Array.isArray(profile.profile_links)&&profile.profile_links.length?50:0);
+      const points=Math.min(1000,profilePoints+Math.min(100,ageDays)+Math.min(200,postCount*3)+Math.min(100,commentCount*2)+Math.min(200,achievementCount*25)+Math.min(100,collabCount*25)+Math.min(100,communityCount*20)+(verified?100:0));
+      const level=points>=900?'Nook Legend':points>=600?'Community Regular':points>=300?'Established Member':points>=100?'Active Member':'New Member';
+      const bar=Math.min(100,points/10);
+      return '<section class="profile-panel" id="nookReputationCard"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">⭐ Nook Reputation</h3><p class="muted" style="margin:4px 0 0">Earned through positive participation and contributions</p></div><div style="text-align:right"><strong style="font-size:28px;color:#c49aff">'+points.toLocaleString()+'</strong><div class="muted" style="font-size:11px">/ 1,000 points</div></div></div><div style="height:8px;background:#292335;border-radius:99px;overflow:hidden;margin:13px 0 8px"><div style="height:100%;width:'+bar+'%;background:linear-gradient(90deg,#7137d8,#c084fc);border-radius:99px"></div></div><b>'+level+'</b><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;margin-top:13px"><div class="notification-item"><b>'+postCount+'</b><small class="muted" style="display:block">Posts</small></div><div class="notification-item"><b>'+commentCount+'</b><small class="muted" style="display:block">Comments</small></div><div class="notification-item"><b>'+achievementCount+'</b><small class="muted" style="display:block">Achievements</small></div><div class="notification-item"><b>'+collabCount+'</b><small class="muted" style="display:block">Accepted collabs</small></div><div class="notification-item"><b>'+communityCount+'</b><small class="muted" style="display:block">Communities</small></div></div><p class="muted" style="font-size:11px;margin:10px 0 0">Points reward profile completion, account age, posts, comments, achievements, collaborations, and community membership. Followers and likes do not increase this score. This is a participation score, not a safety or identity verification guarantee.</p></section>';
+    }
     async function showProfile() {
       if (!currentUser) { feed.innerHTML='<div class="empty-feed muted">Please sign in to view your profile.</div>'; return; }
       if (!currentProfile) { await loadProfile(); setProfileMini(); }
@@ -1265,6 +1298,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       }
       feed.insertBefore(verificationBox,document.getElementById('creatorAnalytics'));
       document.getElementById('profileAchievements').innerHTML=await achievementsMarkup(currentUser.id,true);
+      const reputationMarkup=await reputationCardMarkup(currentUser.id,currentProfile,!!ownVerified);
+      document.getElementById('profileAchievements').insertAdjacentHTML('beforebegin',reputationMarkup);
       document.getElementById('showFollowers').onclick=()=>openFollowList('followers');
       document.getElementById('showFollowing').onclick=()=>openFollowList('following');
       const visitorPanel=document.createElement('section');visitorPanel.className='profile-panel profile-visitors';visitorPanel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><h3 style="margin:0">👀 Recent profile visitors</h3><small class="muted">Only you can see this list · Last 30 days</small></div><button class="secondary" id="refreshProfileVisitors">Refresh</button></div><div id="profileVisitorList" class="muted" style="margin-top:10px">Loading visitors…</div>';
