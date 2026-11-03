@@ -267,6 +267,7 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 <div class="nav-group-label">YOUR SPACE</div>
 <button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button>
 <button data-tab="Nook Studio"><span class="ico">✦</span><span class="navlabel">Nook Studio</span></button>
+<button data-tab="Feedback"><span class="ico">✎</span><span class="navlabel">Feedback</span></button>
 <button data-tab="Settings"><span class="ico">⚙</span><span class="navlabel">Settings</span></button>
 </nav>
 <button class="newpost" id="newPost">＋ Create post</button>
@@ -1681,6 +1682,58 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       document.getElementById('dmCompose').onsubmit=async event=>{event.preventDefault();const input=document.getElementById('dmText'),content=input.value.trim();if(!content)return;const send=event.currentTarget.querySelector('button');send.disabled=true;const {error}=await db.from('direct_messages').insert({group_id:groupId,sender_id:currentUser.id,content});send.disabled=false;if(error)return showToast(error.message);input.value='';await refresh();};
     }
 
+    async function loadFeedback() {
+      if(!currentUser)return;
+      feed.innerHTML='<section class="profile-panel"><h2>💜 Nook Feedback</h2><p class="muted">Your ideas help make Nook better. Send a suggestion, report a bug, or tell us what you enjoy.</p><form id="nookFeedbackForm"><label style="display:block;margin:12px 0 6px;color:#cfc5dd">Feedback type</label><select name="category" required style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><option value="suggestion">💡 Suggestion</option><option value="bug">🐛 Bug report</option><option value="positive">💜 Something I like</option><option value="other">Other</option></select><label style="display:block;margin:12px 0 6px;color:#cfc5dd">Your message</label><textarea name="message" minlength="10" maxlength="2000" required placeholder="Tell us what you think or what happened…" style="width:100%;min-height:145px;resize:vertical;background:#100d16;border:1px solid var(--line);border-radius:12px;padding:13px;color:white"></textarea><label style="display:block;margin:12px 0 6px;color:#cfc5dd">Email for a reply (optional)</label><input name="contact_email" type="email" maxlength="254" placeholder="you@example.com (optional)" style="width:100%;padding:11px;background:#100d16;border:1px solid var(--line);border-radius:10px;color:white"><p class="muted" style="font-size:12px">Please do not include your password or private account information. Feedback is only visible to you and Nook administrators.</p><button class="primary" id="sendNookFeedback" type="submit">Send feedback</button></form></section><section class="profile-panel"><h3>Your feedback</h3><p class="muted">Check the status of feedback you have submitted.</p><div id="myNookFeedback" class="muted">Loading…</div></section><section class="profile-panel" id="adminFeedbackPanel" hidden><h3>📥 Nook Feedback Inbox</h3><p class="muted">Private admin view of feedback submitted by members.</p><div id="adminNookFeedback" class="muted">Loading…</div></section>';
+      const form=document.getElementById('nookFeedbackForm'),send=document.getElementById('sendNookFeedback');
+      form.onsubmit=async event=>{
+        event.preventDefault();
+        const category=form.elements.category.value,message=form.elements.message.value.trim(),email=form.elements.contact_email.value.trim();
+        if(message.length<10)return showToast('Please write at least 10 characters.');
+        send.disabled=true;send.textContent='Sending…';
+        const {error}=await db.from('nook_feedback').insert({user_id:currentUser.id,category,message,contact_email:email||null,page_url:location.origin+location.pathname});
+        send.disabled=false;send.textContent='Send feedback';
+        if(error)return showToast('Could not send feedback: '+error.message);
+        form.reset();showToast('Thanks! Your feedback was sent to Nook.');
+        await loadFeedback();
+      };
+      const renderRows=(target,rows,adminMode=false,profiles={})=>{
+        target.innerHTML='';
+        if(!rows?.length){target.textContent=adminMode?'No feedback has been submitted yet.':'You have not sent any feedback yet.';return;}
+        rows.forEach(item=>{
+          const card=document.createElement('article');card.className='notification-item';
+          const top=document.createElement('div');top.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
+          const type=document.createElement('b');type.textContent=({suggestion:'💡 Suggestion',bug:'🐛 Bug report',positive:'💜 Positive feedback',other:'Other'})[item.category]||'Feedback';
+          const status=document.createElement('span');status.className='chip';status.textContent=({new:'New',reviewed:'Reviewed',planned:'Planned',resolved:'Resolved',closed:'Closed'})[item.status]||item.status;
+          top.append(type,status);card.appendChild(top);
+          const message=document.createElement('p');message.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0';message.textContent=item.message;card.appendChild(message);
+          const meta=document.createElement('small');meta.className='muted';meta.textContent=new Date(item.created_at).toLocaleString();card.appendChild(meta);
+          if(adminMode){
+            const who=document.createElement('div');who.className='muted';who.style.marginTop='6px';who.textContent='From: @'+(profiles[item.user_id]||'member')+(item.contact_email?' · Reply email: '+item.contact_email:'');card.appendChild(who);
+            const select=document.createElement('select');select.style.cssText='margin-top:10px;padding:8px;background:#100d16;border:1px solid var(--line);border-radius:9px;color:white';
+            [['new','New'],['reviewed','Reviewed'],['planned','Planned'],['resolved','Resolved'],['closed','Closed']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;select.appendChild(option);});
+            select.value=item.status;select.onchange=async()=>{select.disabled=true;const result=await db.from('nook_feedback').update({status:select.value}).eq('id',item.id);select.disabled=false;if(result.error){showToast('Could not update status: '+result.error.message);select.value=item.status;}else{item.status=select.value;status.textContent=select.options[select.selectedIndex].text;showToast('Feedback status updated.');}};
+            card.appendChild(select);
+          }
+          target.appendChild(card);
+        });
+      };
+      const mine=document.getElementById('myNookFeedback');
+      const {data:mineRows,error:mineError}=await db.from('nook_feedback').select('id,category,message,status,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(20);
+      if(mineError)mine.textContent='Could not load your feedback right now.';else renderRows(mine,mineRows);
+      const {data:adminRec}=await db.from('nook_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle();
+      if(adminRec){
+        const panel=document.getElementById('adminFeedbackPanel');panel.hidden=false;
+        const inbox=document.getElementById('adminNookFeedback');
+        const {data:allRows,error:allError}=await db.from('nook_feedback').select('id,user_id,category,message,status,created_at,contact_email').order('created_at',{ascending:false}).limit(100);
+        if(allError){inbox.textContent='Could not load the admin inbox.';return;}
+        const ids=[...new Set((allRows||[]).map(x=>x.user_id))];
+        const {data:people}=ids.length?await db.from('profiles').select('id,username').in('id',ids):{data:[]};
+        const usernames=Object.fromEntries((people||[]).map(x=>[x.id,x.username]));
+        renderRows(inbox,allRows,true,usernames);
+      }
+    }
+
     async function loadSettings() {
       if(!currentUser)return;
       feed.innerHTML='<section class="profile-panel"><h2>Settings</h2><p>Choose which notifications you want to receive. Your choices are saved to your account and control supported Nook alerts.</p><div id="notificationSettings" class="muted">Loading preferences…</div></section><section class="profile-panel"><h3>Muted words</h3><p class="muted">Hide posts containing these words or hashtags.</p><form id="mutedWordForm" class="comment-form"><input id="mutedWordInput" maxlength="60" placeholder="Add a word or hashtag"><button class="primary">Add</button></form><div id="mutedWordList" class="muted">Loading…</div></section><section class="profile-panel"><h3>Close Friends</h3><p class="muted">Choose who can see Close Friends stories.</p><form id="closeFriendForm" class="comment-form"><input id="closeFriendUsername" placeholder="Nook username"><button class="primary">Add</button></form><div id="closeFriendList" class="muted">Loading…</div></section><section class="profile-panel"><h3>Follow requests</h3><div id="followRequests" class="muted">Loading…</div></section><section class="profile-panel"><h3>Admin tools</h3><div id="adminTools" class="muted">Checking permissions…</div></section><section class="profile-panel"><h3>Blocked accounts</h3><div id="blockedAccounts" class="muted">Loading…</div></section>';
@@ -2897,6 +2950,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
+      if (tab==='Feedback') return loadFeedback();
       if (tab==='Settings') return loadSettings();
       if (tab==='Notifications') return loadNotifications();
       if (tab==='Messages') return loadMessages();
