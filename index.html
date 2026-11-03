@@ -337,6 +337,11 @@ body.jobs-mode .modal h2{color:#172033}
 
 
 
+
+/* Nook Marketplace */
+.market-shell{display:grid;gap:16px}.market-hero{padding:22px;border:1px solid #4a3564;border-radius:18px;background:linear-gradient(125deg,#2b1940,#171320 72%);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.market-hero h2{margin:0 0 5px;font-size:23px}.market-hero p{margin:0;color:#d0c2df}.market-warning{padding:14px 16px;border:1px solid #9b713b;border-radius:13px;background:#2a2115;color:#f4dfbd;font-size:13px}.market-warning strong{display:block;color:#ffe3ad;margin-bottom:4px}.market-privacy{padding:12px 14px;border:1px solid #9b713b;border-radius:12px;background:#2a2115;color:#f4dfbd;font-size:12px}.market-tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}.market-tabs button{border:1px solid var(--line);background:#1b1723;color:#cfc5dd;border-radius:10px;padding:9px 13px}.market-tabs button.active{border-color:#8651d6;background:#2a1b40;color:#fff}.market-toolbar{display:flex;gap:9px;flex-wrap:wrap}.market-toolbar input,.market-toolbar select,.market-form input,.market-form select,.market-form textarea{min-width:0;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:11px;color:white;width:100%}.market-toolbar input{flex:1;min-width:180px}.market-toolbar select{width:auto;min-width:150px}.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:13px}.market-card{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:#17131f;min-width:0}.market-image{height:170px;background:#100d16;display:grid;place-items:center;color:#a99bb8;overflow:hidden}.market-image img{width:100%;height:100%;object-fit:cover;display:block}.market-card-body{padding:13px}.market-card h3{font-size:15px;margin:0 0 5px;overflow-wrap:anywhere}.market-price{font-size:19px;font-weight:800;color:#d7b7ff}.market-meta{font-size:11px;color:var(--muted);margin:5px 0 9px}.market-description{font-size:12px;color:#d9d1e2;white-space:pre-wrap;overflow-wrap:anywhere;max-height:72px;overflow:hidden}.market-plan{font-size:12px;color:#d8c8e9;margin-top:9px}.market-plan b{color:#fff}.market-card-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.market-card-actions button{font-size:12px;padding:8px 10px}.market-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.market-form label{display:grid;gap:6px;color:#d4c9df;font-size:12px}.market-form .wide{grid-column:1/-1}.market-form textarea{min-height:85px;resize:vertical}.market-empty{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}.market-form .modalbar{grid-column:1/-1}.market-seller{font-size:11px;color:var(--muted);margin-top:7px}
+@media(max-width:600px){.market-form{grid-template-columns:1fr}.market-form .wide{grid-column:auto}.market-toolbar select{flex:1}.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.market-image{height:130px}.market-card-body{padding:10px}.market-hero h2{font-size:20px}}
+
 </style>
 </head>
 <body>
@@ -357,6 +362,7 @@ body.jobs-mode .modal h2{color:#172033}
 <a class="nav-link" href="https://discord.gg/DnugP6KqZ7" target="_blank" rel="noopener noreferrer"><span class="ico">◈</span><span class="navlabel">Discord</span><span class="nav-external" aria-hidden="true">↗</span></a>
 <a class="nav-link" href="https://www.tiktok.com/@raymexicanboy" target="_blank" rel="noopener noreferrer"><span class="ico">♪</span><span class="navlabel">TikTok</span><span class="nav-external" aria-hidden="true">↗</span></a>
 <button data-tab="Nook Jobs"><span class="ico">▤</span><span class="navlabel">Nook Jobs</span></button>
+<button data-tab="Marketplace"><span class="ico">🛍</span><span class="navlabel">Marketplace</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
@@ -3226,6 +3232,60 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       feed.appendChild(grid);
     }
 
+
+    let nookMarketView='browse';
+    let nookMarketCache=[];
+    function safeMarketImage(value){try{const u=new URL(String(value||''));return (u.protocol==='https:'||u.protocol==='http:')?u.href:null;}catch(_){return null;}}
+    function marketMoney(value){const n=Number(value);return Number.isFinite(n)?n.toLocaleString(undefined,{style:'currency',currency:'USD'}):'$0.00';}
+    function setMarketTab(view){
+      nookMarketView=view;
+      document.querySelectorAll('.market-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.marketView===view));
+      renderNookMarketplace();
+    }
+    async function loadNookMarketplace(){
+      document.body.classList.remove('jobs-mode');
+      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Safety Warning</strong>Nook is not responsible for scams, fraudulent listings, payments, or transactions between buyers and sellers. Payments do not go through Nook. Buyers and sellers arrange payment, delivery, and purchases directly with each other. Always use caution.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
+      feed.querySelectorAll('[data-market-view]').forEach(b=>b.addEventListener('click',()=>setMarketTab(b.dataset.marketView)));
+      document.getElementById('marketPostTop')?.addEventListener('click',showNookMarketForm);
+      await renderNookMarketplace();
+    }
+    async function renderNookMarketplace(){
+      const target=document.getElementById('marketViewContent');if(!target)return;
+      if(!currentUser){target.innerHTML='<div class="market-empty"><strong>Sign in to use Nook Marketplace</strong><br>Sign in to contact sellers or list an item.</div>';return;}
+      let query=db.from('nook_marketplace_listings').select('*').order('created_at',{ascending:false}).limit(100);
+      query=nookMarketView==='mine'?query.eq('seller_id',currentUser.id):query.eq('status','active');
+      const {data:items,error}=await query;
+      if(error){target.innerHTML='<div class="market-empty">Could not load Marketplace: '+esc(error.message)+'</div>';return;}
+      nookMarketCache=items||[];
+      if(nookMarketView==='browse'){
+        target.innerHTML='<div class="market-toolbar"><input id="marketSearch" placeholder="Search items…"><select id="marketCategory"><option value="">All categories</option>'+['Electronics','Clothing','Gaming','Collectibles','Furniture','Home','Sports','Books','Other'].map(x=>'<option>'+x+'</option>').join('')+'</select><select id="marketSort"><option value="newest">Newest first</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div id="marketCards" class="market-grid" style="margin-top:13px"></div>';
+        const render=()=>{const term=(document.getElementById('marketSearch')?.value||'').toLowerCase(),cat=document.getElementById('marketCategory')?.value||'',sort=document.getElementById('marketSort')?.value||'newest';let rows=nookMarketCache.filter(x=>(!term||[x.title,x.description,x.category].join(' ').toLowerCase().includes(term))&&(!cat||x.category===cat));if(sort==='low')rows.sort((a,b)=>Number(a.price)-Number(b.price));if(sort==='high')rows.sort((a,b)=>Number(b.price)-Number(a.price));const holder=document.getElementById('marketCards');if(holder)holder.innerHTML=rows.length?rows.map(marketCardHtml).join(''):'<div class="market-empty" style="grid-column:1/-1">No items found. Try another search or be the first to list something.</div>';wireMarketActions();};
+        ['marketSearch','marketCategory','marketSort'].forEach(id=>document.getElementById(id)?.addEventListener(id==='marketSearch'?'input':'change',render));render();
+      }else{
+        target.innerHTML=nookMarketCache.length?'<div class="market-grid">'+nookMarketCache.map(marketCardHtml).join('')+'</div>':'<div class="market-empty"><strong>You have no listings yet.</strong><br>Post an item when you're ready to sell.</div>';
+        wireMarketActions();
+      }
+    }
+    function marketCardHtml(item){
+      const image=safeMarketImage(item.image_url),own=item.seller_id===currentUser?.id;
+      return '<article class="market-card" data-market-id="'+esc(item.id)+'"><div class="market-image">'+(image?'<img src="'+esc(image)+'" alt="'+esc(item.title)+'" loading="lazy">':'<span>📦 No photo added</span>')+'</div><div class="market-card-body"><h3>'+esc(item.title)+'</h3><div class="market-price">'+marketMoney(item.price)+'</div><div class="market-meta">'+esc(item.category)+' · '+esc(item.item_condition)+' · '+new Date(item.created_at).toLocaleDateString()+'</div><div class="market-description">'+esc(item.description)+'</div>'+(item.meetup_plan?'<div class="market-plan"><b>Meetup:</b> '+esc(item.meetup_plan)+'</div>':'')+(item.delivery_plan?'<div class="market-plan"><b>Delivery:</b> '+esc(item.delivery_plan)+'</div>':'')+'<div class="market-card-actions">'+(own?'<button class="secondary" data-market-action="status" data-id="'+esc(item.id)+'">'+(item.status==='sold'?'Mark available':'Mark sold')+'</button><button class="secondary" data-market-action="delete" data-id="'+esc(item.id)+'">Delete</button>':'<button class="primary" data-market-action="contact" data-id="'+esc(item.id)+'">Contact seller</button>')+'</div></div></article>';
+    }
+    function wireMarketActions(){
+      feed.querySelectorAll('[data-market-action]').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.addEventListener('click',async()=>{
+        const item=nookMarketCache.find(x=>x.id===b.dataset.id);if(!item)return;
+        if(b.dataset.marketAction==='contact'){if(!currentUser)return showToast('Sign in to contact this seller.');return startConversation(item.seller_id);}
+        if(b.dataset.marketAction==='status'){const status=item.status==='sold'?'active':'sold';const {error}=await db.from('nook_marketplace_listings').update({status,updated_at:new Date().toISOString()}).eq('id',item.id);if(error)showToast(error.message);else{showToast(status==='sold'?'Listing marked sold.':'Listing is available again.');await renderNookMarketplace();}return;}
+        if(b.dataset.marketAction==='delete'&&confirm('Delete this Marketplace listing?')){const {error}=await db.from('nook_marketplace_listings').delete().eq('id',item.id);if(error)showToast(error.message);else{showToast('Listing deleted.');await renderNookMarketplace();}}
+      });});
+    }
+    function showNookMarketForm(){
+      if(!currentUser)return showToast('Sign in to list an item.');
+      const back=document.createElement('div');back.className='modalback show';
+      back.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="marketFormTitle"><h2 id="marketFormTitle">Sell an item on Nook</h2><p class="market-meta">Buyers contact you directly. Nook does not process payments.</p><form id="nookMarketForm" class="market-form"><label>Product name *<input name="title" maxlength="120" required placeholder="What are you selling?"></label><label>Price (USD) *<input name="price" type="number" min="0" max="99999999" step="0.01" required placeholder="0.00"></label><label>Category *<select name="category" required>'+['Electronics','Clothing','Gaming','Collectibles','Furniture','Home','Sports','Books','Other'].map(x=>'<option>'+x+'</option>').join('')+'</select></label><label>Condition *<select name="item_condition" required><option>New</option><option>Like new</option><option>Good</option><option>Fair</option><option>For parts</option></select></label><label class="wide">Description *<textarea name="description" minlength="10" maxlength="5000" required placeholder="Describe the item, what's included, and any important details."></textarea></label><label class="wide">Product photo URL (optional)<input name="image_url" type="url" maxlength="1000" placeholder="https://…"></label><label class="wide">Meetup plan (optional)<textarea name="meetup_plan" maxlength="500" placeholder="Example: Meet in a busy public place during daytime. Agree on the exact location privately."></textarea></label><label class="wide">Delivery plan (optional)<textarea name="delivery_plan" maxlength="500" placeholder="Example: Shipping available; buyer and seller arrange cost and details privately."></textarea></label><div class="wide market-privacy"><b>🔒 Privacy warning:</b> Do not enter your actual address, home address, phone number, or other private information in this listing. Use a general public meetup area only. Share necessary details privately and carefully.</div><div class="wide market-warning"><strong>⚠ Payments and scams</strong>Nook is not responsible for scams or transactions. Payments do not go through Nook. Never send money or share sensitive information with someone you do not trust.</div><div class="wide modalbar"><button type="button" class="secondary" id="marketCancel">Cancel</button><button type="submit" class="primary">Publish listing</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#marketCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p=Object.fromEntries(f.entries());p.seller_id=currentUser.id;p.price=Number(p.price);p.image_url=p.image_url?safeMarketImage(p.image_url):null;p.meetup_plan=p.meetup_plan.trim()||null;p.delivery_plan=p.delivery_plan.trim()||null;if(f.get('image_url')&&!p.image_url)return showToast('Please enter a valid http or https photo URL.');if(!p.meetup_plan&&!p.delivery_plan)return showToast('Add a meetup plan or delivery plan.');const addressPattern=/\b\d{1,5}\s+[\w .'-]+\s(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|court|ct)\b/i;if(addressPattern.test(p.meetup_plan||'')||addressPattern.test(p.delivery_plan||''))return showToast('Please remove any street address. Use a general public meetup plan instead.');const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';const {error}=await db.from('nook_marketplace_listings').insert(p);if(error){showToast(error.message);btn.disabled=false;btn.textContent='Publish listing';return;}back.remove();showToast('Your item is now listed on Nook.');setMarketTab('mine');};
+    }
+
     function safeNookJobUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:null;}catch(_){return null;}}
     let nookJobsView='browse';
     let nookJobsCache=[];
@@ -3307,6 +3367,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(livePanel){livePanel.hidden=!(tab==='Live'||!!activeLiveRoom);livePanel.classList.toggle('is-floating',tab!=='Live'&&!!activeLiveRoom);}
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
       if (tab==='Nook Jobs') return loadNookJobs();
+      if (tab==='Marketplace') return loadNookMarketplace();
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Feedback') return loadFeedback();
