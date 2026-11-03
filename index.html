@@ -619,7 +619,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     const token = recoveryCode.value.trim();
     const password = recoveryNewPassword.value;
     recoveryMessage.textContent = "";
-    if (!/^\\d{6}$/.test(token)) { recoveryMessage.textContent = "Enter the 6-digit code from your email."; return; }
+    if (!/^\d{6}$/.test(token)) { recoveryMessage.textContent = "Enter the 6-digit code from your email."; return; }
     if (password.length < 8) { recoveryMessage.textContent = "Your new password must be at least 8 characters."; return; }
     confirmRecovery.disabled = true;
     confirmRecovery.textContent = "Verifying...";
