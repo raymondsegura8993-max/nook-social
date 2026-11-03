@@ -244,6 +244,63 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 .nav .nav-link:hover{background:rgba(165,107,255,.09);border-color:rgba(165,107,255,.13);color:#fff;transform:translateX(2px)}
 .nav .nav-link .ico{width:25px;text-align:center;color:#c59aff}
 .nav .nav-link .nav-external{margin-left:auto;font-size:11px;color:#9f8caf}
+
+/* Nook Jobs — dedicated light professional workspace */
+body.jobs-mode{color-scheme:light;background:#f4f6fa;color:#172033}
+body.jobs-mode .app{background:#fff;box-shadow:0 0 0 1px #e8ebf1;min-height:100vh}
+body.jobs-mode .sidebar{background:#fff}
+body.jobs-mode .brand span:last-child{background:none;color:#211633}
+body.jobs-mode .nav-group-label{color:#8b93a3;border-color:#edf0f5}
+body.jobs-mode .nav button{color:#667085}
+body.jobs-mode .nav button:hover,body.jobs-mode .nav button.active{background:#f0eaff;color:#6336a6}
+body.jobs-mode .nav .ico{color:inherit}
+body.jobs-mode .profile-mini{border-color:#edf0f5;color:#172033}
+body.jobs-mode .profile-mini small{color:#778195}
+body.jobs-mode main{color:#172033}
+body.jobs-mode .top h1{color:#172033}
+body.jobs-mode .top .muted{color:#7b8495}
+body.jobs-mode .iconbtn{background:#fff;border-color:#e5e9f0;color:#344054}
+body.jobs-mode .nav{scrollbar-color:#d5c7ef transparent}
+body.jobs-mode .nav-link{color:#667085}
+body.jobs-mode .nav-link:hover{background:#f0eaff;color:#6336a6}
+body.jobs-mode .account-bar{background:#fff;border-color:#e5e9f0;color:#344054}
+body.jobs-mode .nav{background:#fff}
+.jobs-shell{color:#172033}
+.jobs-hero{background:linear-gradient(115deg,#211638,#56358b);border-radius:22px;padding:28px;color:#fff;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.jobs-hero h2{font-size:27px;letter-spacing:-.8px;margin:0 0 5px}.jobs-hero p{margin:0;color:#e4d9f5;font-size:14px}
+.jobs-hero .primary{background:#fff;color:#4e2c80}
+.jobs-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.jobs-toolbar input,.jobs-toolbar select,.jobs-form input,.jobs-form select,.jobs-form textarea,.jobs-apply-form textarea{width:100%;border:1px solid #dfe4ec;background:#fff;color:#172033;border-radius:10px;padding:11px 12px;outline:none}
+.jobs-toolbar input{flex:1;min-width:200px}.jobs-toolbar select{width:auto;min-width:150px}
+.jobs-tabs{display:flex;gap:8px;border-bottom:1px solid #e7eaf0;margin:0 0 17px;flex-wrap:wrap}
+.jobs-tabs button{border:0;background:transparent;color:#667085;padding:11px 13px;border-bottom:2px solid transparent;font-weight:650}
+.jobs-tabs button.active{color:#6336a6;border-color:#8052c7}
+.jobs-list{display:grid;gap:13px}
+.job-card{border:1px solid #e4e8ef;border-radius:16px;background:#fff;padding:18px;box-shadow:0 3px 12px #17203308}
+.job-card:hover{border-color:#c9b6e8;box-shadow:0 8px 22px #34204d0c}
+.job-card-top{display:flex;align-items:flex-start;gap:12px}
+.job-company-mark{width:44px;height:44px;border-radius:12px;background:#f0eaff;color:#6336a6;display:grid;place-items:center;font-weight:800;flex:none}
+.job-card h3{font-size:17px;margin:0 0 3px;color:#172033}.job-company{font-size:13px;color:#667085}
+.job-meta{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}
+.job-tag{font-size:11px;font-weight:650;padding:5px 9px;border-radius:20px;background:#f3f5f8;color:#4b5565}
+.job-tag.purple{background:#f1eaff;color:#6537a4}
+.job-description{font-size:13px;color:#566174;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.job-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.jobs-empty{border:1px dashed #d8dee8;border-radius:15px;padding:32px 18px;text-align:center;color:#667085;background:#fafbfc}
+.jobs-empty strong{display:block;color:#263247;font-size:15px;margin-bottom:5px}
+.jobs-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.jobs-form label,.jobs-apply-form label{font-size:12px;color:#475467;font-weight:700;display:block}
+.jobs-form label input,.jobs-form label select,.jobs-form label textarea,.jobs-apply-form textarea{margin-top:6px}
+.jobs-form .wide{grid-column:1/-1}.jobs-form textarea{min-height:115px;resize:vertical}
+.jobs-application{border:1px solid #e5e9f0;border-radius:13px;padding:14px;margin:10px 0;background:#fff}
+.jobs-application select{border:1px solid #dfe4ec;border-radius:8px;padding:8px;background:#fff;color:#172033}
+.jobs-status{font-size:11px;border-radius:20px;padding:4px 8px;background:#f1eaff;color:#6336a6;font-weight:700}
+.jobs-apply-form textarea{min-height:130px;resize:vertical}
+.jobs-note{font-size:12px;color:#778195;line-height:1.5}
+body.jobs-mode .modal{background:#fff;border-color:#e4e8ef;color:#172033}
+body.jobs-mode .modal h2{color:#172033}
+@media(max-width:680px){body.jobs-mode .app{background:#fff}.jobs-hero{padding:21px}.jobs-hero h2{font-size:23px}.jobs-form{grid-template-columns:1fr}.jobs-form .wide{grid-column:auto}.jobs-toolbar select{flex:1}}
+
 </style>
 </head>
 <body>
@@ -263,6 +320,7 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 <button data-tab="Live"><span class="ico">●</span><span class="navlabel">Live</span></button>
 <a class="nav-link" href="https://discord.gg/DnugP6KqZ7" target="_blank" rel="noopener noreferrer"><span class="ico">◈</span><span class="navlabel">Discord</span><span class="nav-external" aria-hidden="true">↗</span></a>
 <a class="nav-link" href="https://www.tiktok.com/@raymexicanboy" target="_blank" rel="noopener noreferrer"><span class="ico">♪</span><span class="navlabel">TikTok</span><span class="nav-external" aria-hidden="true">↗</span></a>
+<button data-tab="Nook Jobs"><span class="ico">▤</span><span class="navlabel">Nook Jobs</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
@@ -3098,11 +3156,87 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       });
       feed.appendChild(grid);
     }
+
+    let nookJobsView='browse';
+    let nookJobsCache=[];
+    function setJobsTab(view){
+      nookJobsView=view;
+      document.querySelectorAll('.jobs-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.jobsView===view));
+      renderNookJobsView();
+    }
+    async function loadNookJobs(){
+      document.body.classList.add('jobs-mode');
+      feed.innerHTML='<div class="jobs-shell"><div class="jobs-hero"><div><h2>Find your next opportunity.</h2><p>Discover work, meet talented people, and grow your career on Nook.</p></div><button class="primary" id="jobsPostTop">＋ Post a job</button></div><div class="jobs-tabs"><button class="active" data-jobs-view="browse">Find jobs</button><button data-jobs-view="mine">My job posts</button><button data-jobs-view="applications">Applications</button></div><div id="jobsViewContent"><div class="jobs-empty">Loading opportunities…</div></div></div>';
+      feed.querySelectorAll('[data-jobs-view]').forEach(b=>b.addEventListener('click',()=>setJobsTab(b.dataset.jobsView)));
+      document.getElementById('jobsPostTop')?.addEventListener('click',showNookJobForm);
+      await renderNookJobsView();
+    }
+    async function renderNookJobsView(){
+      const target=document.getElementById('jobsViewContent');if(!target)return;
+      if(!currentUser){target.innerHTML='<div class="jobs-empty"><strong>Sign in to use Nook Jobs</strong>Sign in to browse, post jobs, or apply.</div>';return;}
+      if(nookJobsView==='applications'){
+        const {data:apps,error}=await db.from('nook_job_applications').select('*').eq('applicant_id',currentUser.id).order('created_at',{ascending:false});
+        if(error){target.innerHTML='<div class="jobs-empty">Could not load your applications: '+esc(error.message)+'</div>';return;}
+        if(!apps?.length){target.innerHTML='<div class="jobs-empty"><strong>No applications yet</strong>When you apply to a job, your applications will appear here.</div>';return;}
+        const ids=[...new Set(apps.map(a=>a.job_id))];const {data:jobs}=await db.from('nook_jobs').select('*').in('id',ids);
+        const map=new Map((jobs||[]).map(j=>[j.id,j]));
+        target.innerHTML='<div class="jobs-list">'+apps.map(a=>{const j=map.get(a.job_id);return '<article class="jobs-application"><b>'+esc(j?.title||'Job no longer available')+'</b><div class="job-company">'+esc(j?.company_name||'')+'</div><p class="jobs-note">Submitted '+new Date(a.created_at).toLocaleDateString()+'</p><span class="jobs-status">'+esc(a.status)+'</span></article>';}).join('')+'</div>';return;
+      }
+      let query=db.from('nook_jobs').select('*').order('created_at',{ascending:false}).limit(100);
+      query=nookJobsView==='mine'?query.eq('employer_id',currentUser.id):query.eq('status','open').neq('employer_id',currentUser.id);
+      const {data:jobs,error}=await query;
+      if(error){target.innerHTML='<div class="jobs-empty">Could not load jobs: '+esc(error.message)+'</div>';return;}
+      nookJobsCache=jobs||[];
+      if(nookJobsView==='mine'){
+        if(!jobs?.length){target.innerHTML='<div class="jobs-empty"><strong>You haven’t posted a job yet</strong>Post an opportunity to find the right person for the work.</div>';return;}
+        const {data:allApps}=await db.from('nook_job_applications').select('job_id');
+        const counts={};(allApps||[]).forEach(a=>counts[a.job_id]=(counts[a.job_id]||0)+1);
+        target.innerHTML='<div class="jobs-list">'+jobs.map(j=>jobCardHtml(j,true,counts[j.id]||0)).join('')+'</div>';
+      }else{
+        target.innerHTML='<div class="jobs-toolbar"><input id="jobsSearch" placeholder="Search job title, company, or skills…"><select id="jobsType"><option value="">All job types</option>'+['Full-time','Part-time','Contract','Temporary','Internship','Freelance'].map(x=>'<option>'+x+'</option>').join('')+'</select><select id="jobsWorkplace"><option value="">All work settings</option>'+['Remote','Hybrid','On-site'].map(x=>'<option>'+x+'</option>').join('')+'</select></div><div class="jobs-list" id="jobsCards">'+(jobs?.length?jobs.map(j=>jobCardHtml(j,false)).join(''):'<div class="jobs-empty"><strong>No open jobs yet</strong>Be the first to post an opportunity on Nook.</div>')+'</div>';
+        const filter=()=>{const term=(document.getElementById('jobsSearch')?.value||'').toLowerCase(),type=document.getElementById('jobsType')?.value||'',place=document.getElementById('jobsWorkplace')?.value||'';const rows=nookJobsCache.filter(j=>(!term||[j.title,j.company_name,j.description,j.requirements].join(' ').toLowerCase().includes(term))&&(!type||j.employment_type===type)&&(!place||j.workplace_type===place));document.getElementById('jobsCards').innerHTML=rows.length?rows.map(j=>jobCardHtml(j,false)).join(''):'<div class="jobs-empty">No jobs match those filters.</div>';wireJobCardActions();};
+        ['jobsSearch','jobsType','jobsWorkplace'].forEach(id=>document.getElementById(id)?.addEventListener(id==='jobsSearch'?'input':'change',filter));
+      }
+      wireJobCardActions();
+    }
+    function jobCardHtml(j,own=false,count=0){
+      return '<article class="job-card" data-job-id="'+esc(j.id)+'"><div class="job-card-top"><div class="job-company-mark">'+esc((j.company_name||'N').slice(0,1).toUpperCase())+'</div><div style="min-width:0;flex:1"><h3>'+esc(j.title)+'</h3><div class="job-company">'+esc(j.company_name)+' · '+esc(j.location)+'</div></div>'+(own?'<span class="jobs-status">'+esc(j.status)+'</span>':'')+'</div><div class="job-meta"><span class="job-tag">'+esc(j.employment_type)+'</span><span class="job-tag">'+esc(j.workplace_type)+'</span>'+(j.compensation?'<span class="job-tag purple">'+esc(j.compensation)+'</span>':'')+'</div><div class="job-description">'+esc(j.description)+'</div>'+(j.requirements?'<p class="jobs-note"><b>Requirements:</b> '+esc(j.requirements)+'</p>':'')+'<div class="job-card-actions">'+(own?'<button class="secondary" data-job-action="apps" data-id="'+esc(j.id)+'">View applicants ('+count+')</button><button class="secondary" data-job-action="toggle" data-id="'+esc(j.id)+'">'+(j.status==='open'?'Close listing':'Reopen listing')+'</button>':'<button class="primary" data-job-action="apply" data-id="'+esc(j.id)+'">Apply for this job</button>')+(j.application_url?'<a class="profile-link" href="'+esc(j.application_url)+'" target="_blank" rel="noopener noreferrer">External application ↗</a>':'')+'</div><div id="jobApps-'+esc(j.id)+'"></div></article>';
+    }
+    function wireJobCardActions(){
+      feed.querySelectorAll('[data-job-action]').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.addEventListener('click',async()=>{
+        const id=b.dataset.id,action=b.dataset.jobAction;
+        if(action==='apply')return showNookJobApply(id);
+        if(action==='toggle'){const job=nookJobsCache.find(j=>j.id===id);if(!job)return;const {error}=await db.from('nook_jobs').update({status:job.status==='open'?'closed':'open',updated_at:new Date().toISOString()}).eq('id',id);if(error)showToast(error.message);else{showToast('Job listing updated.');await renderNookJobsView();}return;}
+        if(action==='apps')return loadNookJobApplicants(id);
+      });});
+    }
+    function showNookJobForm(){
+      const back=document.createElement('div');back.className='modalback show';back.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="jobsFormTitle"><h2 id="jobsFormTitle">Post a job on Nook</h2><p class="jobs-note">Share a clear opportunity and help the right person find you.</p><form id="nookJobForm" class="jobs-form"><label>Job title *<input name="title" maxlength="120" required placeholder="e.g. Video editor"></label><label>Company or client name *<input name="company_name" maxlength="100" required placeholder="Company / your name"></label><label>Location *<input name="location" maxlength="120" required value="Remote" placeholder="City, State or Remote"></label><label>Employment type *<select name="employment_type" required><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Temporary</option><option>Internship</option><option>Freelance</option></select></label><label>Work setting *<select name="workplace_type"><option>Remote</option><option>Hybrid</option><option>On-site</option></select></label><label>Pay / compensation<input name="compensation" maxlength="100" placeholder="e.g. $20–$25/hour or negotiable"></label><label class="wide">Job description *<textarea name="description" minlength="30" maxlength="10000" required placeholder="Describe the work, responsibilities, and what success looks like."></textarea></label><label class="wide">Skills or requirements<textarea name="requirements" maxlength="5000" placeholder="List experience, skills, or requirements (optional)."></textarea></label><label class="wide">External application link (optional)<input name="application_url" type="url" maxlength="1000" placeholder="https://…"></label><div class="wide jobs-note">Only post legitimate opportunities. Never ask applicants to pay to apply or share passwords, verification codes, or sensitive financial information.</div><div class="wide modalbar"><button type="button" class="secondary" id="jobsCancel">Cancel</button><button type="submit" class="primary">Publish job</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#jobsCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),payload=Object.fromEntries(f.entries());payload.employer_id=currentUser.id;payload.requirements=payload.requirements||null;payload.compensation=payload.compensation||null;payload.application_url=payload.application_url||null;const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';const {error}=await db.from('nook_jobs').insert(payload);if(error){showToast(error.message);btn.disabled=false;btn.textContent='Publish job';return;}back.remove();showToast('Your job is now listed on Nook.');setJobsTab('mine');};
+    }
+    function showNookJobApply(jobId){
+      const job=nookJobsCache.find(j=>j.id===jobId);if(!job)return;
+      const back=document.createElement('div');back.className='modalback show';back.innerHTML='<div class="modal" role="dialog" aria-modal="true"><h2>Apply for '+esc(job.title)+'</h2><p class="jobs-note">'+esc(job.company_name)+' · '+esc(job.location)+'</p><form id="nookJobApplyForm" class="jobs-apply-form"><label>Why are you a good fit? *<textarea name="cover_letter" minlength="20" maxlength="5000" required placeholder="Introduce yourself and explain why you’re interested."></textarea></label><label>Resume or portfolio link (optional)<input name="resume_url" type="url" maxlength="1000" placeholder="https://…"></label><p class="jobs-note">Your application is shared with the person who posted this job. Never include passwords or verification codes.</p><div class="modalbar"><button type="button" class="secondary" id="jobsApplyCancel">Cancel</button><button type="submit" class="primary">Submit application</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#jobsApplyCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),payload={job_id:jobId,applicant_id:currentUser.id,cover_letter:f.get('cover_letter'),resume_url:f.get('resume_url')||null};const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Submitting…';const {error}=await db.from('nook_job_applications').insert(payload);if(error){showToast(error.code==='23505'?'You already applied for this job.':error.message);btn.disabled=false;btn.textContent='Submit application';return;}back.remove();showToast('Application submitted.');};
+    }
+    async function loadNookJobApplicants(jobId){
+      const holder=document.getElementById('jobApps-'+jobId);if(!holder)return;holder.innerHTML='<p class="jobs-note">Loading applicants…</p>';
+      const {data:apps,error}=await db.from('nook_job_applications').select('*').eq('job_id',jobId).order('created_at',{ascending:false});
+      if(error){holder.innerHTML='<p class="jobs-note">Could not load applicants: '+esc(error.message)+'</p>';return;}
+      if(!apps?.length){holder.innerHTML='<p class="jobs-note">No applications yet.</p>';return;}
+      const ids=apps.map(a=>a.applicant_id);const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',ids);const people=new Map((profiles||[]).map(p=>[p.id,p]));
+      holder.innerHTML=apps.map(a=>{const p=people.get(a.applicant_id);return '<div class="jobs-application"><b>'+esc(p?.display_name||p?.username||'Nook member')+'</b> <span class="jobs-status">'+esc(a.status)+'</span><p class="job-description">'+esc(a.cover_letter)+'</p>'+(a.resume_url?'<p><a class="profile-link" href="'+esc(a.resume_url)+'" target="_blank" rel="noopener noreferrer">View resume / portfolio ↗</a></p>':'')+'<label class="jobs-note">Update application status <select data-app-status="'+esc(a.id)+'"><option value="submitted" '+(a.status==='submitted'?'selected':'')+'>Submitted</option><option value="reviewing" '+(a.status==='reviewing'?'selected':'')+'>Reviewing</option><option value="shortlisted" '+(a.status==='shortlisted'?'selected':'')+'>Shortlisted</option><option value="declined" '+(a.status==='declined'?'selected':'')+'>Declined</option><option value="hired" '+(a.status==='hired'?'selected':'')+'>Hired</option></select></label></div>';}).join('');
+      holder.querySelectorAll('[data-app-status]').forEach(sel=>sel.addEventListener('change',async()=>{const {error}=await db.from('nook_job_applications').update({status:sel.value}).eq('id',sel.dataset.appStatus);if(error)showToast(error.message);else showToast('Application status updated.');}));
+    }
     async function onTab(tab) {
+      if(tab!=='Nook Jobs')document.body.classList.remove('jobs-mode');
       currentTab=tab;
       const livePanel=document.getElementById('livePersistent');
       if(livePanel){livePanel.hidden=!(tab==='Live'||!!activeLiveRoom);livePanel.classList.toggle('is-floating',tab!=='Live'&&!!activeLiveRoom);}
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
+      if (tab==='Nook Jobs') return loadNookJobs();
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Feedback') return loadFeedback();
