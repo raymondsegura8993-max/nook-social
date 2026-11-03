@@ -311,7 +311,18 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 </div>
 </main>
 <aside class="right">
-<div class="account-bar" id="accountBar"><span id="accountLabel"></span><button id="signOutBtn">Sign out</button></div>
+<div class="account-bar" id="accountBar"><span id="accountLabel"></span><button type="button" id="connectEmailBtn" style="display:none">Connect email</button><button id="signOutBtn">Sign out</button></div>
+<section id="connectEmailPanel" style="display:none;position:fixed;z-index:10001;inset:0;background:rgba(0,0,0,.72);padding:20px;align-items:center;justify-content:center">
+  <div style="width:min(100%,420px);background:var(--panel,#191522);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 20px 70px #0009">
+    <h2 style="margin:0 0 8px">Connect an email</h2>
+    <p style="color:var(--muted);line-height:1.5">Add an email to your existing Nook account. You can keep your username and password. We’ll send a confirmation email to verify it.</p>
+    <label for="connectEmailInput">Email address</label>
+    <input id="connectEmailInput" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%;margin:8px 0 14px">
+    <button type="button" class="primary" id="saveConnectEmail" style="width:100%">Send confirmation email</button>
+    <p id="connectEmailMessage" class="auth-message" aria-live="polite"></p>
+    <button type="button" id="closeConnectEmail" style="display:block;margin:10px auto 0;background:none;border:0;color:var(--muted);cursor:pointer">Cancel</button>
+  </div>
+</section>
 <section class="welcome"><h3>Welcome to Nook ✨</h3><p>Your space to share, explore, and connect with people who get you.</p><button id="welcomeExplore">Explore Nook</button></section>
 <h3>What's happening</h3><section class="trend">
 <div class="trenditem"><small>Trending · Community</small><b>#CreatorLife</b><small>Discover what people are making</small></div>
@@ -640,10 +651,45 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       confirmRecovery.textContent = "Verify code and change password";
     }
   });
+  const connectEmailBtn = document.getElementById("connectEmailBtn");
+  const connectEmailPanel = document.getElementById("connectEmailPanel");
+  const connectEmailInput = document.getElementById("connectEmailInput");
+  const connectEmailMessage = document.getElementById("connectEmailMessage");
+  const saveConnectEmail = document.getElementById("saveConnectEmail");
+  connectEmailBtn.addEventListener("click", () => {
+    connectEmailInput.value = "";
+    connectEmailMessage.textContent = "";
+    connectEmailPanel.style.display = "flex";
+  });
+  document.getElementById("closeConnectEmail").addEventListener("click", () => {
+    connectEmailPanel.style.display = "none";
+  });
+  saveConnectEmail.addEventListener("click", async () => {
+    const email = connectEmailInput.value.trim();
+    connectEmailMessage.textContent = "";
+    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      connectEmailMessage.textContent = "Enter a valid email address.";
+      return;
+    }
+    saveConnectEmail.disabled = true;
+    saveConnectEmail.textContent = "Sending...";
+    try {
+      const { error } = await authClient.auth.updateUser({ email });
+      if (error) throw error;
+      connectEmailMessage.textContent = "Confirmation email sent. Open it and follow the link to connect your email. Your username and password stay the same.";
+      connectEmailInput.value = "";
+    } catch (error) {
+      connectEmailMessage.textContent = error.message || "Could not send the confirmation email. Please try again.";
+    } finally {
+      saveConnectEmail.disabled = false;
+      saveConnectEmail.textContent = "Send confirmation email";
+    }
+  });
   function showSignedIn(user) {
     window.dispatchEvent(new CustomEvent("nook-auth", { detail: user }));
     document.body.classList.remove("auth-required");
     document.getElementById("accountBar").style.display = "flex";
+    connectEmailBtn.style.display = user.email ? "none" : "inline-flex";
     const name = user.user_metadata?.username || user.email?.split("@")[0] || "Nook member";
     document.getElementById("accountLabel").textContent = "@" + name;
     const mini = document.querySelector(".profile-mini");
