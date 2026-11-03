@@ -667,7 +667,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   saveConnectEmail.addEventListener("click", async () => {
     const email = connectEmailInput.value.trim();
     connectEmailMessage.textContent = "";
-    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       connectEmailMessage.textContent = "Enter a valid email address.";
       return;
     }
