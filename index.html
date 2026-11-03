@@ -326,6 +326,15 @@ body.jobs-mode .modal h2{color:#172033}
 #modal .composer-modal .primary{box-shadow:0 7px 20px #793be833}
 @media(max-width:680px){#modal .composer-modal{padding:17px;border-radius:17px}#modal .composer-modal h2{font-size:21px}#modal .composer-modal #postText{min-height:125px}#modal .composer-modal .modalbar button{flex:1}}
 
+
+/* Selected upload cover shown before publishing */
+#modal .composer-media-preview{margin-top:13px;padding:12px;border:1px solid #594273;border-radius:15px;background:linear-gradient(145deg,#21172f,#14101d)}
+#modal .composer-media-preview[hidden]{display:none!important}
+#modal .composer-media-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;color:#e8dcf6;font-size:12px;font-weight:700}
+#modal .composer-media-preview-head button{padding:7px 11px;border-radius:9px;font-size:12px}
+#modal #composerImagePreview,#modal #composerVideoPreview{display:block;width:100%;max-height:360px;object-fit:contain;border-radius:10px;background:#08060c}
+#modal #composerVideoPreview{aspect-ratio:16/9}
+
 </style>
 </head>
 <body>
@@ -419,6 +428,11 @@ body.jobs-mode .modal h2{color:#172033}
 </aside>
 </div>
 <div class="modalback" id="modal"><div class="modal composer-modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div id="mentionSuggestions" class="mention-suggestions" hidden></div><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div>
+<div class="composer-media-preview" id="composerMediaPreview" hidden>
+  <div class="composer-media-preview-head"><span id="composerPreviewLabel">Media preview</span><button type="button" class="secondary" id="removeComposerMedia">Remove</button></div>
+  <img id="composerImagePreview" alt="Selected image preview" hidden>
+  <video id="composerVideoPreview" controls playsinline preload="metadata" hidden></video>
+</div>
 <section id="videoEditor" class="record-panel" hidden style="margin-top:12px">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>✂️ Nook Video Editor</b><button type="button" class="secondary" id="editorClose">Close editor</button></div>
   <video id="editorPreview" controls playsinline style="display:block;width:100%;max-height:340px;object-fit:contain;background:#08070b;border-radius:12px;margin:10px 0"></video>
@@ -438,7 +452,7 @@ body.jobs-mode .modal h2{color:#172033}
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const modal=$('#modal'),toast=$('#toast');
 function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
-function openComposer(mediaType,pollMode=false){if(mediaType!=='image'&&mediaType!=='video')mediaType=null;if(typeof closeNookVideoEditor==='function')closeNookVideoEditor();window.nookPollMode=!!pollMode;$('#pollFields').hidden=!window.nookPollMode;window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
+function openComposer(mediaType,pollMode=false){if(mediaType!=='image'&&mediaType!=='video')mediaType=null;if(typeof closeNookVideoEditor==='function')closeNookVideoEditor();if(typeof clearComposerMediaPreview==='function')clearComposerMediaPreview();window.nookPollMode=!!pollMode;$('#pollFields').hidden=!window.nookPollMode;window.nookSelectedMediaFile=null;window.nookSelectedMediaType=mediaType||null;$('#mediaChoice').textContent='';$('#mediaFile').value='';$('#mediaFile').accept=mediaType==='video'?'video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp,image/gif';modal.classList.add('show');if(mediaType){$('#mediaFile').click()}else{$('#postText').focus()}}
 $('#newPost').onclick=$('#composeOpen').onclick=openComposer;
 $('#cancel').onclick=()=>{closeNookRecorder();closeNookVideoEditor();modal.classList.remove('show');};
 modal.onclick=e=>{if(e.target===modal){closeNookRecorder();closeNookVideoEditor();modal.classList.remove('show')}};
@@ -466,12 +480,39 @@ function openNookVideoEditor(file){
     $('#editorStatus').textContent='Preview your video and choose the edits you want.';
   };
 }
+let nookComposerPreviewUrl=null;
+function clearComposerMediaPreview(){
+  const preview=$('#composerMediaPreview'),img=$('#composerImagePreview'),video=$('#composerVideoPreview');
+  if(video){video.pause();video.removeAttribute('src');video.load();}
+  if(img)img.removeAttribute('src');
+  if(nookComposerPreviewUrl){URL.revokeObjectURL(nookComposerPreviewUrl);nookComposerPreviewUrl=null;}
+  if(preview)preview.hidden=true;
+  if(img)img.hidden=true;if(video)video.hidden=true;
+}
+function showComposerMediaPreview(file){
+  clearComposerMediaPreview();
+  if(!file)return;
+  nookComposerPreviewUrl=URL.createObjectURL(file);
+  const isVideo=file.type.startsWith('video/');
+  const img=$('#composerImagePreview'),video=$('#composerVideoPreview');
+  $('#composerPreviewLabel').textContent=isVideo?'Video cover preview':'Photo preview';
+  if(isVideo){video.src=nookComposerPreviewUrl;video.hidden=false;}
+  else{img.src=nookComposerPreviewUrl;img.hidden=false;}
+  $('#composerMediaPreview').hidden=false;
+}
 function selectPostFile(file){
   if(!file)return;
+  if(!file.type.startsWith('image/')&&!file.type.startsWith('video/')){showToast('Choose an image or video file.');return;}
   window.nookSelectedMediaFile=file;window.nookRecordedVideo=false;
   $('#mediaChoice').textContent='Selected: '+file.name;
+  showComposerMediaPreview(file);
   if(file.type.startsWith('video/'))openNookVideoEditor(file);else closeNookVideoEditor();
 }
+$('#removeComposerMedia').onclick=()=>{
+  window.nookSelectedMediaFile=null;window.nookSelectedMediaType=null;window.nookRecordedVideo=false;
+  $('#mediaFile').value='';$('#mediaChoice').textContent='';
+  clearComposerMediaPreview();closeNookVideoEditor();
+};
 async function exportNookEditedVideo(){
   const video=$('#editorPreview'),status=$('#editorStatus'),start=Math.max(0,Number($('#editorStart').value)||0),end=Number($('#editorEnd').value),speed=Number($('#editorSpeed').value)||1;
   if(!video||!Number.isFinite(video.duration)||!video.videoWidth)return showToast('Wait for the video to finish loading.');
@@ -564,7 +605,7 @@ $('#recordUse').onclick=()=>{
   const recorderType=nookRecorder?.mimeType||'video/webm',type=recorderType.split(';')[0],ext=type.includes('mp4')?'mp4':'webm';
   const blob=new Blob(nookRecordChunks,{type}),file=new File([blob],'nook-recording.'+ext,{type,lastModified:Date.now()});
   if(file.size>50*1024*1024)return showToast('This recording is over Nook’s 50 MB upload limit. Record a shorter video.');
-  window.nookSelectedMediaFile=file;window.nookSelectedMediaType='video';window.nookRecordedVideo=true;$('#mediaChoice').textContent='Recorded video ready to edit and post ('+(file.size/1024/1024).toFixed(1)+' MB).';closeNookRecorder();openNookVideoEditor(file);showToast('Recording added. Edit it below before publishing.');
+  window.nookSelectedMediaFile=file;window.nookSelectedMediaType='video';window.nookRecordedVideo=true;$('#mediaChoice').textContent='Recorded video ready to edit and post ('+(file.size/1024/1024).toFixed(1)+' MB).';showComposerMediaPreview(file);closeNookRecorder();openNookVideoEditor(file);showToast('Recording added. Edit it below before publishing.');
 };
 
 $('#mediaFile').onchange=event=>selectPostFile(event.target.files?.[0]);
