@@ -3262,7 +3262,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const render=()=>{const term=(document.getElementById('marketSearch')?.value||'').toLowerCase(),cat=document.getElementById('marketCategory')?.value||'',sort=document.getElementById('marketSort')?.value||'newest';let rows=nookMarketCache.filter(x=>(!term||[x.title,x.description,x.category].join(' ').toLowerCase().includes(term))&&(!cat||x.category===cat));if(sort==='low')rows.sort((a,b)=>Number(a.price)-Number(b.price));if(sort==='high')rows.sort((a,b)=>Number(b.price)-Number(a.price));const holder=document.getElementById('marketCards');if(holder)holder.innerHTML=rows.length?rows.map(marketCardHtml).join(''):'<div class="market-empty" style="grid-column:1/-1">No items found. Try another search or be the first to list something.</div>';wireMarketActions();};
         ['marketSearch','marketCategory','marketSort'].forEach(id=>document.getElementById(id)?.addEventListener(id==='marketSearch'?'input':'change',render));render();
       }else{
-        target.innerHTML=nookMarketCache.length?'<div class="market-grid">'+nookMarketCache.map(marketCardHtml).join('')+'</div>':'<div class="market-empty"><strong>You have no listings yet.</strong><br>Post an item when you're ready to sell.</div>';
+        target.innerHTML=nookMarketCache.length?'<div class="market-grid">'+nookMarketCache.map(marketCardHtml).join('')+'</div>':'<div class="market-empty"><strong>You have no listings yet.</strong><br>Post an item when you are ready to sell.</div>';
         wireMarketActions();
       }
     }
