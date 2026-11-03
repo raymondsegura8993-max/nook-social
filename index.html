@@ -584,6 +584,10 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     loginTab.classList.toggle("active", mode === "login");
     signupTab.classList.toggle("active", mode === "signup");
     usernameWrap.style.display = mode === "signup" ? "block" : "none";
+    emailInput.type = mode === "signup" ? "email" : "text";
+    emailInput.autocomplete = mode === "signup" ? "email" : "username";
+    emailInput.placeholder = mode === "signup" ? "you@example.com" : "Email or username";
+    document.querySelector('label[for="authEmail"]').textContent = mode === "signup" ? "Email" : "Email or username";
     document.getElementById("authHeading").textContent = mode === "signup" ? "Create your Nook account" : "Welcome back";
     document.getElementById("authSub").textContent = mode === "signup" ? "Choose a username and join the community." : "Log in to continue to your Nook.";
     submit.textContent = mode === "signup" ? "Create account" : "Log in";
@@ -597,7 +601,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   signupTab.addEventListener("click", () => setMode("signup"));
   setMode("signup");
   forgotPasswordBtn.addEventListener("click", () => {
-    recoveryEmail.value = emailInput.value.trim();
+    recoveryEmail.value = emailInput.value.trim().includes("@") ? emailInput.value.trim() : "";
     recoveryMessage.textContent = "";
     recoveryVerifyFields.style.display = "none";
     recoveryStep = "email";
@@ -728,8 +732,24 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         } else {
           message.textContent = "Account created! Check your email for a confirmation link, then return here to log in.";
         }
-      } else {
+      } else if (email.includes("@")) {
         const { data, error } = await authClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        showSignedIn(data.user);
+      } else {
+        const response = await fetch(SUPABASE_URL + "/functions/v1/nook-username-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+          body: JSON.stringify({ username: email, password })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.access_token || !result.refresh_token) {
+          throw new Error(result.error || "Invalid username or password.");
+        }
+        const { data, error } = await authClient.auth.setSession({
+          access_token: result.access_token,
+          refresh_token: result.refresh_token
+        });
         if (error) throw error;
         showSignedIn(data.user);
       }
