@@ -501,9 +501,26 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
       <label for="authPassword">Password</label>
       <input id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
-      <button class="primary auth-submit" id="authSubmit" type="submit">Log in</button>
+      <button class="primary auth-submit" id="authSubmit" type="submit">Create account</button>
       <p class="auth-message" id="authMessage" aria-live="polite"></p>
     </form>
+    <button type="button" class="auth-sub" id="forgotPasswordBtn" style="display:none;margin:12px auto 0;background:none;border:0;color:var(--accent);cursor:pointer;text-decoration:underline">Forgot password?</button>
+    <section id="recoveryPanel" style="display:none;margin-top:18px;text-align:left">
+      <h3 style="margin:0 0 8px">Reset your password</h3>
+      <p class="auth-sub" style="margin:0 0 14px">We’ll email you a 6-digit recovery code.</p>
+      <label for="recoveryEmail">Email</label>
+      <input id="recoveryEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+      <button type="button" class="primary auth-submit" id="sendRecoveryCode" style="margin-top:12px">Send recovery code</button>
+      <div id="recoveryVerifyFields" style="display:none;margin-top:14px">
+        <label for="recoveryCode">6-digit code</label>
+        <input id="recoveryCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Enter your code">
+        <label for="recoveryNewPassword" style="margin-top:12px">New password</label>
+        <input id="recoveryNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+        <button type="button" class="primary auth-submit" id="confirmRecovery" style="margin-top:12px">Verify code and change password</button>
+      </div>
+      <p class="auth-message" id="recoveryMessage" aria-live="polite"></p>
+      <button type="button" id="backToLogin" class="auth-sub" style="display:block;margin:12px auto 0;background:none;border:0;color:var(--accent);cursor:pointer;text-decoration:underline">Back to log in</button>
+    </section>
     <p class="auth-sub" style="margin:14px 0 0">Use an email address you can access. Never share your password.</p>
   </section>
 </div>
@@ -540,6 +557,16 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   const submit = document.getElementById("authSubmit");
   const loginTab = document.getElementById("loginTab");
   const signupTab = document.getElementById("signupTab");
+  const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+  const recoveryPanel = document.getElementById("recoveryPanel");
+  const recoveryEmail = document.getElementById("recoveryEmail");
+  const recoveryCode = document.getElementById("recoveryCode");
+  const recoveryNewPassword = document.getElementById("recoveryNewPassword");
+  const recoveryMessage = document.getElementById("recoveryMessage");
+  const recoveryVerifyFields = document.getElementById("recoveryVerifyFields");
+  const sendRecoveryCode = document.getElementById("sendRecoveryCode");
+  const confirmRecovery = document.getElementById("confirmRecovery");
+  let recoveryStep = "email";
   let mode = "signup";
   function setMode(next) {
     mode = next;
@@ -551,10 +578,68 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     submit.textContent = mode === "signup" ? "Create account" : "Log in";
     passwordInput.autocomplete = mode === "signup" ? "new-password" : "current-password";
     message.textContent = "";
+    forgotPasswordBtn.style.display = mode === "login" ? "block" : "none";
+    form.style.display = "block";
+    recoveryPanel.style.display = "none";
   }
   loginTab.addEventListener("click", () => setMode("login"));
   signupTab.addEventListener("click", () => setMode("signup"));
   setMode("signup");
+  forgotPasswordBtn.addEventListener("click", () => {
+    recoveryEmail.value = emailInput.value.trim();
+    recoveryMessage.textContent = "";
+    recoveryVerifyFields.style.display = "none";
+    recoveryStep = "email";
+    form.style.display = "none";
+    recoveryPanel.style.display = "block";
+  });
+  document.getElementById("backToLogin").addEventListener("click", () => setMode("login"));
+  sendRecoveryCode.addEventListener("click", async () => {
+    const email = recoveryEmail.value.trim();
+    recoveryMessage.textContent = "";
+    if (!email) { recoveryMessage.textContent = "Enter the email address for your Nook account."; return; }
+    sendRecoveryCode.disabled = true;
+    sendRecoveryCode.textContent = "Sending...";
+    try {
+      const { error } = await authClient.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      recoveryStep = "verify";
+      recoveryVerifyFields.style.display = "block";
+      recoveryMessage.textContent = "If an account uses that email, a recovery code will arrive shortly. Check your inbox and spam folder.";
+      sendRecoveryCode.textContent = "Send another code";
+    } catch (error) {
+      recoveryMessage.textContent = error.message || "Could not send the recovery code. Please try again later.";
+      sendRecoveryCode.textContent = "Send recovery code";
+    } finally {
+      sendRecoveryCode.disabled = false;
+    }
+  });
+  confirmRecovery.addEventListener("click", async () => {
+    const email = recoveryEmail.value.trim();
+    const token = recoveryCode.value.trim();
+    const password = recoveryNewPassword.value;
+    recoveryMessage.textContent = "";
+    if (!/^\\d{6}$/.test(token)) { recoveryMessage.textContent = "Enter the 6-digit code from your email."; return; }
+    if (password.length < 8) { recoveryMessage.textContent = "Your new password must be at least 8 characters."; return; }
+    confirmRecovery.disabled = true;
+    confirmRecovery.textContent = "Verifying...";
+    try {
+      const { error: verifyError } = await authClient.auth.verifyOtp({ email, token, type: "recovery" });
+      if (verifyError) throw verifyError;
+      const { data, error } = await authClient.auth.updateUser({ password });
+      if (error) throw error;
+      recoveryMessage.textContent = "Your password has been changed. You are now logged in.";
+      recoveryPanel.style.display = "none";
+      form.style.display = "block";
+      passwordInput.value = "";
+      showSignedIn(data.user);
+    } catch (error) {
+      recoveryMessage.textContent = error.message || "That code could not be verified. Request a new code and try again.";
+    } finally {
+      confirmRecovery.disabled = false;
+      confirmRecovery.textContent = "Verify code and change password";
+    }
+  });
   function showSignedIn(user) {
     window.dispatchEvent(new CustomEvent("nook-auth", { detail: user }));
     document.body.classList.remove("auth-required");
