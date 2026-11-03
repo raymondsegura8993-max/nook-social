@@ -232,7 +232,13 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 .daily-nook-note{font-size:10px;color:#9589a4}
 @media(max-width:760px){.daily-nook-card{padding:15px;border-radius:14px}.daily-nook-card h2{font-size:17px}}
 
-.admin-jump-links{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 18px}.admin-jump-links a{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:#1b1725;color:#d8c4f4;text-decoration:none;font-size:12px}.admin-jump-links a:hover{border-color:var(--purple);color:white}.admin-group-heading{margin:24px 0 10px;padding:9px 11px;border-left:3px solid var(--purple);background:#1a1424;border-radius:0 9px 9px 0;color:#bda0df;font-size:11px;letter-spacing:1.4px}</style>
+.admin-jump-links{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 18px}.admin-jump-links a{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:#1b1725;color:#d8c4f4;text-decoration:none;font-size:12px}.admin-jump-links a:hover{border-color:var(--purple);color:white}.admin-group-heading{margin:24px 0 10px;padding:9px 11px;border-left:3px solid var(--purple);background:#1a1424;border-radius:0 9px 9px 0;color:#bda0df;font-size:11px;letter-spacing:1.4px}
+/* Nook growth, creator insights, and interaction polish */
+.nook-growth-card{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 17px;padding:18px 19px;border:1px solid rgba(177,135,255,.24);border-radius:17px;background:radial-gradient(ellipse at 95% 0%,rgba(155,92,255,.2),transparent 55%),linear-gradient(135deg,rgba(35,25,49,.98),rgba(19,16,27,.98));box-shadow:0 12px 32px rgba(0,0,0,.16)}
+.nook-growth-copy{min-width:0}.nook-growth-kicker{font-size:10px;font-weight:850;letter-spacing:1.35px;color:#c6a3ff}.nook-growth-card h2{font-size:17px;line-height:1.3;margin:5px 0;color:#fff;letter-spacing:-.3px}.nook-growth-card p{font-size:12px;line-height:1.55;color:#c4b8d1;margin:0 0 5px}.nook-growth-card small{font-size:10px;color:#9d91aa}.nook-growth-actions{display:flex;gap:8px;flex-wrap:wrap;flex:none}.nook-growth-actions button{font-size:12px;white-space:nowrap}.nook-growth-card button{min-height:38px}.post,.composer,.profile-panel,.welcome,.trend{transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}.post:hover{border-color:rgba(177,135,255,.27);box-shadow:0 15px 38px rgba(0,0,0,.23)}.post-attachment{display:block;max-width:100%;height:auto;border-radius:13px}.post-attachment.video{background:#08060c;max-height:620px;object-fit:contain}
+@media(max-width:760px){.nook-growth-card{display:block;padding:15px}.nook-growth-actions{margin-top:12px}.nook-growth-actions button{flex:1}.nook-growth-card h2{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.post,.composer,.profile-panel,.welcome,.trend{transition:none!important}}
+</style>
 </head>
 <body>
 <a class="nook-skip-link" href="#feed">Skip to feed</a>
@@ -270,6 +276,10 @@ textarea:focus,input:focus,select:focus{border-color:#9864df!important;box-shado
 <h2 id="dailyNookQuestion">What is something you learned recently that you wish you knew sooner?</h2>
 <p>Share your answer, discover how others think, and start a conversation.</p>
 <div class="daily-nook-actions"><button class="primary" id="answerDailyPrompt">Answer this prompt</button><span class="daily-nook-note">A new conversation every day</span></div>
+</section>
+<section class="nook-growth-card" aria-labelledby="nookGrowthTitle">
+  <div class="nook-growth-copy"><span class="nook-growth-kicker">GROW THE COMMUNITY</span><h2 id="nookGrowthTitle">Know someone who belongs on Nook?</h2><p>Invite a friend or creator to share, discover, and connect with the community.</p><small id="nookGrowthStatus" role="status">Every new member helps Nook grow.</small></div>
+  <div class="nook-growth-actions"><button class="primary" id="nookShareInvite" type="button">↗ Share Nook</button><button class="secondary" id="nookCopyInvite" type="button">Copy website link</button></div>
 </section>
 <div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Latest">Latest</button><button data-feed="Hashtags">Hashtags</button><button data-feed="Trending">Trending</button></div>
 <div id="livePersistent" class="live-persistent" hidden></div>
@@ -775,9 +785,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       db.from('post_collaborators').select('collaborator_id').eq('post_id',post.id).eq('status','accepted').then(async({data:rows})=>{if(!rows?.length||!card.isConnected)return;const ids=rows.map(x=>x.collaborator_id);const {data:people}=await db.from('profiles').select('id,username').in('id',ids);if(!people?.length||!card.isConnected)return;const credit=document.createElement('div');credit.className='post-collab-credit muted';credit.textContent='🤝 In collaboration with '+people.map(p=>'@'+p.username).join(', ');card.querySelector('.posthead').after(credit);});
       if(profile?.id)db.from('verified_profiles').select('user_id').eq('user_id',profile.id).maybeSingle().then(({data})=>{if(data){const nameNode=card.querySelector('.postname');if(nameNode)nameNode.insertAdjacentHTML('beforeend',' <span title="Verified account" style="color:#b98cff">✓</span>');}});
       if (!post.content) card.querySelector('.post-content').remove();
-      if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy">');
+      if (post.media_url && post.media_type === 'image') card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<img class="post-attachment" src="'+esc(post.media_url)+'" alt="Photo post" loading="lazy" decoding="async">');
       if (post.media_url && post.media_type === 'video') {
-        card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'"'+(post.thumbnail_url?' poster="'+esc(post.thumbnail_url)+'"':'')+' controls playsinline preload="metadata"></video>');
+        card.querySelector('.post-actions').insertAdjacentHTML('beforebegin','<video class="post-attachment video" src="'+esc(post.media_url)+'"'+(post.thumbnail_url?' poster="'+esc(post.thumbnail_url)+'"':'')+' controls playsinline preload="none"></video>');
         const downloadButton=document.createElement('button');downloadButton.className='action';downloadButton.textContent='⬇ Download video';
         downloadButton.onclick=async()=>{downloadButton.disabled=true;downloadButton.textContent='Preparing download…';try{const response=await fetch(post.media_url);if(!response.ok)throw new Error('Download failed.');const blob=await response.blob();const objectUrl=URL.createObjectURL(blob);const link=document.createElement('a');link.href=objectUrl;link.download='nook-video-'+post.id+'.webm';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(objectUrl);}catch(error){showToast('Could not download this video: '+error.message);}finally{downloadButton.disabled=false;downloadButton.textContent='⬇ Download video';}};
         card.querySelector('.post-actions').appendChild(downloadButton);
@@ -1358,7 +1368,9 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       currentSavedPostIds=new Set((savedRes.data||[]).map(x=>x.post_id));
       const totalLikes=(likesRes.data||[]).length;
       const {count:profileViews}=await db.from('profile_views').select('profile_id',{count:'exact',head:true}).eq('profile_id',currentUser.id);
-      document.getElementById('creatorAnalytics').innerHTML='<b>Creator analytics</b><div class="follow-stats"><span><b>'+posts.length+'</b> Posts</span><span><b>'+totalLikes+'</b> Likes received</span><span><b>'+followerCount+'</b> Followers</span><span><b>'+(profileViews||0)+'</b> Profile views</span></div>';
+      const averageLikes=posts.length?Math.round((totalLikes/posts.length)*10)/10:0;
+      document.getElementById('creatorAnalytics').innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>Creator analytics</b><button type="button" class="secondary" id="openCreatorStudio">✦ Open Nook Studio</button></div><div class="follow-stats"><span><b>'+posts.length+'</b> Recent posts</span><span><b>'+totalLikes+'</b> Likes on recent posts</span><span><b>'+averageLikes+'</b> Avg. likes/post</span><span><b>'+followerCount+'</b> Followers</span><span><b>'+(profileViews||0)+'</b> Profile views</span></div><p class="muted" style="font-size:11px;margin:9px 0 0">Post and like totals are based on the latest '+posts.length+' posts shown here.</p>';
+      document.getElementById('openCreatorStudio')?.addEventListener('click',()=>document.querySelector('.nav button[data-tab="Nook Studio"]')?.click());
       posts.forEach(p=>renderPost(p,currentProfile,mine.has(p.id),counts[p.id]||0,cc[p.id]||0,currentSavedPostIds.has(p.id)));
     }
     async function loadDiscoverPeople() {
@@ -2978,6 +2990,23 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   document.getElementById('composeOpen')?.click();
   const field=document.getElementById('postText');
   if(field){field.value=question+'\n\n';field.focus();field.setSelectionRange(field.value.length,field.value.length);}
+ });
+})();
+</script>
+
+<script>
+(()=>{
+ const siteUrl=location.origin+location.pathname;
+ const status=document.getElementById('nookGrowthStatus');
+ const copy=async()=>{
+  try{await navigator.clipboard.writeText(siteUrl);if(status)status.textContent='Website link copied. Send it to someone who might enjoy Nook!';}
+  catch(_){window.prompt('Copy the Nook website link:',siteUrl);if(status)status.textContent='Copy the link above and share it with a friend.';}
+ };
+ document.getElementById('nookCopyInvite')?.addEventListener('click',copy);
+ document.getElementById('nookShareInvite')?.addEventListener('click',async()=>{
+  const shareData={title:'Nook — Your corner of the internet',text:'Join me on Nook, a place to connect, share, and discover.',url:siteUrl};
+  if(navigator.share){try{await navigator.share(shareData);if(status)status.textContent='Thanks for sharing Nook!';}catch(error){if(error.name!=='AbortError'&&status)status.textContent='Sharing was unavailable. You can copy the website link instead.';}}
+  else await copy();
  });
 })();
 </script>
