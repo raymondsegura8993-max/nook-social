@@ -301,6 +301,31 @@ body.jobs-mode .modal{background:#fff;border-color:#e4e8ef;color:#172033}
 body.jobs-mode .modal h2{color:#172033}
 @media(max-width:680px){body.jobs-mode .app{background:#fff}.jobs-hero{padding:21px}.jobs-hero h2{font-size:23px}.jobs-form{grid-template-columns:1fr}.jobs-form .wide{grid-column:auto}.jobs-toolbar select{flex:1}}
 
+
+/* Create Post + Video composer: professional Nook dark theme (never the Jobs white theme) */
+#modal .composer-modal{width:min(650px,100%);padding:24px;background:linear-gradient(155deg,#1c1728 0%,#14111d 58%,#100d17 100%);border:1px solid #594273;border-radius:22px;box-shadow:0 24px 90px #000b,inset 0 1px 0 #ffffff0b}
+#modal .composer-modal h2{font-size:23px;letter-spacing:-.55px;margin:0 0 18px;padding:0 0 15px;border-bottom:1px solid #34283f;color:#fff}
+#modal .composer-modal #postText{display:block;min-height:145px;padding:15px;background:#100d17;border:1px solid #443452;border-radius:13px;color:#f7f2ff;font:inherit;line-height:1.6;outline:none;transition:border-color .18s,box-shadow .18s}
+#modal .composer-modal #postText:focus{border-color:#9b5cff;box-shadow:0 0 0 3px #9b5cff20}
+#modal .composer-modal #postText::placeholder{color:#887d98}
+#modal .composer-modal .file-drop-zone{margin-top:14px;padding:25px 16px;border:1.5px dashed #684b8c;border-radius:15px;background:linear-gradient(135deg,#21172f,#171321);color:#d9c9ed;transition:border-color .18s,background .18s,transform .18s}
+#modal .composer-modal .file-drop-zone:hover,#modal .composer-modal .file-drop-zone.dragover{border-color:#b58aff;background:linear-gradient(135deg,#302044,#1c1628);transform:translateY(-1px)}
+#modal .composer-modal .file-drop-zone strong{font-size:14px;letter-spacing:.1px}
+#modal .composer-modal .file-drop-zone span,#modal .composer-modal .media-hint{color:#a99bb9}
+#modal .composer-modal .media-choice{padding:8px 10px;border-radius:9px;background:#21172f;color:#d9baff;overflow-wrap:anywhere}
+#modal .composer-modal .record-panel{padding:16px;background:#100d17;border:1px solid #594273;border-radius:15px}
+#modal .composer-modal .record-panel b{color:#eadcff}
+#modal .composer-modal label{color:#cfc2df!important;font-weight:650}
+#modal .composer-modal input:not([type=file]),#modal .composer-modal select{background:#100d17!important;border:1px solid #443452!important;border-radius:10px!important;color:#f7f2ff!important;outline:none}
+#modal .composer-modal input:focus,#modal .composer-modal select:focus{border-color:#9b5cff!important;box-shadow:0 0 0 3px #9b5cff20}
+#modal .composer-modal video{border:1px solid #34283f;border-radius:13px}
+#modal .composer-modal .modalbar{display:flex;flex-wrap:wrap;gap:9px;padding-top:15px;margin-top:18px;border-top:1px solid #34283f}
+#modal .composer-modal .modalbar button{min-height:42px;padding:10px 16px;border-radius:11px}
+#modal .composer-modal .secondary{background:#211a2c;border-color:#49375d;color:#e7dcef}
+#modal .composer-modal .secondary:hover{background:#2b2039;border-color:#76539d}
+#modal .composer-modal .primary{box-shadow:0 7px 20px #793be833}
+@media(max-width:680px){#modal .composer-modal{padding:17px;border-radius:17px}#modal .composer-modal h2{font-size:21px}#modal .composer-modal #postText{min-height:125px}#modal .composer-modal .modalbar button{flex:1}}
+
 </style>
 </head>
 <body>
@@ -393,7 +418,7 @@ body.jobs-mode .modal h2{color:#172033}
 <div class="foot">About · Community Guidelines · Privacy · Terms<br>© 2026 Nook</div>
 </aside>
 </div>
-<div class="modalback" id="modal"><div class="modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div id="mentionSuggestions" class="mention-suggestions" hidden></div><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div>
+<div class="modalback" id="modal"><div class="modal composer-modal"><h2>Create a post</h2><textarea id="postText" placeholder="What's happening in your nook?"></textarea><div id="mentionSuggestions" class="mention-suggestions" hidden></div><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="file-drop-zone" id="fileDropZone" role="button" tabindex="0" aria-label="Select a file or drag and drop"><strong>Select a file or drag and drop</strong><span>Choose a photo or video from your device</span></div><div class="media-choice" id="mediaChoice"></div>
 <section id="videoEditor" class="record-panel" hidden style="margin-top:12px">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>✂️ Nook Video Editor</b><button type="button" class="secondary" id="editorClose">Close editor</button></div>
   <video id="editorPreview" controls playsinline style="display:block;width:100%;max-height:340px;object-fit:contain;background:#08070b;border-radius:12px;margin:10px 0"></video>
