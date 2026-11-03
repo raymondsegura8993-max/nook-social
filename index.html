@@ -489,8 +489,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     <h1 id="authHeading">Welcome to Nook</h1>
     <p class="auth-sub" id="authSub">Sign in or create an account to join the community.</p>
     <div class="auth-tabs">
-      <button type="button" class="active" id="loginTab">Log in</button>
-      <button type="button" id="signupTab">Create account</button>
+      <button type="button" id="loginTab">Log in</button>
+      <button type="button" class="active" id="signupTab">Create account</button>
     </div>
     <form id="authForm">
       <div id="usernameWrap" style="display:none">
@@ -540,7 +540,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   const submit = document.getElementById("authSubmit");
   const loginTab = document.getElementById("loginTab");
   const signupTab = document.getElementById("signupTab");
-  let mode = "login";
+  let mode = "signup";
   function setMode(next) {
     mode = next;
     loginTab.classList.toggle("active", mode === "login");
@@ -554,6 +554,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
   }
   loginTab.addEventListener("click", () => setMode("login"));
   signupTab.addEventListener("click", () => setMode("signup"));
+  setMode("signup");
   function showSignedIn(user) {
     window.dispatchEvent(new CustomEvent("nook-auth", { detail: user }));
     document.body.classList.remove("auth-required");
