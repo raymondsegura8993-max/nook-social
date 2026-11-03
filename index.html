@@ -343,6 +343,7 @@ body.jobs-mode .modal h2{color:#172033}
 @media(max-width:600px){.market-form{grid-template-columns:1fr}.market-form .wide{grid-column:auto}.market-toolbar select{flex:1}.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.market-image{height:130px}.market-card-body{padding:10px}.market-hero h2{font-size:20px}}
 
  .market-photo-preview{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#100d16}.market-photo-preview[hidden]{display:none}.market-photo-preview img{width:112px;height:112px;object-fit:cover;border-radius:9px}
+.tournament-shell{display:grid;gap:14px}.tournament-hero{padding:20px;border:1px solid #4a3564;border-radius:17px;background:linear-gradient(125deg,#2b1940,#171320 72%);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.tournament-hero h3{margin:0 0 5px;font-size:20px}.tournament-hero p{margin:0;color:#d0c2df;font-size:13px}.tournament-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:12px}.tournament-card{background:#17131f;border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.tournament-card h3{font-size:17px;margin:0 0 9px;overflow-wrap:anywhere}.tournament-detail{font-size:12px;color:#d7cde2;margin:6px 0;overflow-wrap:anywhere}.tournament-card .tournament-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.tournament-form{display:grid;grid-template-columns:1fr 1fr;gap:13px}.tournament-form label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.tournament-form input,.tournament-form select{min-width:0;width:100%;padding:11px;background:#100d16;color:#fff;border:1px solid var(--line);border-radius:10px}.tournament-form .wide{grid-column:1/-1}.tournament-note{padding:11px 13px;border:1px solid var(--line);border-radius:11px;color:#cfc5dd;font-size:12px}.tournament-empty{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted)}@media(max-width:600px){.tournament-form{grid-template-columns:1fr}.tournament-form .wide{grid-column:auto}.tournament-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -3241,17 +3242,19 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     function setMarketTab(view){
       nookMarketView=view;
       document.querySelectorAll('.market-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.marketView===view));
+      if(view==='tournaments')return renderNookTournaments();
       renderNookMarketplace();
     }
     async function loadNookMarketplace(){
       document.body.classList.remove('jobs-mode');
-      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Address &amp; Delivery Disclaimer</strong>Buyers and sellers may need to exchange delivery information, arrange package deliveries, or organize an in-person meetup. Nook is not responsible if someone misuses your address or other personal information. If you choose to share your address or arrange a meetup, you do so at your own risk. Nook cannot guarantee your safety or take responsibility for incidents resulting from sharing personal information or meeting other users. Please use caution before sharing your information.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
+      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Address &amp; Delivery Disclaimer</strong>Buyers and sellers may need to exchange delivery information, arrange package deliveries, or organize an in-person meetup. Nook is not responsible if someone misuses your address or other personal information. If you choose to share your address or arrange a meetup, you do so at your own risk. Nook cannot guarantee your safety or take responsibility for incidents resulting from sharing personal information or meeting other users. Please use caution before sharing your information.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button><button data-market-view="tournaments">🏆 Nook Tournaments</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
       feed.querySelectorAll('[data-market-view]').forEach(b=>b.addEventListener('click',()=>setMarketTab(b.dataset.marketView)));
       document.getElementById('marketPostTop')?.addEventListener('click',showNookMarketForm);
       await renderNookMarketplace();
     }
     async function renderNookMarketplace(){
       const target=document.getElementById('marketViewContent');if(!target)return;
+      if(nookMarketView==='tournaments')return renderNookTournaments();
       if(!currentUser){target.innerHTML='<div class="market-empty"><strong>Sign in to use Nook Marketplace</strong><br>Sign in to contact sellers or list an item.</div>';return;}
       let query=db.from('nook_marketplace_listings').select('*').order('created_at',{ascending:false}).limit(100);
       query=nookMarketView==='mine'?query.eq('seller_id',currentUser.id):query.eq('status','active');
@@ -3288,6 +3291,74 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       photoInput.onchange=()=>{const file=photoInput.files?.[0];if(!file){photoPreview.hidden=true;photoPreviewImage.removeAttribute('src');return;}if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){photoInput.value='';photoPreview.hidden=true;return showToast('Choose a JPG, PNG, WEBP, or GIF image.');}if(file.size>8*1024*1024){photoInput.value='';photoPreview.hidden=true;return showToast('Product photos must be 8 MB or smaller.');}photoPreviewImage.src=URL.createObjectURL(file);photoPreview.hidden=false;};
       back.querySelector('#marketPhotoRemove').onclick=()=>{photoInput.value='';photoPreview.hidden=true;photoPreviewImage.removeAttribute('src');};
       back.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),p={title:String(f.get('title')||'').trim(),price:Number(f.get('price')),category:f.get('category'),item_condition:f.get('item_condition'),description:String(f.get('description')||'').trim(),meetup_plan:String(f.get('meetup_plan')||'').trim()||null,delivery_plan:String(f.get('delivery_plan')||'').trim()||null,seller_id:currentUser.id,image_url:null};if(!p.meetup_plan&&!p.delivery_plan)return showToast('Add a meetup plan or delivery plan.');const addressPattern=/\b\d{1,5}\s+[\w .'-]+\s(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|court|ct)\b/i;if(addressPattern.test(p.meetup_plan||'')||addressPattern.test(p.delivery_plan||''))return showToast('Please remove any street address. Use a general public meetup plan instead.');const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';let uploadedPath=null;const photo=photoInput.files?.[0];if(photo){if(!['image/jpeg','image/png','image/webp','image/gif'].includes(photo.type)||photo.size>8*1024*1024){btn.disabled=false;btn.textContent='Publish listing';return showToast('Choose a JPG, PNG, WEBP, or GIF image up to 8 MB.');}const ext=photo.name.includes('.')?photo.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,''):'jpg';uploadedPath=currentUser.id+'/market-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;const upload=await db.storage.from('nook-media').upload(uploadedPath,photo,{contentType:photo.type,upsert:false});if(upload.error){btn.disabled=false;btn.textContent='Publish listing';return showToast('Photo upload failed: '+upload.error.message);}p.image_url=db.storage.from('nook-media').getPublicUrl(uploadedPath).data.publicUrl;}const {error}=await db.from('nook_marketplace_listings').insert(p);if(error){if(uploadedPath)await db.storage.from('nook-media').remove([uploadedPath]);showToast(error.message);btn.disabled=false;btn.textContent='Publish listing';return;}back.remove();showToast('Your item is now listed on Nook.');setMarketTab('mine');};
+    }
+
+    let nookTournamentView='browse';
+    let nookTournamentCache=[];
+    function tournamentTimeZoneList(){
+      let zones=[];try{zones=Intl.supportedValuesOf('timeZone');}catch(_){zones=['UTC','America/Los_Angeles','America/Denver','America/Chicago','America/New_York','Europe/London','Europe/Paris','Asia/Tokyo','Australia/Sydney'];}
+      const local=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+      return [...new Set(['UTC',local,...zones])].sort((a,b)=>a===local?-1:b===local?1:a.localeCompare(b));
+    }
+    function tournamentLocalToUtc(localValue,zone){
+      const m=String(localValue||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);if(!m)return null;
+      const parts=m.slice(1).map(Number),desired=Date.UTC(parts[0],parts[1]-1,parts[2],parts[3],parts[4]);
+      let guess=desired;
+      for(let i=0;i<3;i++){
+        const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess)).map(x=>[x.type,x.value]));
+        const shown=Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day),Number(p.hour),Number(p.minute));
+        guess+=desired-shown;
+      }
+      return new Date(guess).toISOString();
+    }
+    function tournamentDateLabel(item){
+      try{return new Date(item.tournament_at).toLocaleString(undefined,{dateStyle:'full',timeStyle:'short',timeZone:item.time_zone})+' ('+item.time_zone+')';}
+      catch(_){return new Date(item.tournament_at).toLocaleString();}
+    }
+    async function loadNookTournaments(){
+      nookTournamentView='browse';return renderNookTournaments();
+    }
+    async function renderNookTournaments(){
+      const target=document.getElementById('marketViewContent');if(!target)return;
+      if(!currentUser){target.innerHTML='<div class="market-empty"><strong>Sign in to use Nook Tournaments</strong><br>Sign in to browse schedules, host a tournament, or message a host.</div>';return;}
+      target.innerHTML='<div class="tournament-shell"><div class="tournament-hero"><div><h3>🏆 Nook Tournaments</h3><p>Find a game, check the scheduled time in the host’s time zone, and message the host.</p></div><button class="primary" id="tournamentCreateTop">＋ Schedule tournament</button></div><div class="market-tabs"><button class="'+(nookTournamentView==='browse'?'active':'')+'" data-tournament-view="browse">Browse tournaments</button><button class="'+(nookTournamentView==='mine'?'active':'')+'" data-tournament-view="mine">My tournaments</button></div><div id="tournamentList" class="tournament-grid"><div class="tournament-empty">Loading tournaments…</div></div></div>';
+      target.querySelector('#tournamentCreateTop').onclick=showNookTournamentForm;
+      target.querySelectorAll('[data-tournament-view]').forEach(b=>b.onclick=()=>{nookTournamentView=b.dataset.tournamentView;renderNookTournaments();});
+      const list=target.querySelector('#tournamentList');
+      let q=db.from('nook_tournaments').select('*').order('tournament_at',{ascending:true}).limit(100);
+      q=nookTournamentView==='mine'?q.eq('host_id',currentUser.id):q.eq('status','scheduled');
+      const {data:items,error}=await q;
+      if(error){list.innerHTML='<div class="tournament-empty">Could not load tournaments: '+esc(error.message)+'</div>';return;}
+      nookTournamentCache=items||[];
+      if(!items?.length){list.innerHTML='<div class="tournament-empty">'+(nookTournamentView==='mine'?'You have not scheduled any tournaments yet.':'No upcoming tournaments yet. Be the first to schedule one!')+'</div>';return;}
+      const ids=[...new Set(items.map(x=>x.host_id))];
+      const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',ids);
+      const people=new Map((profiles||[]).map(p=>[p.id,p]));
+      list.innerHTML=items.map(item=>{
+        const host=people.get(item.host_id),isHost=item.host_id===currentUser.id;
+        return '<article class="tournament-card"><h3>'+esc(item.game_title)+'</h3><div class="tournament-detail">📅 '+esc(tournamentDateLabel(item))+'</div><div class="tournament-detail">🎮 In-game username: <b>'+esc(item.game_username)+'</b></div><div class="tournament-detail">Hosted by <b>@'+esc(host?.username||'Nook member')+'</b></div><div class="tournament-actions">'+(isHost?'<button class="secondary" data-tournament-cancel="'+esc(item.id)+'">Cancel tournament</button><button class="secondary" data-tournament-delete="'+esc(item.id)+'">Delete</button>':'<button class="primary" data-tournament-message="'+esc(item.host_id)+'">Message host</button>')+'</div></article>';
+      }).join('');
+      list.querySelectorAll('[data-tournament-message]').forEach(b=>b.onclick=()=>startConversation(b.dataset.tournamentMessage));
+      list.querySelectorAll('[data-tournament-cancel]').forEach(b=>b.onclick=async()=>{const {error}=await db.from('nook_tournaments').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',b.dataset.tournamentCancel).eq('host_id',currentUser.id);if(error)showToast(error.message);else{showToast('Tournament cancelled.');renderNookTournaments();}});
+      list.querySelectorAll('[data-tournament-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this tournament schedule?'))return;const {error}=await db.from('nook_tournaments').delete().eq('id',b.dataset.tournamentDelete).eq('host_id',currentUser.id);if(error)showToast(error.message);else{showToast('Tournament deleted.');renderNookTournaments();}});
+    }
+    function showNookTournamentForm(){
+      if(!currentUser)return showToast('Sign in to schedule a tournament.');
+      const localZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+      const zones=tournamentTimeZoneList();
+      const zoneOptions=zones.map(z=>'<option value="'+esc(z)+'" '+(z===localZone?'selected':'')+'>'+esc(z.replace(/_/g,' '))+'</option>').join('');
+      const back=document.createElement('div');back.className='modalback show';
+      back.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="tournamentFormTitle"><h2 id="tournamentFormTitle">Schedule a tournament</h2><p class="market-meta">Players will see the date and time in the time zone you choose.</p><form id="nookTournamentForm" class="tournament-form"><label>Game title *<input name="game_title" maxlength="100" required placeholder="e.g. Rocket League"></label><label>Your username in this game *<input name="game_username" maxlength="40" required placeholder="Your in-game username"></label><label>Tournament date and start time *<input name="local_start" type="datetime-local" required></label><label>Time zone *<select name="time_zone" required>'+zoneOptions+'</select></label><div class="wide tournament-note">Your Nook username will be shown as the host. Players can message you directly on Nook to ask questions or coordinate.</div><div class="wide modalbar"><button type="button" class="secondary" id="tournamentCancel">Cancel</button><button type="submit" class="primary">Publish schedule</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#tournamentCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{
+        e.preventDefault();const f=new FormData(e.currentTarget),zone=String(f.get('time_zone')||''),start=tournamentLocalToUtc(f.get('local_start'),zone),game=String(f.get('game_title')||'').trim(),username=String(f.get('game_username')||'').trim();
+        if(!start||!game||!username)return showToast('Complete every field before publishing.');
+        if(new Date(start)<=new Date())return showToast('Choose a future date and time.');
+        const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';
+        const {error}=await db.from('nook_tournaments').insert({host_id:currentUser.id,game_title:game,tournament_at:start,time_zone:zone,game_username:username});
+        if(error){showToast(error.message);btn.disabled=false;btn.textContent='Publish schedule';return;}
+        back.remove();showToast('Your tournament is scheduled on Nook.');nookTournamentView='mine';renderNookTournaments();
+      };
     }
 
     function safeNookJobUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:null;}catch(_){return null;}}
