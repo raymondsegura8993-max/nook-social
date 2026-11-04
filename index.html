@@ -2638,6 +2638,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       await Promise.all([loadAdminAdvancedAnalytics(),loadAdminContent(),loadAdminLive(),loadAdminTeam(),loadAdminSettings(),refreshAdminAudit(),loadAdminCommandCenter(),loadAdminFeatureFlags(),loadAdminSuspensions(),loadAdminWarnings(),loadAdminRolePermissions(),loadAdminRevenue(),loadAdminLoginSecurity()]);
     }
     let activeLiveRoom = null;
+    let activeNookObsIngressId = null;
     let activeLiveStreamId = null;
     let liveRaidChannel = null;
     let activeLiveGuestInviteId = null;
@@ -2708,6 +2709,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(activeLiveAudioContext){activeLiveAudioContext.close().catch(()=>{});activeLiveAudioContext=null;}
     }
     async function connectLiveStream(stream, role) {
+      const isHost=role==='host'||role==='obs_host';
       await disconnectActiveLive();
       const livePanel=document.getElementById('livePersistent');
       if(livePanel){livePanel.hidden=false;livePanel.classList.toggle('is-floating',currentTab!=='Live');}
@@ -2715,7 +2717,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!stage)return;
       stage.innerHTML='<div class="muted">Connecting to live stream…</div>';
       const {data,error}=await db.functions.invoke('nook-live-token',{body:{stream_id:stream.id,role}});
-      if(error||!data?.participant_token){if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);stage.innerHTML='<div class="muted">'+esc(data?.error||error?.message||'Could not get a stream token.')+'</div>';if(role==='host'){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}return;}
+      if(error||!data?.participant_token){if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);stage.innerHTML='<div class="muted">'+esc(data?.error||error?.message||'Could not get a stream token.')+'</div>';if(isHost){if(role==='obs_host')await db.functions.invoke('nook-live-obs',{body:{action:'delete',stream_id:stream.id}});await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}return;}
       try{
         const LK=await import('https://esm.sh/livekit-client@2.23.0');
         const room=new LK.Room({adaptiveStream:true,dynacast:true});activeLiveRoom=room;activeLiveStreamId=stream.id;
@@ -2736,7 +2738,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           const cam=document.createElement('button');cam.className='secondary';cam.textContent='Turn camera off';const videoTrack=tracks.find(track=>track.kind==='video');
           cam.onclick=async()=>{if(!videoTrack)return;if(videoTrack.isMuted){await videoTrack.unmute();cam.textContent='Turn camera off';}else{await videoTrack.mute();cam.textContent='Turn camera on';}};
           controls.append(mic,cam);stage.append(controls);status.textContent='You joined the live with your camera and microphone.';
-        } else if(role==='host'){
+        } else if(isHost){
           const tracks=await LK.createLocalTracks({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,sampleRate:48000,channelCount:1},video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}});
           const microphoneTrack=tracks.find(track=>track.kind==='audio')||null;
           activeLiveInputTrack=microphoneTrack;
@@ -2807,8 +2809,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           }catch(recordError){activeLiveRecorder=null;activeLiveVodPromise=null;showToast('Live is on, but VOD recording could not start: '+recordError.message);}
           status.textContent='You are live. Keep this page open until you press End broadcast so the replay can be saved.';if(livePanel){livePanel.hidden=false;livePanel.classList.toggle('is-floating',currentTab!=='Live');}
         }
-        else if(role==='guest'){} else status.textContent='Watching live: '+stream.title;
-        if(role==='host'){
+        else if(role==='obs_host'){status.textContent='OBS Studio is connected to this Nook live. Start streaming in OBS to send your video and audio.';} else if(role==='guest'){} else status.textContent='Watching live: '+stream.title;
+        if(isHost){
           const invitePanel=document.createElement('section');invitePanel.className='profile-panel';invitePanel.style.marginTop='12px';
           const heading=document.createElement('h3');heading.textContent='👥 Invite people you follow';invitePanel.appendChild(heading);
           const helper=document.createElement('p');helper.className='muted';helper.textContent='Up to 5 people total, including you. Invite up to 4 guests.';invitePanel.appendChild(helper);
@@ -2903,7 +2905,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           const liveName=currentProfile?.username||currentUser.user_metadata?.username||currentUser.email?.split('@')[0]||'member';
           const channel=db.channel('nook-live-'+stream.id,{config:{presence:{key:currentUser.id},broadcast:{self:true}}});
           channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'nook_live_gifts',filter:'live_stream_id=eq.'+stream.id},()=>refreshNookLiveGifts());
-          channel.on('postgres_changes',{event:'*',schema:'public',table:'nook_live_guests',filter:'live_stream_id=eq.'+stream.id},payload=>{if(role==='host'){const refreshButton=[...stage.querySelectorAll('button')].find(button=>button.textContent==='Refresh requests');if(refreshButton)refreshButton.click();}else if(payload.new?.guest_id===currentUser.id&&payload.new?.status==='accepted'){showToast('The host accepted your co-host request. Join with camera when ready.');if(currentTab==='Live')loadLiveList();}});
+          channel.on('postgres_changes',{event:'*',schema:'public',table:'nook_live_guests',filter:'live_stream_id=eq.'+stream.id},payload=>{if(isHost){const refreshButton=[...stage.querySelectorAll('button')].find(button=>button.textContent==='Refresh requests');if(refreshButton)refreshButton.click();}else if(payload.new?.guest_id===currentUser.id&&payload.new?.status==='accepted'){showToast('The host accepted your co-host request. Join with camera when ready.');if(currentTab==='Live')loadLiveList();}});
           activeLiveChannel=channel;
           channel.on('presence',{event:'sync'},()=>{
             const state=channel.presenceState();
@@ -2944,19 +2946,20 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const leave=document.getElementById('leaveLive');
         if(leave){leave.hidden=false;leave.onclick=async()=>{if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);await disconnectActiveLive();stage.innerHTML='<div class="muted">You left the live stream.</div>';status.textContent='';leave.hidden=true;document.getElementById('endLive').hidden=true;};}
         const end=document.getElementById('endLive');
-        if(end){end.hidden=role!=='host';end.onclick=async()=>{
-          end.disabled=true;end.textContent='Saving replay…';
+        if(end){end.hidden=!isHost;end.onclick=async()=>{
+          end.disabled=true;end.textContent=role==='obs_host'?'Ending broadcast…':'Saving replay…';
           const result=await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);
           if(result.error){end.disabled=false;end.textContent='End broadcast';return showToast(result.error.message);}
+          if(role==='obs_host'){const cleanup=await db.functions.invoke('nook-live-obs',{body:{action:'delete',stream_id:stream.id}});if(cleanup.error)console.warn('OBS ingress cleanup failed:',cleanup.error);activeNookObsIngressId=null;}
           if(activeLiveRecorder&&activeLiveRecorder.state!=='inactive'){
             activeLiveRecorder.stop();
             if(activeLiveVodPromise)await activeLiveVodPromise;
           }
           await disconnectActiveLive();
-          stage.innerHTML='<div class="muted">Your live stream has ended. The replay is on your profile if recording succeeded.</div>';
+          stage.innerHTML=role==='obs_host'?'<div class="muted">Your OBS live stream has ended. Any local recording is saved on your computer if you enabled recording in OBS.</div>':'<div class="muted">Your live stream has ended. The replay is on your profile if recording succeeded.</div>';
           status.textContent='';end.hidden=true;document.getElementById('leaveLive').hidden=true;loadLive();
         };}
-      }catch(e){if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';await disconnectActiveLive();if(role==='host'){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}}
+      }catch(e){if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';await disconnectActiveLive();if(isHost){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}}
     }
     async function sendNookLiveGift(giftType,button){
       if(!activeLiveStreamId)return showToast('Join a live stream first.');
@@ -2980,10 +2983,36 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const livePanel=document.getElementById('livePersistent');
       if(!livePanel)return;
       livePanel.hidden=false;
-      if(!document.getElementById('liveStage'))livePanel.innerHTML='<section class="profile-panel"><h2>🔴 Nook Live</h2><p class="muted">Go live with your camera and microphone, or join someone who is broadcasting. Your live stays open while you browse Nook.</p><form id="startLiveForm" class="comment-form"><input id="liveTitle" maxlength="100" placeholder="What are you going live about?" required><button class="primary">＋ Go Live</button></form><div id="liveStatus" class="muted" style="margin:10px 0"></div><div id="liveStage" class="live-stage"><div class="muted">Choose a live stream below or start your own.</div></div><div style="display:flex;gap:8px;margin-top:10px"><button id="leaveLive" class="secondary" hidden>Leave stream</button><button id="endLive" class="secondary" hidden>End broadcast</button></div></section><section class="profile-panel" id="liveCommunity" hidden><div id="liveHostFollow" class="follow-person" style="margin-bottom:12px"></div><div class="live-chat-layout"><div class="live-viewers"><h3 style="margin:0 0 10px">Watching <small id="liveViewerCount" class="muted">0 watching</small></h3><div id="liveViewerList" class="live-viewer-list muted">Waiting for viewers…</div></div><div class="live-chat-box"><h3 style="margin:0 0 10px">Live chat</h3><div id="liveChatMessages" class="live-chat-messages"><div class="muted">Say hello!</div></div><form id="liveChatForm" class="live-chat-form"><input id="liveChatInput" maxlength="300" placeholder="Send a message…" autocomplete="off"><button class="primary">Send</button></form><div class="live-gift-panel"><b>🎁 Send a free gift</b><div class="live-gift-buttons"><button type="button" class="secondary" data-live-gift="heart">💜 Heart</button><button type="button" class="secondary" data-live-gift="star">⭐ Star</button><button type="button" class="secondary" data-live-gift="fire">🔥 Fire</button><button type="button" class="secondary" data-live-gift="party">🎉 Party</button><button type="button" class="secondary" data-live-gift="crown">👑 Crown</button></div><div id="liveGiftFeed" class="live-gift-feed muted">No gifts yet. Send the first one!</div></div></div></div></section><section class="profile-panel" id="liveRaidPanel"><h3>🚀 Live Raids</h3><div id="liveRaidContent" class="muted">Loading live raids…</div><button type="button" class="secondary" id="refreshLiveRaids" style="margin-top:8px">Refresh raids</button></section><section class="profile-panel"><h3>Live now</h3><div id="liveList" class="muted">Checking live streams…</div></section>';
+      if(!document.getElementById('liveStage'))livePanel.innerHTML='<section class="profile-panel"><h2>🔴 Nook Live</h2><p class="muted">Go live with your camera and microphone, or join someone who is broadcasting. Your live stays open while you browse Nook.</p><form id="startLiveForm" class="comment-form"><input id="liveTitle" maxlength="100" placeholder="What are you going live about?" required><select id="liveMethod" aria-label="Streaming method" style="min-width:190px"><option value="camera">Stream from Nook · Camera & mic</option><option value="obs">Stream with OBS Studio</option></select><button class="primary">＋ Go Live</button></form><div id="liveStatus" class="muted" style="margin:10px 0"></div><div id="liveStage" class="live-stage"><div class="muted">Choose a live stream below or start your own.</div></div><div style="display:flex;gap:8px;margin-top:10px"><button id="leaveLive" class="secondary" hidden>Leave stream</button><button id="endLive" class="secondary" hidden>End broadcast</button></div></section><section class="profile-panel" id="liveCommunity" hidden><div id="liveHostFollow" class="follow-person" style="margin-bottom:12px"></div><div class="live-chat-layout"><div class="live-viewers"><h3 style="margin:0 0 10px">Watching <small id="liveViewerCount" class="muted">0 watching</small></h3><div id="liveViewerList" class="live-viewer-list muted">Waiting for viewers…</div></div><div class="live-chat-box"><h3 style="margin:0 0 10px">Live chat</h3><div id="liveChatMessages" class="live-chat-messages"><div class="muted">Say hello!</div></div><form id="liveChatForm" class="live-chat-form"><input id="liveChatInput" maxlength="300" placeholder="Send a message…" autocomplete="off"><button class="primary">Send</button></form><div class="live-gift-panel"><b>🎁 Send a free gift</b><div class="live-gift-buttons"><button type="button" class="secondary" data-live-gift="heart">💜 Heart</button><button type="button" class="secondary" data-live-gift="star">⭐ Star</button><button type="button" class="secondary" data-live-gift="fire">🔥 Fire</button><button type="button" class="secondary" data-live-gift="party">🎉 Party</button><button type="button" class="secondary" data-live-gift="crown">👑 Crown</button></div><div id="liveGiftFeed" class="live-gift-feed muted">No gifts yet. Send the first one!</div></div></div></div></section><section class="profile-panel" id="liveRaidPanel"><h3>🚀 Live Raids</h3><div id="liveRaidContent" class="muted">Loading live raids…</div><button type="button" class="secondary" id="refreshLiveRaids" style="margin-top:8px">Refresh raids</button></section><section class="profile-panel"><h3>Live now</h3><div id="liveList" class="muted">Checking live streams…</div></section>';
       document.querySelectorAll('[data-live-gift]').forEach(button=>{button.onclick=()=>sendNookLiveGift(button.dataset.liveGift,button);});
       const startForm=document.getElementById('startLiveForm');
-      if(startForm)startForm.onsubmit=async e=>{e.preventDefault();if(activeLiveRoom)return showToast('Leave your current live stream first.');const title=document.getElementById('liveTitle').value.trim();if(!title)return;const roomName='nook-'+currentUser.id.slice(0,8)+'-'+crypto.randomUUID();const {data:stream,error}=await db.from('live_streams').insert({host_id:currentUser.id,title,room_name:roomName,status:'live'}).select().single();if(error)return showToast(error.message);await connectLiveStream(stream,'host');const battlePanel=document.getElementById('nookLiveBattlePanel');if(battlePanel)battlePanel.hidden=false;loadLiveList();};
+      if(startForm)startForm.onsubmit=async e=>{e.preventDefault();if(activeLiveRoom)return showToast('Leave your current live stream first.');const title=document.getElementById('liveTitle').value.trim();if(!title)return;const roomName='nook-'+currentUser.id.slice(0,8)+'-'+crypto.randomUUID();const {data:stream,error}=await db.from('live_streams').insert({host_id:currentUser.id,title,room_name:roomName,status:'live'}).select().single();if(error)return showToast(error.message);
+        if(document.getElementById('liveMethod')?.value==='obs'){
+          const obs=await db.functions.invoke('nook-live-obs',{body:{action:'create',stream_id:stream.id}});
+          if(obs.error||!obs.data?.server_url||!obs.data?.stream_key){
+            await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);
+            return showToast(obs.data?.error||obs.error?.message||'Could not prepare OBS streaming.');
+          }
+          activeNookObsIngressId=obs.data.ingress_id||null;
+          await connectLiveStream(stream,'obs_host');
+          const stage=document.getElementById('liveStage');
+          if(stage){
+            const setup=document.createElement('section');setup.className='profile-panel';setup.style.marginTop='12px';
+            const heading=document.createElement('h3');heading.textContent='🎥 Connect OBS Studio';setup.appendChild(heading);
+            const help=document.createElement('p');help.className='muted';help.textContent='In OBS, open Settings → Stream, choose Custom, then paste these details. Click Start Streaming in OBS when ready.';setup.appendChild(help);
+            const serverLabel=document.createElement('label');serverLabel.textContent='Server URL';serverLabel.style.cssText='display:block;font-weight:700;margin:10px 0 5px';
+            const server=document.createElement('input');server.readOnly=true;server.value=obs.data.server_url;server.style.width='100%';serverLabel.appendChild(server);setup.appendChild(serverLabel);
+            const keyLabel=document.createElement('label');keyLabel.textContent='Stream key · Keep this private';keyLabel.style.cssText='display:block;font-weight:700;margin:10px 0 5px';
+            const key=document.createElement('input');key.type='password';key.readOnly=true;key.value=obs.data.stream_key;key.autocomplete='off';key.style.width='100%';keyLabel.appendChild(key);setup.appendChild(keyLabel);
+            const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
+            const showKey=document.createElement('button');showKey.type='button';showKey.className='secondary';showKey.textContent='Show key';showKey.onclick=()=>{key.type=key.type==='password'?'text':'password';showKey.textContent=key.type==='password'?'Show key':'Hide key';};
+            const copyServer=document.createElement('button');copyServer.type='button';copyServer.className='secondary';copyServer.textContent='Copy server';copyServer.onclick=async()=>{try{await navigator.clipboard.writeText(obs.data.server_url);showToast('Server URL copied.');}catch(_){showToast('Copy is unavailable. Select the URL and copy it.');}};
+            const copyKey=document.createElement('button');copyKey.type='button';copyKey.className='secondary';copyKey.textContent='Copy stream key';copyKey.onclick=async()=>{try{await navigator.clipboard.writeText(obs.data.stream_key);showToast('Stream key copied. Keep it private.');}catch(_){showToast('Copy is unavailable. Select the key and copy it.');}};
+            controls.append(showKey,copyServer,copyKey);setup.appendChild(controls);
+            const note=document.createElement('p');note.className='muted';note.style.cssText='font-size:12px;margin-top:12px';note.textContent='Important: OBS streams are not automatically saved as Nook replays yet. If you want a copy, turn on recording in OBS before you start. Never share your stream key.';setup.appendChild(note);stage.appendChild(setup);
+          }
+        }else{await connectLiveStream(stream,'host');}
+        const battlePanel=document.getElementById('nookLiveBattlePanel');if(battlePanel)battlePanel.hidden=false;loadLiveList();};
       await loadLiveList();
       await refreshNookLiveGifts();
       const raidRefresh=document.getElementById('refreshLiveRaids');if(raidRefresh)raidRefresh.onclick=loadLiveRaids;
