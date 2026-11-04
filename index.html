@@ -2738,7 +2738,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           const cam=document.createElement('button');cam.className='secondary';cam.textContent='Turn camera off';const videoTrack=tracks.find(track=>track.kind==='video');
           cam.onclick=async()=>{if(!videoTrack)return;if(videoTrack.isMuted){await videoTrack.unmute();cam.textContent='Turn camera off';}else{await videoTrack.mute();cam.textContent='Turn camera on';}};
           controls.append(mic,cam);stage.append(controls);status.textContent='You joined the live with your camera and microphone.';
-        } else if(isHost){
+        } else if(role==='host'){
           const tracks=await LK.createLocalTracks({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,sampleRate:48000,channelCount:1},video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}});
           const microphoneTrack=tracks.find(track=>track.kind==='audio')||null;
           activeLiveInputTrack=microphoneTrack;
@@ -2959,7 +2959,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
           stage.innerHTML=role==='obs_host'?'<div class="muted">Your OBS live stream has ended. Any local recording is saved on your computer if you enabled recording in OBS.</div>':'<div class="muted">Your live stream has ended. The replay is on your profile if recording succeeded.</div>';
           status.textContent='';end.hidden=true;document.getElementById('leaveLive').hidden=true;loadLive();
         };}
-      }catch(e){if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';await disconnectActiveLive();if(isHost){await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}}
+      }catch(e){if(role==='guest')await db.from('nook_live_guests').update({status:'left'}).eq('live_stream_id',stream.id).eq('guest_id',currentUser.id);stage.innerHTML='<div class="muted">Could not connect: '+esc(e.message||e)+'</div>';await disconnectActiveLive();if(isHost){if(role==='obs_host')await db.functions.invoke('nook-live-obs',{body:{action:'delete',stream_id:stream.id}});await db.from('live_streams').update({status:'ended',ended_at:new Date().toISOString()}).eq('id',stream.id).eq('host_id',currentUser.id);loadLiveList();}}
     }
     async function sendNookLiveGift(giftType,button){
       if(!activeLiveStreamId)return showToast('Join a live stream first.');
