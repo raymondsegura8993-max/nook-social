@@ -431,6 +431,32 @@ main{min-width:0;width:100%;max-width:680px}
   padding:8px 12px;font-size:12.5px;
 }
 #storiesBar{border-radius:16px!important;background:rgba(22,18,30,.76);border:1px solid rgba(161,137,190,.14)!important}
+
+.home-intro{
+  position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;
+  justify-content:space-between;gap:18px;padding:23px 25px;margin:0 0 17px;
+  border:1px solid rgba(166,107,255,.25);border-radius:19px;
+  background:radial-gradient(ellipse at 92% 15%,rgba(142,82,221,.25),transparent 42%),linear-gradient(120deg,#21182e,#17121f 72%);
+  box-shadow:var(--surface-shadow);
+}
+.home-intro-copy{min-width:0;max-width:490px}
+.home-intro-kicker,.feed-heading-kicker{display:block;color:#b99ae7;font-size:9px;font-weight:850;letter-spacing:1.65px}
+.home-intro h2{margin:7px 0 5px;font-size:clamp(21px,3vw,27px);line-height:1.15;letter-spacing:-.8px;font-weight:850}
+.home-intro p{margin:0;color:#bdb2ca;font-size:12.5px;line-height:1.65;max-width:440px}
+.home-intro-mark{width:66px;height:66px;flex:0 0 66px;display:grid;place-items:center;border-radius:20px;border:1px solid rgba(194,158,255,.28);background:linear-gradient(145deg,rgba(160,105,255,.28),rgba(92,54,143,.16));color:#d8c2ff;font-size:34px;font-weight:900;box-shadow:0 12px 35px rgba(0,0,0,.18)}
+.feed-heading{display:flex;align-items:end;justify-content:space-between;margin:23px 2px 8px}
+.feed-heading h2{margin:5px 0 3px;font-size:18px;letter-spacing:-.4px;font-weight:800}
+.feed-heading p{margin:0;color:var(--muted);font-size:11.5px;line-height:1.5}
+.feed-tabs{margin-top:0}
+#storiesBar{min-height:76px}
+@media(max-width:640px){
+ .home-intro{padding:18px 17px;border-radius:16px}
+ .home-intro-mark{width:49px;height:49px;flex-basis:49px;border-radius:15px;font-size:26px}
+ .home-intro p{font-size:11.5px}
+ .feed-heading{margin-top:19px}
+ .feed-heading h2{font-size:16px}
+}
+
 .nook-growth-card{border-radius:17px!important;margin:0 0 18px!important}
 .feed-tabs{
   gap:22px;margin:0 0 17px;padding:0 5px;
@@ -795,6 +821,7 @@ main{min-width:0}
 </aside>
 <main>
 <div class="top"><div><div class="muted">YOUR CORNER OF THE INTERNET</div><h1 id="pageTitle">Home</h1></div><button class="iconbtn" aria-label="Search" id="searchBtn">⌕</button></div>
+<section class="home-intro" aria-label="Welcome to Nook"><div class="home-intro-copy"><span class="home-intro-kicker">YOUR COMMUNITY, YOUR CORNER</span><h2>Make yourself at home.</h2><p>Catch up with creators, share what you are working on, and find conversations worth joining.</p></div><div class="home-intro-mark" aria-hidden="true">N</div></section>
 <section class="composer">
 <div class="compose-row"><div class="avatar">Y</div><button class="compose-input" id="composeOpen">What's happening in your nook?</button></div>
 <div class="compose-actions"><button class="chip" id="photoBtn">▧ Photo</button><button class="chip" id="videoBtn">▷ Video</button><button class="chip" id="pollBtn">▥ Poll</button><button class="chip" id="linkBtn">↗ Link</button></div>
@@ -804,6 +831,7 @@ main{min-width:0}
   <div class="nook-growth-copy"><span class="nook-growth-kicker">GROW THE COMMUNITY</span><h2 id="nookGrowthTitle">Know someone who belongs on Nook?</h2><p>Invite a friend or creator to share, discover, and connect with the community.</p><small id="nookGrowthStatus" role="status">Every new member helps Nook grow.</small></div>
   <div class="nook-growth-actions"><button class="primary" id="nookShareInvite" type="button">↗ Share Nook</button><button class="secondary" id="nookCopyInvite" type="button">Copy website link</button></div>
 </section>
+<div class="feed-heading"><div><span class="feed-heading-kicker">THE NOOK FEED</span><h2>Latest from your community</h2><p>Posts and conversations from around Nook.</p></div></div>
 <div class="feed-tabs"><button class="active" data-feed="For you">For you</button><button data-feed="Following">Following</button><button data-feed="Latest">Latest</button><button data-feed="Hashtags">Hashtags</button><button data-feed="Trending">Trending</button></div>
 <div id="livePersistent" class="live-persistent" hidden></div>
 <div id="feed">
