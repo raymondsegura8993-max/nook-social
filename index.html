@@ -3409,6 +3409,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       };
     }
 
+<script>
     let nookCoachingView='browse';
     let nookCoachingCache=[];
     async function loadNookCoaching(){
@@ -3641,6 +3642,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       };
     }
 
+</script>
     function safeNookJobUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:null;}catch(_){return null;}}
     let nookJobsView='browse';
     let nookJobsCache=[];
