@@ -3781,9 +3781,18 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(profilesRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load creator profiles.</div>';return;}
       const profileMap=new Map((profilesRes.data||[]).filter(p=>!p.is_private).map(p=>[p.id,p])),verified=new Set((verifiedRes.data||[]).map(v=>v.user_id));
       const heading=document.createElement('section');heading.className='profile-panel leaderboard-heading';
-      heading.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h2 style="margin:0">🏆 Creator Leaderboards</h2><p class="muted" style="margin:5px 0 0">Top Nook creators · rolling 7 days</p></div><button class="secondary" id="refreshLeaderboards">↻ Refresh</button></div>';
+      heading.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h2 style="margin:0">🏆 Creator Leaderboards</h2><p class="muted" style="margin:5px 0 0">Top Nook creators · rolling 7 days</p></div><button class="secondary" id="refreshLeaderboards">↻ Refresh</button></div><div style="margin-top:14px"><label for="leaderboardRankSearch" style="display:block;font-size:13px;font-weight:700;margin-bottom:6px">Find your leaderboard place</label><input id="leaderboardRankSearch" type="search" placeholder="Search your name or @username…" autocomplete="off" style="width:100%;box-sizing:border-box"><div id="leaderboardRankResult" class="muted" aria-live="polite" style="margin-top:9px;font-size:13px">Search for a creator to see their Most followers rank.</div></div>';
       feed.replaceChildren(heading);
       document.getElementById('refreshLeaderboards').onclick=loadNookLeaderboards;
+      const followerRanking=[...allTimeFollowerCounts.entries()].map(([id,value])=>({id,value,profile:profileMap.get(id)})).filter(x=>x.profile).sort((a,b)=>b.value-a.value||a.profile.username.localeCompare(b.profile.username));
+      const rankSearch=document.getElementById('leaderboardRankSearch'),rankResult=document.getElementById('leaderboardRankResult');
+      rankSearch.addEventListener('input',()=>{
+        const term=rankSearch.value.trim().replace(/^@/,'').toLowerCase();
+        if(!term){rankResult.textContent='Search for a creator to see their Most followers rank.';return;}
+        const matches=followerRanking.filter(x=>String(x.profile.username||'').toLowerCase().includes(term)||String(x.profile.display_name||'').toLowerCase().includes(term)).slice(0,5);
+        if(!matches.length){rankResult.textContent='No public creator found in the current leaderboard data.';return;}
+        rankResult.innerHTML=matches.map(x=>'<div style="padding:8px 0;border-top:1px solid var(--line)"><strong>#'+(followerRanking.indexOf(x)+1)+' · '+esc(x.profile.display_name||x.profile.username)+'</strong> <span class="muted">@'+esc(x.profile.username)+' · '+x.value+' followers</span></div>').join('');
+      });
       const grid=document.createElement('div');grid.className='leaderboard-grid';
       categories.forEach(category=>{
         const ranked=[...category.map.entries()].map(([id,value])=>({id,value,profile:profileMap.get(id)})).filter(x=>x.profile).sort((a,b)=>b.value-a.value||a.profile.username.localeCompare(b.profile.username)).slice(0,10);
