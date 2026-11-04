@@ -613,6 +613,41 @@ main{min-width:0}
   .nav{background:rgba(14,11,19,.97);backdrop-filter:blur(16px)}
 }
 
+
+/* Compact post controls: reduce the action area without removing any actions. */
+.post-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  max-width:100%;
+  gap:8px;
+  padding-top:10px;
+  margin-top:8px;
+  align-items:center;
+}
+.post-actions .action{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  width:100%;
+  min-height:36px;
+  padding:7px 6px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#191521;
+  color:#c9bfd5;
+  font-size:11px;
+  line-height:1.25;
+  white-space:normal;
+  text-align:center;
+}
+.post-actions .action:hover{background:#281d38;border-color:#7951aa;color:#fff}
+.post-actions .action.liked{color:#d39aff;border-color:#68449b}
+@media(max-width:680px){
+  .post-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .post-actions .action{font-size:10px;min-height:34px;padding:6px 4px}
+}
+
 </style>
 </head>
 <body>
