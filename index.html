@@ -679,6 +679,30 @@ main{min-width:0}
   }
 }
 
+
+/* Micro-sized post action buttons */
+.post-actions{
+  gap:3px 4px;
+  padding-top:5px;
+  margin-top:4px;
+}
+.post-actions .action{
+  min-height:23px;
+  padding:2px 5px;
+  border-radius:6px;
+  font-size:8px;
+  line-height:1.1;
+  letter-spacing:-.1px;
+}
+@media(max-width:680px){
+  .post-actions{gap:3px}
+  .post-actions .action{
+    min-height:22px;
+    padding:2px 4px;
+    font-size:8px;
+  }
+}
+
 </style>
 </head>
 <body>
