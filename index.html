@@ -3608,6 +3608,22 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         db.from('profile_views').select('profile_id',{count:'exact',head:true}).eq('profile_id',currentUser.id)
       ]);
       rewind.innerHTML='<b>📼 Your Nook Rewind</b><div class="follow-stats"><span><b>'+(postsRes.count||0)+'</b> Posts</span><span><b>'+(followersRes.count||0)+'</b> Followers</span><span><b>'+(likesRes.count||0)+'</b> Likes</span><span><b>'+(viewsRes.count||0)+'</b> Profile views</span></div><p class="muted">Your current Nook highlights. Stats update when you open Studio.</p>';
+      const insightCutoff=new Date(Date.now()-7*24*60*60*1000).toISOString();
+      const [recentPostsRes,recentFollowsRes,topLikesRes,premieresRes]=await Promise.all([
+        db.from('posts').select('id,created_at').eq('author_id',currentUser.id).order('created_at',{ascending:false}).limit(200),
+        db.from('follows').select('follower_id',{count:'exact',head:true}).eq('following_id',currentUser.id).gte('created_at',insightCutoff),
+        db.from('post_likes').select('post_id').in('post_id',(await db.from('posts').select('id').eq('author_id',currentUser.id)).data?.map(p=>p.id)||[]).limit(5000),
+        db.from('nook_premieres').select('id,title,starts_at').eq('owner_id',currentUser.id).gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true}).limit(5)
+      ]);
+      const recentPosts=recentPostsRes.data||[],likeCounts={};
+      (topLikesRes.data||[]).forEach(x=>{likeCounts[x.post_id]=(likeCounts[x.post_id]||0)+1;});
+      const topPosts=recentPosts.map(p=>({id:p.id,likes:likeCounts[p.id]||0,created_at:p.created_at})).sort((a,b)=>b.likes-a.likes).slice(0,5);
+      const maxLikes=Math.max(1,...topPosts.map(p=>p.likes));
+      const insight=document.createElement('section');insight.className='profile-panel';insight.id='nookStudioInsights';
+      insight.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><span class="muted" style="font-size:11px;letter-spacing:.08em">CREATOR CONTROL ROOM</span><h2 style="margin:4px 0">📊 Studio Insights</h2><p class="muted" style="margin:0">A quick look at what is working on your profile.</p></div><button class="secondary" id="nookStudioRefresh" type="button">↻ Refresh insights</button></div><div class="follow-stats" style="margin-top:16px"><span><b>'+recentPosts.length+'</b> Recent posts</span><span><b>'+(recentFollowsRes.count||0)+'</b> New followers · 7 days</span><span><b>'+((topLikesRes.data||[]).length)+'</b> Likes on your posts</span><span><b>'+(premieresRes.data||[]).length+'</b> Upcoming premieres</span></div><h3 style="margin:18px 0 8px">🏆 Top posts by likes</h3><div id="nookStudioTopPosts">'+(topPosts.length?topPosts.map((p,i)=>'<div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;margin:10px 0"><b>#'+(i+1)+'</b><div style="height:9px;background:var(--line);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+Math.round(p.likes/maxLikes*100)+'%;background:linear-gradient(90deg,#8b5cf6,#c084fc);border-radius:99px"></div></div><span class="muted">'+p.likes+' likes</span></div>').join(''):'<p class="muted">Publish a few posts to see your top performers here.</p>')+'</div><h3 style="margin:18px 0 8px">🗓️ Upcoming premieres</h3><div>'+(premieresRes.data?.length?premieresRes.data.map(p=>'<div class="notification-item" style="margin:7px 0"><b>'+esc(p.title||'Untitled premiere')+'</b><div class="muted">'+new Date(p.starts_at).toLocaleString()+'</div></div>').join(''):'<p class="muted">No premieres scheduled. Create one in the Premieres tool below.</p>')+'</div><p class="muted" style="font-size:11px;margin-top:12px">Insights use your latest 200 posts and available like records. This is an activity snapshot, not guaranteed reach or unique-view analytics.</p>';
+      rewind.after(insight);
+      document.getElementById('nookStudioRefresh').onclick=loadNookStudio;
+      if(recentPostsRes.error||recentFollowsRes.error||topLikesRes.error||premieresRes.error){const note=document.createElement('p');note.className='muted';note.textContent='Some insight sections could not load. Your Studio tools are still available below.';insight.append(note);}
       const grid=document.getElementById('nookStudioGrid');
       for(const [key,title,desc] of cards){
         const card=document.createElement('section');card.className='profile-panel';
