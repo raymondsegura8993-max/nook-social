@@ -2,32 +2,74 @@
 const $=id=>document.getElementById(id),modal=$('modal'),title=$('postTitle'),desc=$('postDescription'),body=$('postText');
 if(!modal||!title||!desc||!body||$('nookAdvancedStudio'))return;
 const style=document.createElement('style');style.textContent=`
-.nook-enhance{margin:14px 0;padding:14px;border:1px solid #40344f;border-radius:14px;background:#171220;color:#eee}
+.nook-enhance{margin:16px 0;padding:18px;border:1px solid #40344f;border-radius:16px;background:linear-gradient(145deg,#1b1625,#15111d);color:#eee}
 .nook-enhance button,.nook-enhance select,.nook-enhance input{font:inherit}
-.nook-enhance button{border:1px solid #51435f;border-radius:9px;padding:8px 10px;background:#282033;color:#f5efff;cursor:pointer}
+.nook-enhance button{border:1px solid #51435f;border-radius:9px;padding:9px 12px;background:#282033;color:#f5efff;cursor:pointer;transition:background .15s,border-color .15s}
 .nook-enhance button:hover{border-color:#a66bff;background:#38294b}
-.nook-enhance select,.nook-enhance input[type=text],.nook-enhance input[type=color]{background:#211a2c;color:#fff;border:1px solid #51435f;border-radius:8px;padding:8px;max-width:100%}
-.nook-enhance-grid{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-.nook-enhance small{color:#b7a9c6}.nook-advanced-panel[hidden]{display:none!important}
-.nook-enhance label{display:grid;gap:5px;font-size:12px;color:#cfc2dc}
-.nook-sticker-tray{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.nook-sticker-tray button{font-size:21px;padding:5px 9px}
+.nook-enhance select,.nook-enhance input[type=text],.nook-enhance input[type=color]{background:#211a2c;color:#fff;border:1px solid #51435f;border-radius:9px;padding:9px;max-width:100%;min-height:38px}
+.nook-enhance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:11px;align-items:end;margin-top:12px}
+.nook-enhance small{color:#b7a9c6;line-height:1.5}.nook-advanced-panel[hidden]{display:none!important}
+.nook-enhance label{display:grid;gap:6px;font-size:12px;font-weight:650;color:#cfc2dc;min-width:0}
+.nook-enhance .nook-tool-section{margin-top:14px;padding:15px;border:1px solid #382d46;border-radius:13px;background:#191421}
+.nook-enhance .nook-tool-section:first-child{margin-top:14px}
+.nook-enhance .nook-tool-title{font-size:13px;font-weight:800;color:#f2eaff;letter-spacing:.15px}
+.nook-enhance .nook-tool-description{display:block;margin-top:3px;font-size:11px;color:#a99bb9}
+.nook-enhance .nook-tool-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.nook-enhance .nook-tool-actions button{min-height:37px}
+.nook-enhance .nook-sticker-tray{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.nook-enhance .nook-sticker-tray button{font-size:20px;padding:5px 10px;min-width:42px}
 .nook-preview-card.preview-mobile{max-width:360px;margin:auto}
-.nook-photo-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin-top:10px}
+.nook-photo-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-top:12px}
 .nook-photo-tools input{width:100%}.nook-auto-state{font-size:11px;color:#bba9ce}
-`;document.head.appendChild(style);
+@media(max-width:520px){.nook-enhance{padding:13px}.nook-enhance .nook-tool-section{padding:12px}.nook-enhance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nook-enhance label{font-size:11px}}
+`;document.head.appendChild(style);document.head.appendChild(style);
 const panel=document.createElement('section');panel.id='nookAdvancedStudio';panel.className='nook-enhance';panel.innerHTML=`
-<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b>✨ Advanced Editor</b><div><small>Extra creative tools when you want them</small></div></div><button type="button" id="nookAdvancedToggle">Show advanced tools</button></div>
-<div id="nookAdvancedPanel" hidden>
-<div class="nook-enhance-grid"><label>Font style<select id="nookFont"><option value="system">System</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label><label>Text size<select id="nookSize"><option value="small">Small</option><option value="normal" selected>Normal</option><option value="large">Large</option><option value="huge">Extra large</option></select></label><label>Text color<input id="nookColor" type="color" value="#ffffff"></label><label>Highlight<input id="nookHighlight" type="color" value="#8b5cf6"></label><label>Alignment<select id="nookAlign"><option>left</option><option>center</option><option>right</option></select></label></div>
-<div class="nook-enhance-grid"><button type="button" id="nookApplyStyle">Style selected text</button><button type="button" id="nookSpell">Spellcheck: on</button><button type="button" id="nookDivider">Add divider</button><button type="button" id="nookQuote">Quote selected text</button></div>
-<div class="nook-enhance-grid"><label>Post template<select id="nookTemplate"><option value="">Choose a template…</option><option value="gaming">Gaming update</option><option value="announcement">Announcement</option><option value="question">Community question</option><option value="creator">Creator update</option><option value="review">Game review</option></select></label><button type="button" id="nookUseTemplate">Insert template</button><label>Preview<select id="nookPreviewMode"><option value="desktop">Desktop</option><option value="mobile">Mobile</option></select></label></div>
-<div class="nook-enhance-grid"><button type="button" id="nookAddBlock">Add section</button><button type="button" id="nookMoveUp">Move line ↑</button><button type="button" id="nookMoveDown">Move line ↓</button><button type="button" id="nookRemoveBlock">Remove last line</button></div>
-<div style="margin-top:10px"><small>Stickers &amp; reactions</small><div class="nook-sticker-tray" id="nookStickers"></div></div>
-<div class="nook-enhance-grid"><label>Image alt text<input type="text" id="nookAltText" maxlength="250" placeholder="Describe your image for accessibility"></label><span id="nookAutoState" class="nook-auto-state">Autosave on this device</span></div>
-<div id="nookPhotoPanel" hidden style="margin-top:14px;border-top:1px solid #40344f;padding-top:12px"><b>🖼 Photo editor</b><div class="nook-photo-tools">
-<label>Brightness<input id="nookBright" type="range" min="50" max="150" value="100"></label><label>Contrast<input id="nookContrast" type="range" min="50" max="150" value="100"></label><label>Saturation<input id="nookSaturation" type="range" min="0" max="200" value="100"></label><label>Zoom / crop<input id="nookZoom" type="range" min="100" max="180" value="100"></label><label>Rotate<select id="nookRotate"><option value="0">Original</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label><label>Filter<select id="nookFilter"><option value="none">Original</option><option value="sepia">Sepia</option><option value="gray">Black &amp; white</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="vivid">Vivid</option></select></label></div><div class="nook-enhance-grid"><button type="button" id="nookPhotoReset">Reset photo</button><button type="button" id="nookPhotoApply">Apply edits to photo</button></div><small>Applying edits creates a new image. Animated GIFs become a still image.</small></div>
-</div>`;
-const marker=$('mentionSuggestions')||$('mediaFile');marker.parentNode.insertBefore(panel,marker);
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+ <div><b style="font-size:15px">✨ Advanced editor</b><div><small>Optional tools to personalize your post.</small></div></div>
+ <button type="button" id="nookAdvancedToggle">Show tools</button>
+</div>
+<div id="nookAdvancedPanel" class="nook-advanced-panel" hidden>
+ <section class="nook-tool-section">
+  <div class="nook-tool-title">Text appearance</div><small class="nook-tool-description">Choose how selected text looks.</small>
+  <div class="nook-enhance-grid">
+   <label>Font<select id="nookFont"><option value="system">System</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
+   <label>Text size<select id="nookSize"><option value="small">Small</option><option value="normal" selected>Normal</option><option value="large">Large</option><option value="huge">Extra large</option></select></label>
+   <label>Text color<input id="nookColor" type="color" value="#ffffff"></label>
+   <label>Highlight color<input id="nookHighlight" type="color" value="#8b5cf6"></label>
+   <label>Alignment<select id="nookAlign"><option>left</option><option>center</option><option>right</option></select></label>
+  </div>
+  <div class="nook-tool-actions"><button type="button" id="nookApplyStyle">Apply to selected text</button><button type="button" id="nookSpell">Spellcheck: on</button><button type="button" id="nookQuote">Add quote marks</button><button type="button" id="nookDivider">Insert divider</button></div>
+ </section>
+ <section class="nook-tool-section">
+  <div class="nook-tool-title">Post layout</div><small class="nook-tool-description">Start with a template or organize your writing.</small>
+  <div class="nook-enhance-grid">
+   <label>Template<select id="nookTemplate"><option value="">Choose a template…</option><option value="gaming">Gaming update</option><option value="announcement">Announcement</option><option value="question">Community question</option><option value="creator">Creator update</option><option value="review">Game review</option></select></label>
+   <label>Preview size<select id="nookPreviewMode"><option value="desktop">Desktop preview</option><option value="mobile">Mobile preview</option></select></label>
+  </div>
+  <div class="nook-tool-actions"><button type="button" id="nookUseTemplate">Use template</button><button type="button" id="nookAddBlock">Add section</button><button type="button" id="nookMoveUp">Move line ↑</button><button type="button" id="nookMoveDown">Move line ↓</button><button type="button" id="nookRemoveBlock">Remove last line</button></div>
+ </section>
+ <section class="nook-tool-section">
+  <div class="nook-tool-title">Stickers &amp; reactions</div><small class="nook-tool-description">Add a little personality to your post.</small>
+  <div class="nook-sticker-tray" id="nookStickers"></div>
+ </section>
+ <section class="nook-tool-section">
+  <div class="nook-tool-title">Accessibility &amp; autosave</div><small class="nook-tool-description">Describe your image and keep a draft on this device.</small>
+  <div class="nook-enhance-grid"><label>Image description<input type="text" id="nookAltText" maxlength="250" placeholder="Briefly describe your image"></label><span id="nookAutoState" class="nook-auto-state">Autosave on this device</span></div>
+ </section>
+ <section class="nook-tool-section" id="nookPhotoPanel" hidden>
+  <div class="nook-tool-title">Photo editor</div><small class="nook-tool-description">Adjust your selected image before publishing.</small>
+  <div class="nook-photo-tools">
+   <label>Brightness<input id="nookBright" type="range" min="50" max="150" value="100"></label>
+   <label>Contrast<input id="nookContrast" type="range" min="50" max="150" value="100"></label>
+   <label>Saturation<input id="nookSaturation" type="range" min="0" max="200" value="100"></label>
+   <label>Zoom / crop<input id="nookZoom" type="range" min="100" max="180" value="100"></label>
+   <label>Rotate<select id="nookRotate"><option value="0">Original</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label>
+   <label>Filter<select id="nookFilter"><option value="none">Original</option><option value="sepia">Sepia</option><option value="gray">Black &amp; white</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="vivid">Vivid</option></select></label>
+  </div>
+  <div class="nook-tool-actions"><button type="button" id="nookPhotoReset">Reset photo</button><button type="button" id="nookPhotoApply">Apply photo edits</button></div>
+  <small>Applying edits creates a new image. Animated GIFs become a still image.</small>
+ </section>
+</div>`;const marker=$('mentionSuggestions')||$('mediaFile');marker.parentNode.insertBefore(panel,marker);
 const advanced=$('nookAdvancedPanel'),toggle=$('nookAdvancedToggle');
 toggle.onclick=()=>{advanced.hidden=!advanced.hidden;toggle.textContent=advanced.hidden?'Show advanced tools':'Hide advanced tools';};
 const templates={
