@@ -3437,14 +3437,49 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         target.appendChild(row);});
     }
 
+    let activeCommunityVoiceRoom=null;
+    let activeCommunityVoiceTracks=[];
+    async function leaveCommunityVoiceCall(){
+      if(activeCommunityVoiceRoom){const room=activeCommunityVoiceRoom;activeCommunityVoiceRoom=null;try{await room.disconnect();}catch(_){}}
+      activeCommunityVoiceTracks.forEach(track=>{try{track.stop();}catch(_){}});activeCommunityVoiceTracks=[];
+      document.getElementById('nookCommunityVoicePanel')?.remove();
+    }
+    async function joinCommunityVoiceCall(community){
+      if(activeCommunityVoiceRoom)return showToast('You are already in a community voice call.');
+      const {data,error}=await db.functions.invoke('nook-community-call-token',{body:{community_id:community.id}});
+      if(error||!data?.participant_token)return showToast(data?.error||error?.message||'Could not join the community voice call.');
+      const panel=document.createElement('section');panel.id='nookCommunityVoicePanel';panel.className='video-call-panel';
+      panel.innerHTML='<h2 style="margin:0">🔊 '+esc(community.name)+' voice channel</h2><p id="nookCommunityVoiceStatus" class="muted">Connecting…</p><div id="nookCommunityVoicePeople" style="padding:12px;border:1px solid var(--line);border-radius:10px;margin:12px 0">Joining voice…</div><div class="video-call-controls"><button class="secondary" id="nookCommunityVoiceMute">Mute microphone</button><button class="primary" id="nookCommunityVoiceLeave" style="background:#c43b55">Leave voice</button></div>';
+      document.body.appendChild(panel);
+      try{
+        const LK=await import('https://esm.sh/livekit-client@2.23.0');
+        const room=new LK.Room({adaptiveStream:true,dynacast:true});activeCommunityVoiceRoom=room;
+        const people=panel.querySelector('#nookCommunityVoicePeople');
+        const refreshPeople=()=>{const names=[room.localParticipant.name||'You',...Array.from(room.remoteParticipants.values()).map(p=>p.name||'Community member')];people.textContent=names.join(' · ')+' ('+names.length+' in voice)';};
+        room.on(LK.RoomEvent.ParticipantConnected,refreshPeople);
+        room.on(LK.RoomEvent.ParticipantDisconnected,refreshPeople);
+        room.on(LK.RoomEvent.TrackSubscribed,track=>{if(track.kind==='audio'){const audio=track.attach();audio.autoplay=true;audio.style.display='none';panel.appendChild(audio);}});
+        room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
+        await room.connect(data.server_url,data.participant_token);
+        activeCommunityVoiceTracks=await LK.createLocalTracks({audio:true,video:false});
+        for(const track of activeCommunityVoiceTracks)await room.localParticipant.publishTrack(track);
+        panel.querySelector('#nookCommunityVoiceStatus').textContent='Connected — your microphone is on.';
+        let muted=false;
+        panel.querySelector('#nookCommunityVoiceMute').onclick=async()=>{muted=!muted;await room.localParticipant.setMicrophoneEnabled(!muted);panel.querySelector('#nookCommunityVoiceMute').textContent=muted?'Unmute microphone':'Mute microphone';};
+        panel.querySelector('#nookCommunityVoiceLeave').onclick=leaveCommunityVoiceCall;
+        room.on(LK.RoomEvent.Disconnected,()=>{if(activeCommunityVoiceRoom===room)leaveCommunityVoiceCall();});
+        refreshPeople();
+      }catch(e){console.error(e);await leaveCommunityVoiceCall();showToast('Could not join voice. Check microphone permission and try again.');}
+    }
     let communityChatSubscription = null;
     async function openCommunityServer(community) {
       const {data:membership,error:membershipError}=await db.from('community_members').select('role').eq('community_id',community.id).eq('user_id',currentUser.id).maybeSingle();
       if(membershipError||!membership)return showToast('Join this community before opening its server.');
       const isManager=['owner','moderator'].includes(membership.role);
       if(communityChatSubscription){await db.removeChannel(communityChatSubscription);communityChatSubscription=null;}
-      feed.innerHTML='<section class="profile-panel" style="padding:0;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap"><div><button class="secondary" id="communityBack">← Communities</button><h2 style="margin:10px 0 2px">'+esc(community.name)+'</h2><small class="muted">'+esc(community.description||'Your community server')+'</small></div><span class="muted">Your role: '+esc(membership.role)+'</span></div><div id="communityServerLayout" style="display:grid;grid-template-columns:minmax(145px,210px) minmax(0,1fr);min-height:510px"><aside style="padding:14px;background:rgba(12,9,19,.55);border-right:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><b style="font-size:12px;letter-spacing:.08em">TEXT CHANNELS</b><button id="addCommunityChannel" class="secondary" style="padding:4px 8px" '+(isManager?'':'hidden')+'>＋</button></div><div id="communityChannelList" style="display:grid;gap:5px;margin-top:12px"></div><div style="margin-top:24px"><b style="font-size:12px;letter-spacing:.08em">MEMBERS</b><div id="communityMemberList" class="muted" style="font-size:12px;margin-top:9px">Loading…</div></div></aside><section style="display:flex;flex-direction:column;min-width:0;min-height:510px"><div id="communityChatHeader" style="padding:15px;border-bottom:1px solid var(--line)"><b># general</b><p class="muted" style="margin:4px 0 0;font-size:12px">Community conversation</p></div><div id="communityChatMessages" style="flex:1;min-height:330px;max-height:520px;overflow:auto;padding:15px;display:flex;flex-direction:column;gap:12px"><span class="muted">Loading messages…</span></div><form id="communityChatForm" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)"><input id="communityChatInput" class="dm-search" maxlength="2000" placeholder="Message #general" style="margin:0;flex:1;min-width:0"><button class="primary" type="submit">Send</button></form></section></div></section>';
+      feed.innerHTML='<section class="profile-panel" style="padding:0;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap"><div><button class="secondary" id="communityBack">← Communities</button><h2 style="margin:10px 0 2px">'+esc(community.name)+'</h2><small class="muted">'+esc(community.description||'Your community server')+'</small></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="muted">Your role: '+esc(membership.role)+'</span><button id="communityJoinVoice" class="primary" type="button">🔊 Join voice</button></div></div><div id="communityServerLayout" style="display:grid;grid-template-columns:minmax(145px,210px) minmax(0,1fr);min-height:510px"><aside style="padding:14px;background:rgba(12,9,19,.55);border-right:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><b style="font-size:12px;letter-spacing:.08em">TEXT CHANNELS</b><button id="addCommunityChannel" class="secondary" style="padding:4px 8px" '+(isManager?'':'hidden')+'>＋</button></div><div id="communityChannelList" style="display:grid;gap:5px;margin-top:12px"></div><div style="margin-top:24px"><b style="font-size:12px;letter-spacing:.08em">MEMBERS</b><div id="communityMemberList" class="muted" style="font-size:12px;margin-top:9px">Loading…</div></div></aside><section style="display:flex;flex-direction:column;min-width:0;min-height:510px"><div id="communityChatHeader" style="padding:15px;border-bottom:1px solid var(--line)"><b># general</b><p class="muted" style="margin:4px 0 0;font-size:12px">Community conversation</p></div><div id="communityChatMessages" style="flex:1;min-height:330px;max-height:520px;overflow:auto;padding:15px;display:flex;flex-direction:column;gap:12px"><span class="muted">Loading messages…</span></div><form id="communityChatForm" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)"><input id="communityChatInput" class="dm-search" maxlength="2000" placeholder="Message #general" style="margin:0;flex:1;min-width:0"><button class="primary" type="submit">Send</button></form></section></div></section>';
       document.getElementById('communityBack').onclick=()=>loadCommunities();
+      document.getElementById('communityJoinVoice').onclick=()=>joinCommunityVoiceCall(community);
       const channelList=document.getElementById('communityChannelList');
       const messagesBox=document.getElementById('communityChatMessages');
       const header=document.getElementById('communityChatHeader');
@@ -3462,7 +3497,28 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         db.from('profiles').select('id,username,display_name').in('id',(await db.from('community_members').select('user_id').eq('community_id',community.id)).data?.map(x=>x.user_id)||[])
       ]);
       const profileById=Object.fromEntries((profileRows.data||[]).map(p=>[p.id,p]));
-      document.getElementById('communityMemberList').innerHTML=(memberRows.data||[]).map(m=>'<div style="padding:3px 0">• '+esc(profileById[m.user_id]?.display_name||profileById[m.user_id]?.username||'Member')+(m.role!=='member'?' <span style="color:#c49aff">· '+esc(m.role)+'</span>':'')+'</div>').join('')||'No members yet';
+      const {data:callOverrides}=await db.from('community_call_access').select('user_id,can_call').eq('community_id',community.id);
+      const callAccessByUser=Object.fromEntries((callOverrides||[]).map(x=>[x.user_id,x.can_call]));
+      const memberHost=document.getElementById('communityMemberList');memberHost.innerHTML='';
+      (memberRows.data||[]).forEach(m=>{
+        const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;flex-wrap:wrap';
+        const name=document.createElement('span');name.textContent='• '+(profileById[m.user_id]?.display_name||profileById[m.user_id]?.username||'Member')+(m.role!=='member'?' · '+m.role:'');name.style.fontSize='12px';row.appendChild(name);
+        if(isManager&&m.user_id!==currentUser.id){
+          const allowed=callAccessByUser[m.user_id]!==false;
+          const control=document.createElement('button');control.type='button';control.className='secondary';control.style.cssText='padding:4px 7px;font-size:10px';control.textContent=allowed?'Calls allowed':'Calls blocked';
+          control.onclick=async()=>{
+            control.disabled=true;
+            const change=await db.from('community_call_access').upsert({community_id:community.id,user_id:m.user_id,can_call:!allowed,updated_by:currentUser.id},{onConflict:'community_id,user_id'});
+            if(change.error){control.disabled=false;showToast(change.error.message);return;}
+            control.textContent=allowed?'Calls blocked':'Calls allowed';control.disabled=false;callAccessByUser[m.user_id]=!allowed;showToast((allowed?'Removed':'Granted')+' voice-call access.');
+          };
+          row.appendChild(control);
+        }else if(callAccessByUser[m.user_id]===false){
+          const status=document.createElement('small');status.textContent='Calls disabled';status.style.color='#d58b8b';row.appendChild(status);
+        }
+        memberHost.appendChild(row);
+      });
+      if(!(memberRows.data||[]).length)memberHost.textContent='No members yet';
       async function showChannel(channel) {
         if(communityChatSubscription){await db.removeChannel(communityChatSubscription);communityChatSubscription=null;}
         [...channelList.querySelectorAll('button[data-channel]')].forEach(b=>{b.style.background=b.dataset.channel===channel.id?'rgba(151,91,255,.22)':'transparent';b.style.borderColor=b.dataset.channel===channel.id?'#9c70ed':'transparent';});
