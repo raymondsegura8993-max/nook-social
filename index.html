@@ -368,6 +368,7 @@ body.jobs-mode .modal h2{color:#172033}
 <button data-tab="Marketplace"><span class="ico">🛍</span><span class="navlabel">Marketplace</span></button>
 <button data-tab="Nook Tournaments"><span class="ico">🏆</span><span class="navlabel">Tournaments</span></button>
 <button data-tab="Nook Teammates"><span class="ico">🎮</span><span class="navlabel">Find Teammates</span></button>
+<button data-tab="Nook Coaching"><span class="ico">🎓</span><span class="navlabel">Game Coaching</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
@@ -3408,6 +3409,238 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       };
     }
 
+    let nookCoachingView='browse';
+    let nookCoachingCache=[];
+    async function loadNookCoaching(){
+      document.body.classList.remove('jobs-mode');
+      feed.innerHTML='<div class="teammate-shell"><div class="teammate-hero"><div><h3>🎓 Game Coaching</h3><p>Find a coach, compare hourly prices, and message them directly on Nook.</p></div><button class="primary" id="coachingPostTop">＋ Offer coaching</button></div><div class="market-warning"><strong>Payment disclaimer:</strong> Nook does not process, collect, verify, or protect payments. Coaches and students arrange payment directly at their own risk. Nook is not responsible for payment disputes, losses, or scams. Only use payment methods and arrangements you trust.</div><div class="market-tabs"><button class="active" data-coaching-view="browse">Find a coach</button><button data-coaching-view="mine">My offers</button></div><div class="teammate-toolbar"><input id="coachingSearch" type="search" placeholder="Search game titles, e.g. Rocket League…"></div><div id="coachingList" class="teammate-grid"><div class="teammate-empty">Loading coaching offers…</div></div></div>';
+      feed.querySelectorAll('[data-coaching-view]').forEach(b=>b.addEventListener('click',()=>{nookCoachingView=b.dataset.coachingView;feed.querySelectorAll('[data-coaching-view]').forEach(x=>x.classList.toggle('active',x===b));renderNookCoaching();}));
+      document.getElementById('coachingPostTop')?.addEventListener('click',showNookCoachingForm);
+      document.getElementById('coachingSearch')?.addEventListener('input',renderNookCoaching);
+      await renderNookCoaching();
+    }
+    async function renderNookCoaching(){
+      const list=document.getElementById('coachingList');if(!list)return;
+      if(!currentUser){list.innerHTML='<div class="teammate-empty">Sign in to browse or offer game coaching.</div>';return;}
+      let q=db.from('nook_coaching_offers').select('*').order('created_at',{ascending:false}).limit(100);
+      q=nookCoachingView==='mine'?q.eq('host_id',currentUser.id):q.eq('status','open');
+      const {data:items,error}=await q;
+      if(error){list.innerHTML='<div class="teammate-empty">Could not load coaching offers: '+esc(error.message)+'</div>';return;}
+      nookCoachingCache=items||[];
+      const term=(document.getElementById('coachingSearch')?.value||'').trim().toLowerCase();
+      const filtered=nookCoachingCache.filter(x=>!term||x.game_title.toLowerCase().includes(term));
+      if(!filtered.length){list.innerHTML='<div class="teammate-empty">'+(nookCoachingView==='mine'?'You have not posted a coaching offer yet.':'No coaching offers match that game. Be the first to offer coaching!')+'</div>';return;}
+      const ids=[...new Set(filtered.map(x=>x.host_id))];
+      const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',ids);
+      const people=new Map((profiles||[]).map(p=>[p.id,p]));
+      list.innerHTML=filtered.map(item=>{
+        const person=people.get(item.host_id),own=item.host_id===currentUser.id;
+        return '<article class="teammate-card"><h3>'+esc(item.game_title)+'</h3><span class="teammate-mode">{try{const url=new URL(String(value||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:null;}catch(_){return null;}}
+    let nookJobsView='browse';
+    let nookJobsCache=[];
+    function setJobsTab(view){
+      nookJobsView=view;
+      document.querySelectorAll('.jobs-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.jobsView===view));
+      renderNookJobsView();
+    }
+    async function loadNookJobs(){
+      document.body.classList.add('jobs-mode');
+      feed.innerHTML='<div class="jobs-shell"><div class="jobs-hero"><div><h2>Find your next opportunity.</h2><p>Discover work, meet talented people, and grow your career on Nook.</p></div><button class="primary" id="jobsPostTop">＋ Post a job</button></div><div class="jobs-tabs"><button class="active" data-jobs-view="browse">Find jobs</button><button data-jobs-view="mine">My job posts</button><button data-jobs-view="applications">Applications</button></div><div id="jobsViewContent"><div class="jobs-empty">Loading opportunities…</div></div></div>';
+      feed.querySelectorAll('[data-jobs-view]').forEach(b=>b.addEventListener('click',()=>setJobsTab(b.dataset.jobsView)));
+      document.getElementById('jobsPostTop')?.addEventListener('click',showNookJobForm);
+      await renderNookJobsView();
+    }
+    async function renderNookJobsView(){
+      const target=document.getElementById('jobsViewContent');if(!target)return;
+      if(!currentUser){target.innerHTML='<div class="jobs-empty"><strong>Sign in to use Nook Jobs</strong>Sign in to browse, post jobs, or apply.</div>';return;}
+      if(nookJobsView==='applications'){
+        const {data:apps,error}=await db.from('nook_job_applications').select('*').eq('applicant_id',currentUser.id).order('created_at',{ascending:false});
+        if(error){target.innerHTML='<div class="jobs-empty">Could not load your applications: '+esc(error.message)+'</div>';return;}
+        if(!apps?.length){target.innerHTML='<div class="jobs-empty"><strong>No applications yet</strong>When you apply to a job, your applications will appear here.</div>';return;}
+        const ids=[...new Set(apps.map(a=>a.job_id))];const {data:jobs}=await db.from('nook_jobs').select('*').in('id',ids);
+        const map=new Map((jobs||[]).map(j=>[j.id,j]));
+        target.innerHTML='<div class="jobs-list">'+apps.map(a=>{const j=map.get(a.job_id);return '<article class="jobs-application"><b>'+esc(j?.title||'Job no longer available')+'</b><div class="job-company">'+esc(j?.company_name||'')+'</div><p class="jobs-note">Submitted '+new Date(a.created_at).toLocaleDateString()+'</p><span class="jobs-status">'+esc(a.status)+'</span>'+(j?.employer_id&&j.employer_id!==currentUser.id?'<div style="margin-top:12px"><button class="primary" data-job-message="'+esc(j.employer_id)+'">Message employer</button></div>':'')+'</article>';}).join('')+'</div>';target.querySelectorAll('[data-job-message]').forEach(btn=>btn.addEventListener('click',()=>startConversation(btn.dataset.jobMessage)));return;
+      }
+      let query=db.from('nook_jobs').select('*').order('created_at',{ascending:false}).limit(100);
+      query=nookJobsView==='mine'?query.eq('employer_id',currentUser.id):query.eq('status','open').neq('employer_id',currentUser.id);
+      const {data:jobs,error}=await query;
+      if(error){target.innerHTML='<div class="jobs-empty">Could not load jobs: '+esc(error.message)+'</div>';return;}
+      nookJobsCache=jobs||[];
+      if(nookJobsView==='mine'){
+        if(!jobs?.length){target.innerHTML='<div class="jobs-empty"><strong>You haven’t posted a job yet</strong>Post an opportunity to find the right person for the work.</div>';return;}
+        const {data:allApps}=await db.from('nook_job_applications').select('job_id');
+        const counts={};(allApps||[]).forEach(a=>counts[a.job_id]=(counts[a.job_id]||0)+1);
+        target.innerHTML='<div class="jobs-list">'+jobs.map(j=>jobCardHtml(j,true,counts[j.id]||0)).join('')+'</div>';
+      }else{
+        target.innerHTML='<div class="jobs-toolbar"><input id="jobsSearch" placeholder="Search job title, company, or skills…"><select id="jobsType"><option value="">All job types</option>'+['Full-time','Part-time','Contract','Temporary','Internship','Freelance'].map(x=>'<option>'+x+'</option>').join('')+'</select><select id="jobsWorkplace"><option value="">All work settings</option>'+['Remote','Hybrid','On-site'].map(x=>'<option>'+x+'</option>').join('')+'</select></div><div class="jobs-list" id="jobsCards">'+(jobs?.length?jobs.map(j=>jobCardHtml(j,false)).join(''):'<div class="jobs-empty"><strong>No open jobs yet</strong>Be the first to post an opportunity on Nook.</div>')+'</div>';
+        const filter=()=>{const term=(document.getElementById('jobsSearch')?.value||'').toLowerCase(),type=document.getElementById('jobsType')?.value||'',place=document.getElementById('jobsWorkplace')?.value||'';const rows=nookJobsCache.filter(j=>(!term||[j.title,j.company_name,j.description,j.requirements].join(' ').toLowerCase().includes(term))&&(!type||j.employment_type===type)&&(!place||j.workplace_type===place));document.getElementById('jobsCards').innerHTML=rows.length?rows.map(j=>jobCardHtml(j,false)).join(''):'<div class="jobs-empty">No jobs match those filters.</div>';wireJobCardActions();};
+        ['jobsSearch','jobsType','jobsWorkplace'].forEach(id=>document.getElementById(id)?.addEventListener(id==='jobsSearch'?'input':'change',filter));
+      }
+      wireJobCardActions();
+    }
+    function jobCardHtml(j,own=false,count=0){
+      return '<article class="job-card" data-job-id="'+esc(j.id)+'"><div class="job-card-top"><div class="job-company-mark">'+esc((j.company_name||'N').slice(0,1).toUpperCase())+'</div><div style="min-width:0;flex:1"><h3>'+esc(j.title)+'</h3><div class="job-company">'+esc(j.company_name)+' · '+esc(j.location)+'</div></div>'+(own?'<span class="jobs-status">'+esc(j.status)+'</span>':'')+'</div><div class="job-meta"><span class="job-tag">'+esc(j.employment_type)+'</span><span class="job-tag">'+esc(j.workplace_type)+'</span>'+(j.compensation?'<span class="job-tag purple">'+esc(j.compensation)+'</span>':'')+'</div><div class="job-description">'+esc(j.description)+'</div>'+(j.requirements?'<p class="jobs-note"><b>Requirements:</b> '+esc(j.requirements)+'</p>':'')+'<div class="job-card-actions">'+(own?'<button class="secondary" data-job-action="apps" data-id="'+esc(j.id)+'">View applicants ('+count+')</button><button class="secondary" data-job-action="toggle" data-id="'+esc(j.id)+'">'+(j.status==='open'?'Close listing':'Reopen listing')+'</button>':'<button class="primary" data-job-action="apply" data-id="'+esc(j.id)+'">Apply for this job</button>')+(safeNookJobUrl(j.application_url)?'<a class="profile-link" href="'+esc(safeNookJobUrl(j.application_url))+'" target="_blank" rel="noopener noreferrer">External application ↗</a>':'')+'</div><div id="jobApps-'+esc(j.id)+'"></div></article>';
+    }
+    function wireJobCardActions(){
+      feed.querySelectorAll('[data-job-action]').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.addEventListener('click',async()=>{
+        const id=b.dataset.id,action=b.dataset.jobAction;
+        if(action==='apply')return showNookJobApply(id);
+        if(action==='toggle'){const job=nookJobsCache.find(j=>j.id===id);if(!job)return;const {error}=await db.from('nook_jobs').update({status:job.status==='open'?'closed':'open',updated_at:new Date().toISOString()}).eq('id',id);if(error)showToast(error.message);else{showToast('Job listing updated.');await renderNookJobsView();}return;}
+        if(action==='apps')return loadNookJobApplicants(id);
+      });});
+    }
+    function showNookJobForm(){
+      const back=document.createElement('div');back.className='modalback show';back.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="jobsFormTitle"><h2 id="jobsFormTitle">Post a job on Nook</h2><p class="jobs-note">Share a clear opportunity and help the right person find you.</p><form id="nookJobForm" class="jobs-form"><label>Job title *<input name="title" maxlength="120" required placeholder="e.g. Video editor"></label><label>Company or client name *<input name="company_name" maxlength="100" required placeholder="Company / your name"></label><label>Location *<input name="location" maxlength="120" required value="Remote" placeholder="City, State or Remote"></label><label>Employment type *<select name="employment_type" required><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Temporary</option><option>Internship</option><option>Freelance</option></select></label><label>Work setting *<select name="workplace_type"><option>Remote</option><option>Hybrid</option><option>On-site</option></select></label><label>Pay / compensation<input name="compensation" maxlength="100" placeholder="e.g. $20–$25/hour or negotiable"></label><label class="wide">Job description *<textarea name="description" minlength="30" maxlength="10000" required placeholder="Describe the work, responsibilities, and what success looks like."></textarea></label><label class="wide">Skills or requirements<textarea name="requirements" maxlength="5000" placeholder="List experience, skills, or requirements (optional)."></textarea></label><label class="wide">External application link (optional)<input name="application_url" type="url" maxlength="1000" placeholder="https://…"></label><div class="wide jobs-note">Only post legitimate opportunities. Never ask applicants to pay to apply or share passwords, verification codes, or sensitive financial information.</div><div class="wide modalbar"><button type="button" class="secondary" id="jobsCancel">Cancel</button><button type="submit" class="primary">Publish job</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#jobsCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),payload=Object.fromEntries(f.entries());payload.employer_id=currentUser.id;payload.requirements=payload.requirements||null;payload.compensation=payload.compensation||null;payload.application_url=payload.application_url?safeNookJobUrl(payload.application_url):null;if(f.get('application_url')&&!payload.application_url){showToast('Please use a valid http or https application link.');return;}const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';const {error}=await db.from('nook_jobs').insert(payload);if(error){showToast(error.message);btn.disabled=false;btn.textContent='Publish job';return;}back.remove();showToast('Your job is now listed on Nook.');setJobsTab('mine');};
+    }
+    function showNookJobApply(jobId){
+      const job=nookJobsCache.find(j=>j.id===jobId);if(!job)return;
+      const back=document.createElement('div');back.className='modalback show';back.innerHTML='<div class="modal" role="dialog" aria-modal="true"><h2>Apply for '+esc(job.title)+'</h2><p class="jobs-note">'+esc(job.company_name)+' · '+esc(job.location)+'</p><form id="nookJobApplyForm" class="jobs-apply-form"><label>Why are you a good fit? *<textarea name="cover_letter" minlength="20" maxlength="5000" required placeholder="Introduce yourself and explain why you’re interested."></textarea></label><label>Resume or portfolio link (optional)<input name="resume_url" type="url" maxlength="1000" placeholder="https://…"></label><p class="jobs-note">Your application is shared with the person who posted this job. Never include passwords or verification codes.</p><div class="modalbar"><button type="button" class="secondary" id="jobsApplyCancel">Cancel</button><button type="submit" class="primary">Submit application</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#jobsApplyCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),payload={job_id:jobId,applicant_id:currentUser.id,cover_letter:f.get('cover_letter'),resume_url:f.get('resume_url')?safeNookJobUrl(f.get('resume_url')):null};if(f.get('resume_url')&&!payload.resume_url){showToast('Please use a valid http or https resume link.');return;}const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Submitting…';const {error}=await db.from('nook_job_applications').insert(payload);if(error){showToast(error.code==='23505'?'You already applied for this job.':error.message);btn.disabled=false;btn.textContent='Submit application';return;}back.remove();showToast('Application submitted.');};
+    }
+    async function loadNookJobApplicants(jobId){
+      const holder=document.getElementById('jobApps-'+jobId);if(!holder)return;holder.innerHTML='<p class="jobs-note">Loading applicants…</p>';
+      const {data:apps,error}=await db.from('nook_job_applications').select('*').eq('job_id',jobId).order('created_at',{ascending:false});
+      if(error){holder.innerHTML='<p class="jobs-note">Could not load applicants: '+esc(error.message)+'</p>';return;}
+      if(!apps?.length){holder.innerHTML='<p class="jobs-note">No applications yet.</p>';return;}
+      const ids=apps.map(a=>a.applicant_id);const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',ids);const people=new Map((profiles||[]).map(p=>[p.id,p]));
+      holder.innerHTML=apps.map(a=>{const p=people.get(a.applicant_id);return '<div class="jobs-application"><b>'+esc(p?.display_name||p?.username||'Nook member')+'</b> <span class="jobs-status">'+esc(a.status)+'</span><p class="job-description">'+esc(a.cover_letter)+'</p>'+(safeNookJobUrl(a.resume_url)?'<p><a class="profile-link" href="'+esc(safeNookJobUrl(a.resume_url))+'" target="_blank" rel="noopener noreferrer">View resume / portfolio ↗</a></p>':'')+'<div style="margin:10px 0"><button class="primary" data-app-message="'+esc(a.applicant_id)+'">Message applicant</button></div><label class="jobs-note">Update application status <select data-app-status="'+esc(a.id)+'"><option value="submitted" '+(a.status==='submitted'?'selected':'')+'>Submitted</option><option value="reviewing" '+(a.status==='reviewing'?'selected':'')+'>Reviewing</option><option value="shortlisted" '+(a.status==='shortlisted'?'selected':'')+'>Shortlisted</option><option value="declined" '+(a.status==='declined'?'selected':'')+'>Declined</option><option value="hired" '+(a.status==='hired'?'selected':'')+'>Hired</option></select></label></div>';}).join('');holder.querySelectorAll('[data-app-message]').forEach(btn=>btn.addEventListener('click',()=>startConversation(btn.dataset.appMessage)));
+      holder.querySelectorAll('[data-app-status]').forEach(sel=>sel.addEventListener('change',async()=>{const {error}=await db.from('nook_job_applications').update({status:sel.value}).eq('id',sel.dataset.appStatus);if(error)showToast(error.message);else showToast('Application status updated.');}));
+    }
+    async function onTab(tab) {
+      if(tab!=='Nook Jobs')document.body.classList.remove('jobs-mode');
+      currentTab=tab;
+      const livePanel=document.getElementById('livePersistent');
+      if(livePanel){livePanel.hidden=!(tab==='Live'||!!activeLiveRoom);livePanel.classList.toggle('is-floating',tab!=='Live'&&!!activeLiveRoom);}
+      if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
+      if (tab==='Nook Jobs') return loadNookJobs();
+      if (tab==='Marketplace') { nookMarketView='browse';return loadNookMarketplace(); }
+      if (tab==='Nook Tournaments') { nookMarketView='tournaments';return loadNookMarketplace(); }
+      if (tab==='Nook Teammates') return loadNookTeammates();
+      if (tab==='Nook Coaching') return loadNookCoaching();
+      if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
+      if (tab==='Profile') return showProfile();
+      if (tab==='Feedback') return loadFeedback();
+      if (tab==='Settings') return loadSettings();
+      if (tab==='Notifications') return loadNotifications();
+      if (tab==='Messages') return loadMessages();
+      if (tab==='Explore') return loadExplore();
+      if (tab==='Leaderboard') return loadNookLeaderboards();
+      if (tab==='Videos') return loadFilteredPosts('video');
+      if (tab==='Communities') return loadCommunities();
+      if (tab==='Live') return loadLive();
+      if (tab==='Nook Studio') return loadNookStudio();
+      feed.innerHTML='<div class="empty-feed muted">This section is not available yet.</div>';
+    }
+    document.querySelectorAll('.nav button').forEach(button => {
+      button.onclick=()=> {
+        document.querySelectorAll('.nav button').forEach(x=>{x.classList.remove('active');x.removeAttribute('aria-current');});
+        button.classList.add('active');
+        button.setAttribute('aria-current','page');
+        const tab=button.dataset.tab;
+        document.getElementById('pageTitle').textContent=tab;
+        onTab(tab);
+      };
+    });
+    async function authChanged(user) {
+      currentUser=user;
+      if (!user) { currentProfile=null; feed.innerHTML='<div class="empty-feed muted">Sign in to see Nook posts.</div>'; return; }
+      await loadProfile();
+      setProfileMini();
+      await loadDiscoverPeople();
+      await loadFeed();
+      await loadNotificationCount();
+      subscribeToNotifications();
+      const sharedUsername=new URLSearchParams(location.search).get('user');
+      if(sharedUsername){const {data:sharedProfile}=await db.from('profiles').select('id,username').eq('username',sharedUsername.replace(/^@/, '').toLowerCase()).maybeSingle();if(sharedProfile)await openPublicProfile(sharedProfile);else showToast('That profile link could not be found.');}
+    }
+    window.addEventListener('nook-auth',e=>authChanged(e.detail));
+    db.auth.getSession().then(({data})=>authChanged(data.session?.user||null));
+  }
+  waitForClient();
+})();
+</script>
+
+
+<script>
+(()=>{
+ const client=window.nookClient;if(!client)return;
+ const banner=document.getElementById('nookAnnouncementBanner'),message=document.getElementById('nookAnnouncementText'),dismiss=document.getElementById('nookAnnouncementDismiss');
+ if(!banner||!message||!dismiss)return;
+ let dismissedText='';
+ const render=async()=>{const {data,error}=await client.from('nook_public_announcements').select('text,pinned,publish_at').eq('id','current').maybeSingle();if(error){console.warn('Nook announcement could not load:',error.message);return;}const value=data||{},text=String(value.text||'').trim(),scheduled=value.publish_at?new Date(value.publish_at).getTime():0;const visible=!!text&&text!==dismissedText&&(!scheduled||scheduled<=Date.now());message.textContent=text;banner.classList.toggle('show',visible);banner.style.position=value.pinned===true?'sticky':'relative';};
+ dismiss.addEventListener('click',()=>{dismissedText=message.textContent;banner.classList.remove('show');});render();setInterval(render,60000);
+})();
+</script>
+<script src="./live-battles.js"></script>
+
+<script>
+(()=> {
+  const button=document.getElementById('searchBtn');
+  if(!button)return;
+  button.title='Search Nook ( / )';
+  const openSearch=()=>{
+    const exploreButton=document.querySelector('.nav button[data-tab="Explore"]');
+    if(exploreButton)exploreButton.click();
+    requestAnimationFrame(()=>{
+      const input=document.getElementById('exploreSearch');
+      if(input){input.focus();input.scrollIntoView({behavior:'smooth',block:'center'});}
+    });
+  };
+  button.addEventListener('click',openSearch);
+  document.addEventListener('keydown',event=>{
+    const target=event.target;
+    const typing=target&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+    if(event.key==='/'&&!typing&&!event.metaKey&&!event.ctrlKey&&!event.altKey){
+      event.preventDefault();openSearch();
+    }
+  });
+})();
+</script>
+
+
+
+<script>
+(()=>{
+ const siteUrl=location.origin+location.pathname;
+ const status=document.getElementById('nookGrowthStatus');
+ const copy=async()=>{
+  try{await navigator.clipboard.writeText(siteUrl);if(status)status.textContent='Website link copied. Send it to someone who might enjoy Nook!';}
+  catch(_){window.prompt('Copy the Nook website link:',siteUrl);if(status)status.textContent='Copy the link above and share it with a friend.';}
+ };
+ document.getElementById('nookCopyInvite')?.addEventListener('click',copy);
+ document.getElementById('nookShareInvite')?.addEventListener('click',async()=>{
+  const shareData={title:'Nook — Your corner of the internet',text:'Join me on Nook, a place to connect, share, and discover.',url:siteUrl};
+  if(navigator.share){try{await navigator.share(shareData);if(status)status.textContent='Thanks for sharing Nook!';}catch(error){if(error.name!=='AbortError'&&status)status.textContent='Sharing was unavailable. You can copy the website link instead.';}}
+  else await copy();
+ });
+})();
+</script>
+</body>
+</html>+Number(item.price_per_hour).toFixed(2)+' / hour</span><div class="teammate-detail">🎮 In-game username: <b>'+esc(item.game_username)+'</b></div><div class="teammate-detail">'+esc(item.details)+'</div><div class="teammate-detail"><b>Accepted payments:</b> '+esc(item.accepted_payments)+'</div><div class="teammate-detail">Coach · @'+esc(person?.username||'Nook member')+'</div><div class="teammate-actions">'+(own?'<button class="secondary" data-coaching-toggle="'+esc(item.id)+'">'+(item.status==='open'?'Close offer':'Reopen offer')+'</button><button class="secondary" data-coaching-delete="'+esc(item.id)+'">Delete</button>':'<button class="primary" data-coaching-message="'+esc(item.host_id)+'">Message coach</button>')+'</div></article>';
+      }).join('');
+      list.querySelectorAll('[data-coaching-message]').forEach(b=>b.onclick=()=>startConversation(b.dataset.coachingMessage));
+      list.querySelectorAll('[data-coaching-toggle]').forEach(b=>b.onclick=async()=>{const item=nookCoachingCache.find(x=>x.id===b.dataset.coachingToggle);if(!item)return;const {error}=await db.from('nook_coaching_offers').update({status:item.status==='open'?'closed':'open',updated_at:new Date().toISOString()}).eq('id',item.id).eq('host_id',currentUser.id);if(error)showToast(error.message);else{showToast(item.status==='open'?'Your offer is closed.':'Your offer is open again.');renderNookCoaching();}});
+      list.querySelectorAll('[data-coaching-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this coaching offer?'))return;const {error}=await db.from('nook_coaching_offers').delete().eq('id',b.dataset.coachingDelete).eq('host_id',currentUser.id);if(error)showToast(error.message);else{showToast('Coaching offer deleted.');renderNookCoaching();}});
+    }
+    function showNookCoachingForm(){
+      if(!currentUser)return showToast('Sign in to offer game coaching.');
+      const back=document.createElement('div');back.className='modalback show';
+      back.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="coachingFormTitle"><h2 id="coachingFormTitle">Offer game coaching</h2><p class="market-meta">Tell players what you teach, your hourly price, and which payments you accept.</p><form id="nookCoachingForm" class="teammate-form"><label>Game title *<input name="game_title" maxlength="100" required placeholder="e.g. Rocket League"></label><label>Price per hour (USD) *<input name="price_per_hour" type="number" min="0" max="100000" step="0.01" required placeholder="e.g. 15.00"></label><label class="wide">Your username in this game *<input name="game_username" maxlength="60" required placeholder="Your in-game username"></label><label class="wide">Coaching details *<textarea name="details" maxlength="2000" minlength="10" required placeholder="Explain what you teach, your experience, skill level, and what a session includes…"></textarea></label><label class="wide">What payment methods do you accept? *<input name="accepted_payments" maxlength="300" required placeholder="e.g. PayPal, Cash App, Venmo"></label><div class="wide teammate-note">Required: list the payment methods you accept. Nook does not handle payments or resolve payment disputes. You arrange payment directly with the other person at your own risk.</div><div class="wide modalbar"><button type="button" class="secondary" id="coachingCancel">Cancel</button><button type="submit" class="primary">Publish offer</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#coachingCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{
+        e.preventDefault();const f=new FormData(e.currentTarget),price=Number(f.get('price_per_hour'));
+        const payload={host_id:currentUser.id,game_title:String(f.get('game_title')||'').trim(),price_per_hour:price,game_username:String(f.get('game_username')||'').trim(),details:String(f.get('details')||'').trim(),accepted_payments:String(f.get('accepted_payments')||'').trim()};
+        if(!payload.game_title||!payload.game_username||!payload.details||payload.details.length<10||!payload.accepted_payments||!Number.isFinite(price)||price<0)return showToast('Complete every required field with a valid hourly price.');
+        const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';
+        const {error}=await db.from('nook_coaching_offers').insert(payload);
+        if(error){showToast(error.message);btn.disabled=false;btn.textContent='Publish offer';return;}
+        back.remove();showToast('Your coaching offer is live.');nookCoachingView='mine';loadNookCoaching();
+      };
+    }
+
     function safeNookJobUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:null;}catch(_){return null;}}
     let nookJobsView='browse';
     let nookJobsCache=[];
@@ -3492,6 +3725,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Marketplace') { nookMarketView='browse';return loadNookMarketplace(); }
       if (tab==='Nook Tournaments') { nookMarketView='tournaments';return loadNookMarketplace(); }
       if (tab==='Nook Teammates') return loadNookTeammates();
+      if (tab==='Nook Coaching') return loadNookCoaching();
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Feedback') return loadFeedback();
