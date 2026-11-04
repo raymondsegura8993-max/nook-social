@@ -1408,7 +1408,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const postTitle = document.getElementById('postTitle').value.trim();
       const postDescription = document.getElementById('postDescription').value.trim();
       const bodyParts = [postTitle, postDescription, rawContent].filter(Boolean);
-      const content = bodyParts.join('\\n\\n') || (window.nookPollMode ? 'Vote in my poll:' : '');
+      const content = bodyParts.join('\n\n') || (window.nookPollMode ? 'Vote in my poll:' : '');
       const file = window.nookSelectedMediaFile || null;
       const pollOptions = window.nookPollMode ? ['pollOption1','pollOption2','pollOption3','pollOption4'].map(id=>document.getElementById(id).value.trim()).filter(Boolean) : [];
       if (!content && !file) return showToast('Write something or add a photo/video first.');
@@ -1533,7 +1533,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     document.getElementById('publish').onclick = publishPost;
     document.getElementById('saveDraft').onclick=async()=>{
       if(!currentUser)return showToast('Sign in to save drafts.');
-      const content=[document.getElementById('postTitle').value.trim(),document.getElementById('postDescription').value.trim(),document.getElementById('postText').value.trim()].filter(Boolean).join('\\n\\n');
+      const content=[document.getElementById('postTitle').value.trim(),document.getElementById('postDescription').value.trim(),document.getElementById('postText').value.trim()].filter(Boolean).join('\n\n');
       if(!content)return showToast('Write something before saving a draft.');
       const result=await db.from('post_drafts').insert({user_id:currentUser.id,content});
       if(result.error)return showToast(result.error.message);
