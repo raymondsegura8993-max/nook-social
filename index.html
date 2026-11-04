@@ -365,6 +365,7 @@ body.jobs-mode .modal h2{color:#172033}
 <a class="nav-link" href="https://www.tiktok.com/@raymexicanboy" target="_blank" rel="noopener noreferrer"><span class="ico">♪</span><span class="navlabel">TikTok</span><span class="nav-external" aria-hidden="true">↗</span></a>
 <button data-tab="Nook Jobs"><span class="ico">▤</span><span class="navlabel">Nook Jobs</span></button>
 <button data-tab="Marketplace"><span class="ico">🛍</span><span class="navlabel">Marketplace</span></button>
+<button data-tab="Nook Tournaments"><span class="ico">🏆</span><span class="navlabel">Tournaments</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
@@ -3442,7 +3443,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(livePanel){livePanel.hidden=!(tab==='Live'||!!activeLiveRoom);livePanel.classList.toggle('is-floating',tab!=='Live'&&!!activeLiveRoom);}
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
       if (tab==='Nook Jobs') return loadNookJobs();
-      if (tab==='Marketplace') return loadNookMarketplace();
+      if (tab==='Marketplace') { nookMarketView='browse';return loadNookMarketplace(); }
+      if (tab==='Nook Tournaments') { nookMarketView='tournaments';return loadNookMarketplace(); }
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Feedback') return loadFeedback();
