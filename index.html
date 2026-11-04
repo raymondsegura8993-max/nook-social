@@ -343,6 +343,7 @@ body.jobs-mode .modal h2{color:#172033}
 @media(max-width:600px){.market-form{grid-template-columns:1fr}.market-form .wide{grid-column:auto}.market-toolbar select{flex:1}.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.market-image{height:130px}.market-card-body{padding:10px}.market-hero h2{font-size:20px}}
 
  .market-photo-preview{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#100d16}.market-photo-preview[hidden]{display:none}.market-photo-preview img{width:112px;height:112px;object-fit:cover;border-radius:9px}
+.teammate-shell{display:grid;gap:14px}.teammate-hero{padding:20px;border:1px solid #4a3564;border-radius:17px;background:linear-gradient(125deg,#2b1940,#171320 72%);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.teammate-hero h3{margin:0 0 5px;font-size:20px}.teammate-hero p{margin:0;color:#d0c2df;font-size:13px}.teammate-toolbar{display:flex;gap:9px;flex-wrap:wrap}.teammate-toolbar input,.teammate-toolbar select{min-width:0;flex:1;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:11px;color:white}.teammate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:12px}.teammate-card{background:#17131f;border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.teammate-card h3{font-size:17px;margin:0 0 9px;overflow-wrap:anywhere}.teammate-detail{font-size:12px;color:#d7cde2;margin:6px 0;overflow-wrap:anywhere}.teammate-mode{display:inline-block;border:1px solid #68449b;background:#241833;color:#d9baff;border-radius:20px;padding:4px 9px;font-size:11px;font-weight:750}.teammate-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.teammate-form{display:grid;grid-template-columns:1fr 1fr;gap:13px}.teammate-form label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.teammate-form input,.teammate-form select,.teammate-form textarea{min-width:0;width:100%;padding:11px;background:#100d16;color:#fff;border:1px solid var(--line);border-radius:10px}.teammate-form .wide{grid-column:1/-1}.teammate-empty{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted)}@media(max-width:600px){.teammate-form{grid-template-columns:1fr}.teammate-form .wide{grid-column:auto}.teammate-grid{grid-template-columns:1fr}}
 .tournament-shell{display:grid;gap:14px}.tournament-hero{padding:20px;border:1px solid #4a3564;border-radius:17px;background:linear-gradient(125deg,#2b1940,#171320 72%);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.tournament-hero h3{margin:0 0 5px;font-size:20px}.tournament-hero p{margin:0;color:#d0c2df;font-size:13px}.tournament-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:12px}.tournament-card{background:#17131f;border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.tournament-card h3{font-size:17px;margin:0 0 9px;overflow-wrap:anywhere}.tournament-detail{font-size:12px;color:#d7cde2;margin:6px 0;overflow-wrap:anywhere}.tournament-card .tournament-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.tournament-form{display:grid;grid-template-columns:1fr 1fr;gap:13px}.tournament-form label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.tournament-form input,.tournament-form select{min-width:0;width:100%;padding:11px;background:#100d16;color:#fff;border:1px solid var(--line);border-radius:10px}.tournament-form .wide{grid-column:1/-1}.tournament-note{padding:11px 13px;border:1px solid var(--line);border-radius:11px;color:#cfc5dd;font-size:12px}.tournament-empty{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted)}@media(max-width:600px){.tournament-form{grid-template-columns:1fr}.tournament-form .wide{grid-column:auto}.tournament-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -366,6 +367,7 @@ body.jobs-mode .modal h2{color:#172033}
 <button data-tab="Nook Jobs"><span class="ico">▤</span><span class="navlabel">Nook Jobs</span></button>
 <button data-tab="Marketplace"><span class="ico">🛍</span><span class="navlabel">Marketplace</span></button>
 <button data-tab="Nook Tournaments"><span class="ico">🏆</span><span class="navlabel">Tournaments</span></button>
+<button data-tab="Nook Teammates"><span class="ico">🎮</span><span class="navlabel">Find Teammates</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
@@ -3357,6 +3359,55 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       };
     }
 
+    let nookTeammateView='browse';
+    let nookTeammateCache=[];
+    async function loadNookTeammates(){
+      document.body.classList.remove('jobs-mode');
+      feed.innerHTML='<div class="teammate-shell"><div class="teammate-hero"><div><h3>🎮 Find Teammates</h3><p>Search by game and find players looking for Ranked or Standard matches.</p></div><button class="primary" id="teammatePostTop">＋ Find teammates</button></div><div class="market-tabs"><button class="active" data-teammate-view="browse">Find players</button><button data-teammate-view="mine">My posts</button></div><div class="teammate-toolbar"><input id="teammateSearch" type="search" placeholder="Search game titles, e.g. Rocket League…"><select id="teammateModeFilter"><option value="">Ranked &amp; Standard</option><option value="Ranked">Ranked</option><option value="Standard">Standard</option></select></div><div id="teammateList" class="teammate-grid"><div class="teammate-empty">Loading players…</div></div></div>';
+      feed.querySelectorAll('[data-teammate-view]').forEach(b=>b.addEventListener('click',()=>{nookTeammateView=b.dataset.teammateView;feed.querySelectorAll('[data-teammate-view]').forEach(x=>x.classList.toggle('active',x===b));renderNookTeammates();}));
+      document.getElementById('teammatePostTop')?.addEventListener('click',showNookTeammateForm);
+      document.getElementById('teammateSearch')?.addEventListener('input',renderNookTeammates);
+      document.getElementById('teammateModeFilter')?.addEventListener('change',renderNookTeammates);
+      await renderNookTeammates();
+    }
+    async function renderNookTeammates(){
+      const list=document.getElementById('teammateList');if(!list)return;
+      if(!currentUser){list.innerHTML='<div class="teammate-empty">Sign in to find or post teammates.</div>';return;}
+      let q=db.from('nook_teammate_posts').select('*').order('created_at',{ascending:false}).limit(100);
+      q=nookTeammateView==='mine'?q.eq('user_id',currentUser.id):q.eq('status','open');
+      const {data:items,error}=await q;
+      if(error){list.innerHTML='<div class="teammate-empty">Could not load teammate posts: '+esc(error.message)+'</div>';return;}
+      nookTeammateCache=items||[];
+      const term=(document.getElementById('teammateSearch')?.value||'').trim().toLowerCase();
+      const mode=document.getElementById('teammateModeFilter')?.value||'';
+      const filtered=nookTeammateCache.filter(x=>(!term||x.game_title.toLowerCase().includes(term))&&(!mode||x.match_type===mode));
+      if(!filtered.length){list.innerHTML='<div class="teammate-empty">'+(nookTeammateView==='mine'?'You have not posted a teammate request yet.':'No players match that search. Try another game title or be the first to post!')+'</div>';return;}
+      const ids=[...new Set(filtered.map(x=>x.user_id))];
+      const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',ids);
+      const people=new Map((profiles||[]).map(p=>[p.id,p]));
+      list.innerHTML=filtered.map(item=>{
+        const person=people.get(item.user_id),own=item.user_id===currentUser.id;
+        return '<article class="teammate-card"><h3>'+esc(item.game_title)+'</h3><span class="teammate-mode">'+esc(item.match_type)+' matches</span><div class="teammate-detail">🎮 In-game username: <b>'+esc(item.game_username)+'</b></div>'+(item.details?'<div class="teammate-detail">'+esc(item.details)+'</div>':'')+'<div class="teammate-detail">Looking for players · @'+esc(person?.username||'Nook member')+'</div><div class="teammate-actions">'+(own?'<button class="secondary" data-teammate-toggle="'+esc(item.id)+'">'+(item.status==='open'?'Close post':'Reopen post')+'</button><button class="secondary" data-teammate-delete="'+esc(item.id)+'">Delete</button>':'<button class="primary" data-teammate-message="'+esc(item.user_id)+'">Message player</button>')+'</div></article>';
+      }).join('');
+      list.querySelectorAll('[data-teammate-message]').forEach(b=>b.onclick=()=>startConversation(b.dataset.teammateMessage));
+      list.querySelectorAll('[data-teammate-toggle]').forEach(b=>b.onclick=async()=>{const item=nookTeammateCache.find(x=>x.id===b.dataset.teammateToggle);if(!item)return;const {error}=await db.from('nook_teammate_posts').update({status:item.status==='open'?'closed':'open',updated_at:new Date().toISOString()}).eq('id',item.id).eq('user_id',currentUser.id);if(error)showToast(error.message);else{showToast(item.status==='open'?'Your post is now closed.':'Your post is open again.');renderNookTeammates();}});
+      list.querySelectorAll('[data-teammate-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this teammate post?'))return;const {error}=await db.from('nook_teammate_posts').delete().eq('id',b.dataset.teammateDelete).eq('user_id',currentUser.id);if(error)showToast(error.message);else{showToast('Teammate post deleted.');renderNookTeammates();}});
+    }
+    function showNookTeammateForm(){
+      if(!currentUser)return showToast('Sign in to post a teammate request.');
+      const back=document.createElement('div');back.className='modalback show';
+      back.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="teammateFormTitle"><h2 id="teammateFormTitle">Find teammates</h2><p class="market-meta">Tell players which game and match type you want to play.</p><form id="nookTeammateForm" class="teammate-form"><label>Game title *<input name="game_title" maxlength="100" required placeholder="e.g. Rocket League"></label><label>Match type *<select name="match_type" required><option>Ranked</option><option>Standard</option></select></label><label class="wide">Your username in this game *<input name="game_username" maxlength="60" required placeholder="Your in-game username"></label><label class="wide">Extra details (optional)<textarea name="details" maxlength="1000" placeholder="Rank, region, platform, preferred role, or how many teammates you need…"></textarea></label><div class="wide teammate-note">Your Nook username will be shown on the post. Other players can message you directly on Nook.</div><div class="wide modalbar"><button type="button" class="secondary" id="teammateCancel">Cancel</button><button type="submit" class="primary">Publish post</button></div></form></div>';
+      document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)back.remove();});back.querySelector('#teammateCancel').onclick=()=>back.remove();
+      back.querySelector('form').onsubmit=async e=>{
+        e.preventDefault();const f=new FormData(e.currentTarget),payload={user_id:currentUser.id,game_title:String(f.get('game_title')||'').trim(),match_type:f.get('match_type'),game_username:String(f.get('game_username')||'').trim(),details:String(f.get('details')||'').trim()||null};
+        if(!payload.game_title||!payload.game_username)return showToast('Complete the required fields.');
+        const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;btn.textContent='Publishing…';
+        const {error}=await db.from('nook_teammate_posts').insert(payload);
+        if(error){showToast(error.message);btn.disabled=false;btn.textContent='Publish post';return;}
+        back.remove();showToast('Your teammate post is live.');nookTeammateView='mine';loadNookTeammates();
+      };
+    }
+
     function safeNookJobUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:null;}catch(_){return null;}}
     let nookJobsView='browse';
     let nookJobsCache=[];
@@ -3440,6 +3491,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Nook Jobs') return loadNookJobs();
       if (tab==='Marketplace') { nookMarketView='browse';return loadNookMarketplace(); }
       if (tab==='Nook Tournaments') { nookMarketView='tournaments';return loadNookMarketplace(); }
+      if (tab==='Nook Teammates') return loadNookTeammates();
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Feedback') return loadFeedback();
