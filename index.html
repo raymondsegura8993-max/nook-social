@@ -3816,11 +3816,45 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       nookMarketView=view;
       document.querySelectorAll('.market-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.marketView===view));
       if(view==='tournaments')return renderNookTournaments();
+      if(view==='brands')return renderNookBrands();
       renderNookMarketplace();
+    }
+    async function renderNookBrands(){
+      const target=document.getElementById('marketViewContent');if(!target)return;
+      const [brandsRes,profilesRes]=await Promise.all([
+        db.from('nook_brand_promotions').select('*').order('created_at',{ascending:false}).limit(100),
+        db.from('profiles').select('id,username,display_name').limit(1000)
+      ]);
+      if(brandsRes.error){target.innerHTML='<div class="market-empty">Could not load brand promotions: '+esc(brandsRes.error.message)+'</div>';return;}
+      const profiles=new Map((profilesRes.data||[]).map(p=>[p.id,p]));
+      const brands=brandsRes.data||[];
+      target.innerHTML='<div class="market-hero"><div><h2>Promote your brand on Nook</h2><p>Showcase clothing lines, small businesses, creator brands and more.</p></div><button class="primary" id="brandCreate">＋ Promote a brand</button></div><p class="muted" style="font-size:12px">Nook provides a community showcase, not paid advertising or a guarantee of sales. Only share public business contact details.</p><div id="brandFormHost"></div><div class="market-grid" id="brandCards"></div>';
+      const formHost=document.getElementById('brandFormHost');
+      document.getElementById('brandCreate').onclick=()=>{
+        if(!currentUser){showToast('Sign in to promote your brand.');return;}
+        formHost.innerHTML='<section class="profile-panel market-form"><h3>Promote your brand</h3><form id="brandPromotionForm"><label>Brand name<input name="brand_name" maxlength="60" required placeholder="Your clothing brand"></label><label>Category<select name="category"><option>Clothing</option><option>Fashion & accessories</option><option>Gaming</option><option>Art & design</option><option>Beauty</option><option>Technology</option><option>Other</option></select></label><label>Description<textarea name="description" minlength="10" maxlength="1200" required placeholder="Tell the Nook community about your brand…"></textarea></label><label>Website or shop link<input name="website_url" type="url" placeholder="https://…"></label><label>Social handle<input name="social_handle" maxlength="80" placeholder="@yourbrand"></label><label>Logo or brand image URL<input name="logo_url" type="url" placeholder="https://…"></label><div class="record-controls"><button class="primary" type="submit">Publish brand</button><button class="secondary" type="button" id="brandCancel">Cancel</button></div></form></section>';
+        document.getElementById('brandCancel').onclick=()=>formHost.replaceChildren();
+        document.getElementById('brandPromotionForm').onsubmit=async e=>{
+          e.preventDefault();const f=new FormData(e.currentTarget),data=Object.fromEntries(f.entries());
+          for(const k of ['website_url','logo_url'])if(data[k]&&!/^https?:\\/\\//i.test(data[k])){showToast('Links must start with http:// or https://');return;}
+          const {error}=await db.from('nook_brand_promotions').insert({...data,owner_id:currentUser.id});
+          if(error){showToast(error.message);return;}showToast('Your brand is now promoted on Nook!');renderNookBrands();
+        };
+      };
+      const cards=document.getElementById('brandCards');
+      if(!brands.length){cards.innerHTML='<div class="market-empty">No brands promoted yet. Be the first to showcase yours!</div>';return;}
+      cards.innerHTML=brands.map(b=>{
+        const owner=profiles.get(b.owner_id),logo=b.logo_url&&/^https?:\\/\\//i.test(b.logo_url)?'<img src="'+esc(b.logo_url)+'" alt="'+esc(b.brand_name)+' logo" style="width:100%;height:150px;object-fit:contain;background:#100d16">':'<div class="market-image">💜</div>';
+        const link=b.website_url&&/^https?:\\/\\//i.test(b.website_url)?'<a href="'+esc(b.website_url)+'" target="_blank" rel="noopener noreferrer">Visit brand ↗</a>':'';
+        const social=b.social_handle?'<div class="market-meta">'+esc(b.social_handle)+'</div>':'';
+        const manage=b.owner_id===currentUser?.id?'<button class="secondary" data-brand-delete="'+b.id+'">Delete</button>':'';
+        return '<article class="market-card">'+logo+'<div class="market-card-body"><span class="market-meta">'+esc(b.category)+'</span><h3>'+esc(b.brand_name)+'</h3><p class="market-description">'+esc(b.description)+'</p><div class="market-meta">By '+esc(owner?.display_name||owner?.username||'Nook member')+'</div>'+social+'<div class="market-card-actions">'+link+manage+'</div></div></article>';
+      }).join('');
+      cards.querySelectorAll('[data-brand-delete]').forEach(btn=>btn.onclick=async()=>{if(!confirm('Delete this brand promotion?'))return;const {error}=await db.from('nook_brand_promotions').delete().eq('id',btn.dataset.brandDelete).eq('owner_id',currentUser.id);if(error)showToast(error.message);else{showToast('Brand promotion deleted.');renderNookBrands();}});
     }
     async function loadNookMarketplace(){
       document.body.classList.remove('jobs-mode');
-      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Address &amp; Delivery Disclaimer</strong>Buyers and sellers may need to exchange delivery information, arrange package deliveries, or organize an in-person meetup. Nook is not responsible if someone misuses your address or other personal information. If you choose to share your address or arrange a meetup, you do so at your own risk. Nook cannot guarantee your safety or take responsibility for incidents resulting from sharing personal information or meeting other users. Please use caution before sharing your information.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button><button data-market-view="saved">♡ Saved</button><button data-market-view="tournaments">🏆 Nook Tournaments</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
+      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Address &amp; Delivery Disclaimer</strong>Buyers and sellers may need to exchange delivery information, arrange package deliveries, or organize an in-person meetup. Nook is not responsible if someone misuses your address or other personal information. If you choose to share your address or arrange a meetup, you do so at your own risk. Nook cannot guarantee your safety or take responsibility for incidents resulting from sharing personal information or meeting other users. Please use caution before sharing your information.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button><button data-market-view="saved">♡ Saved</button><button data-market-view="brands">🏷 Promote a brand</button><button data-market-view="tournaments">🏆 Nook Tournaments</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
       feed.querySelectorAll('[data-market-view]').forEach(b=>b.addEventListener('click',()=>setMarketTab(b.dataset.marketView)));
       document.getElementById('marketPostTop')?.addEventListener('click',showNookMarketForm);
       await renderNookMarketplace();
