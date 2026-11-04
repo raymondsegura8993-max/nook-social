@@ -733,6 +733,8 @@ main{min-width:0}
 <div class="nav-group-label">YOUR SPACE</div>
 <button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button>
 <button data-tab="Nook Studio"><span class="ico">✦</span><span class="navlabel">Nook Studio</span></button>
+<button data-tab="Nook Live Studio"><span class="ico">🎥</span><span class="navlabel">Nook Live Studio</span></button>
+<button data-tab="Nook Reputation"><span class="ico">⭐</span><span class="navlabel">Nook Reputation</span></button>
 <button data-tab="Feedback"><span class="ico">✎</span><span class="navlabel">Feedback</span></button>
 <button data-tab="Settings"><span class="ico">⚙</span><span class="navlabel">Settings</span></button>
 </nav>
@@ -1957,6 +1959,15 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const level=points>=900?'Nook Legend':points>=600?'Community Regular':points>=300?'Established Member':points>=100?'Active Member':'New Member';
       const bar=Math.min(100,points/10);
       return '<section class="profile-panel" id="nookReputationCard"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">⭐ Nook Reputation</h3><p class="muted" style="margin:4px 0 0">Earned through positive participation and contributions</p></div><div style="text-align:right"><strong style="font-size:28px;color:#c49aff">'+points.toLocaleString()+'</strong><div class="muted" style="font-size:11px">/ 1,000 points</div></div></div><div style="height:8px;background:#292335;border-radius:99px;overflow:hidden;margin:13px 0 8px"><div style="height:100%;width:'+bar+'%;background:linear-gradient(90deg,#7137d8,#c084fc);border-radius:99px"></div></div><b>'+level+'</b><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;margin-top:13px"><div class="notification-item"><b>'+postCount+'</b><small class="muted" style="display:block">Posts</small></div><div class="notification-item"><b>'+commentCount+'</b><small class="muted" style="display:block">Comments</small></div><div class="notification-item"><b>'+achievementCount+'</b><small class="muted" style="display:block">Achievements</small></div><div class="notification-item"><b>'+collabCount+'</b><small class="muted" style="display:block">Accepted collabs</small></div><div class="notification-item"><b>'+communityCount+'</b><small class="muted" style="display:block">Communities</small></div></div><p class="muted" style="font-size:11px;margin:10px 0 0">Points reward profile completion, account age, posts, comments, achievements, collaborations, and community membership. Followers and likes do not increase this score. This is a participation score, not a safety or identity verification guarantee.</p></section>';
+    }
+    async function loadNookReputation(){
+      if(!currentUser)return;
+      if(!currentProfile){await loadProfile();setProfileMini();}
+      if(!currentProfile){feed.innerHTML='<div class="empty-feed muted">Your profile could not load. Please refresh and try again.</div>';return;}
+      feed.innerHTML='<section class="profile-panel"><h2>⭐ Nook Reputation Center</h2><p class="muted">Your reputation grows through real participation, helpful contributions, and community involvement.</p><div id="nookReputationMain" class="muted">Calculating your reputation…</div></section><section class="profile-panel"><h3>📈 How to level up</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px"><div class="notification-item"><b>Complete your profile</b><p class="muted">Add a profile picture, bio, and useful links.</p></div><div class="notification-item"><b>Contribute</b><p class="muted">Publish posts and take part in conversations.</p></div><div class="notification-item"><b>Earn achievements</b><p class="muted">Complete Nook achievements and milestones.</p></div><div class="notification-item"><b>Build with others</b><p class="muted">Join communities and accept creator collaborations.</p></div></div></section><section class="profile-panel"><h3>🏅 Reputation levels</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px"><div class="notification-item"><b>New Member</b><p class="muted">0–99 points</p></div><div class="notification-item"><b>Active Member</b><p class="muted">100–299 points</p></div><div class="notification-item"><b>Established Member</b><p class="muted">300–599 points</p></div><div class="notification-item"><b>Community Regular</b><p class="muted">600–899 points</p></div><div class="notification-item"><b>👑 Nook Legend</b><p class="muted">900–1,000 points</p></div></div></section><section class="profile-panel"><h3>🛡️ Fair reputation rules</h3><p class="muted">Followers and likes do not increase reputation. Repeated or artificial activity should not be used to farm points. Reputation is a participation score, not a safety check, identity check, or guarantee that a member is trustworthy. Moderation decisions are handled separately.</p></section>';
+      const {data:verified}=await db.from('verified_profiles').select('user_id').eq('user_id',currentUser.id).maybeSingle();
+      const holder=document.getElementById('nookReputationMain');
+      if(holder)holder.outerHTML=await reputationCardMarkup(currentUser.id,currentProfile,!!verified);
     }
     async function showProfile() {
       if (!currentUser) { feed.innerHTML='<div class="empty-feed muted">Please sign in to view your profile.</div>'; return; }
@@ -3190,6 +3201,37 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const ids=[...new Set(data.map(g=>g.sender_id))];const {data:people}=await db.from('profiles').select('id,username').in('id',ids);const names=new Map((people||[]).map(p=>[p.id,p.username]));const emoji={heart:'💜',star:'⭐',fire:'🔥',party:'🎉',crown:'👑'};
       target.innerHTML=data.map(g=>'<div>'+emoji[g.gift_type]+' @'+esc(names.get(g.sender_id)||'creator')+' sent a '+esc(g.gift_type)+' gift</div>').join('');
     }
+    async function loadNookLiveStudio(){
+      if(!currentUser)return;
+      feed.innerHTML='<section class="profile-panel"><h2>🎥 Nook Live Studio</h2><p class="muted">Your creator control room for broadcasts, stream performance, and recent activity.</p><div id="nookLiveStudioStats" class="muted">Loading your stream analytics…</div></section><section class="profile-panel"><h3>🎛️ Broadcast controls</h3><p class="muted" id="nookLiveStudioStatus">Checking your broadcast…</p><form id="nookLiveTitleForm" class="comment-form" style="margin-top:10px"><input id="nookLiveStudioTitle" maxlength="100" placeholder="Update your live title"><button class="secondary" type="submit">Update live title</button></form><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="primary" id="nookLiveOpenControls">Open Nook Live controls</button><button class="secondary" id="nookLiveRefreshStudio">Refresh analytics</button></div></section><section class="profile-panel"><h3>🗂️ Recent broadcasts</h3><div id="nookLiveStudioHistory" class="muted">Loading broadcast history…</div></section>';
+      document.getElementById('nookLiveOpenControls').onclick=()=>onTab('Live');
+      document.getElementById('nookLiveRefreshStudio').onclick=loadNookLiveStudio;
+      const [streamsRes,raidRes]=await Promise.all([
+        db.from('live_streams').select('id,title,status,created_at,ended_at').eq('host_id',currentUser.id).order('created_at',{ascending:false}).limit(20),
+        db.from('nook_live_raids').select('id',{count:'exact',head:true}).eq('from_host_id',currentUser.id)
+      ]);
+      const stats=document.getElementById('nookLiveStudioStats');
+      const history=document.getElementById('nookLiveStudioHistory');
+      const status=document.getElementById('nookLiveStudioStatus');
+      const rows=streamsRes.data||[];
+      if(streamsRes.error){if(stats)stats.textContent='Could not load stream analytics: '+streamsRes.error.message;return;}
+      const ids=rows.map(x=>x.id);
+      const giftsRes=ids.length?await db.from('nook_live_gifts').select('id,live_stream_id,gift_type,created_at').in('live_stream_id',ids).limit(2000):{data:[],error:null};
+      if(giftsRes.error){if(stats)stats.textContent='Could not load gift analytics: '+giftsRes.error.message;return;}
+      const gifts=giftsRes.data||[];
+      const totalMinutes=rows.reduce((sum,x)=>{const start=new Date(x.created_at).getTime(),end=x.ended_at?new Date(x.ended_at).getTime():(x.status==='live'?Date.now():start);return sum+Math.max(0,end-start)/60000;},0);
+      const live=rows.find(x=>x.status==='live')||null;
+      const activeId=activeLiveStreamId||live?.id||null;
+      if(stats)stats.innerHTML='<div class="follow-stats"><span><b>'+rows.length+'</b> Broadcasts</span><span><b>'+Math.round(totalMinutes)+'</b> Minutes live</span><span><b>'+gifts.length+'</b> Gifts received</span><span><b>'+(raidRes.count||0)+'</b> Raids sent</span></div><p class="muted">Stats are based on your latest 20 broadcasts and available gift records.</p>';
+      if(status)status.textContent=live?'🔴 You have an active broadcast: '+live.title:'You are not currently broadcasting.';
+      const titleInput=document.getElementById('nookLiveStudioTitle');
+      if(titleInput){titleInput.value=live?.title||'';titleInput.disabled=!live;}
+      const titleForm=document.getElementById('nookLiveTitleForm');
+      if(titleForm)titleForm.onsubmit=async e=>{e.preventDefault();if(!live)return showToast('Start a broadcast before changing its title.');const title=titleInput.value.trim();if(!title)return showToast('Enter a live title.');const {error}=await db.from('live_streams').update({title}).eq('id',live.id).eq('host_id',currentUser.id);if(error)return showToast(error.message);showToast('Live title updated.');loadNookLiveStudio();};
+      if(history)history.innerHTML=rows.length?rows.map(x=>{const count=gifts.filter(g=>g.live_stream_id===x.id).length;const start=new Date(x.created_at),end=x.ended_at?new Date(x.ended_at):(x.status==='live'?new Date():start);const mins=Math.max(0,Math.round((end-start)/60000));return '<div class="notification-item" style="margin:8px 0"><b>'+esc(x.title||'Untitled broadcast')+'</b><div class="muted" style="font-size:12px">'+start.toLocaleString()+' · '+(x.status==='live'?'🔴 Live':esc(x.status))+' · '+mins+' min · '+count+' gifts</div></div>';}).join(''):'No broadcasts yet. Start your first stream from Nook Live.';
+      const open=document.getElementById('nookLiveOpenControls');
+      if(open)open.textContent=activeId?'Open live broadcast controls':'Go to Nook Live';
+    }
     async function loadLive(){
       if(!currentUser)return;
       const livePanel=document.getElementById('livePersistent');
@@ -4002,6 +4044,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Communities') return loadCommunities();
       if (tab==='Live') return loadLive();
       if (tab==='Nook Studio') return loadNookStudio();
+      if (tab==='Nook Live Studio') return loadNookLiveStudio();
+      if (tab==='Nook Reputation') return loadNookReputation();
       feed.innerHTML='<div class="empty-feed muted">This section is not available yet.</div>';
     }
     document.querySelectorAll('.nav button').forEach(button => {
