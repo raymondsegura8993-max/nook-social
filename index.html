@@ -432,6 +432,30 @@ main{min-width:0;width:100%;max-width:680px}
 }
 #storiesBar{border-radius:16px!important;background:rgba(22,18,30,.76);border:1px solid rgba(161,137,190,.14)!important}
 
+
+/* Explore page visual system */
+.explore-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:25px;margin:0 0 15px;border:1px solid rgba(166,107,255,.24);border-radius:19px;background:radial-gradient(ellipse at 90% 10%,rgba(142,82,221,.25),transparent 43%),linear-gradient(120deg,#21182e,#17121f 72%);box-shadow:var(--surface-shadow)}
+.explore-hero>div:first-child{max-width:490px}
+.explore-kicker,.explore-section-label{display:block;color:#b99ae7;font-size:9px;font-weight:850;letter-spacing:1.55px}
+.explore-hero h2{font-size:28px;letter-spacing:-.8px;margin:7px 0 5px;font-weight:850}
+.explore-hero p,.explore-discovery-head p,.explore-section-head p{margin:0;color:#bdb2ca;font-size:12px;line-height:1.65}
+.explore-hero-symbol{width:64px;height:64px;flex:0 0 64px;display:grid;place-items:center;border-radius:19px;border:1px solid rgba(194,158,255,.28);background:rgba(160,105,255,.16);color:#d8c2ff;font-size:38px}
+.explore-search-panel,.explore-hashtags,#nookDiscoveryEngine{padding:19px!important;margin:0 0 15px!important;border:1px solid rgba(161,137,190,.17)!important;border-radius:17px!important;background:linear-gradient(150deg,#191522 0%,#14111b 100%)!important;box-shadow:var(--surface-shadow)}
+.explore-search-panel .dm-search,.explore-hashtags .dm-search{width:100%;margin:9px 0 5px}
+.explore-search-hint,.explore-discovery-note{color:var(--muted);font-size:10.5px;line-height:1.55}
+.explore-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.explore-section-head h3{margin:5px 0 3px;font-size:16px;letter-spacing:-.25px}
+.explore-discovery-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-bottom:17px;border-bottom:1px solid rgba(161,137,190,.15)}
+.explore-discovery-head h2{margin:5px 0;font-size:21px;letter-spacing:-.55px}
+.explore-discovery-head p{max-width:420px}
+.explore-discovery-section{padding:17px 0;border-bottom:1px solid rgba(161,137,190,.12)}
+.explore-discovery-section:last-of-type{border-bottom:0;padding-bottom:8px}
+.explore-discovery-section .follow-person{padding:10px 0}
+.explore-discovery-section .post{margin-top:10px}
+.explore-discovery-note{margin:10px 0 0;padding-top:12px;border-top:1px solid rgba(161,137,190,.12)}
+#exploreResults:empty{display:none}
+@media(max-width:640px){.explore-hero{padding:19px 17px;border-radius:16px}.explore-hero h2{font-size:24px}.explore-hero-symbol{width:49px;height:49px;flex-basis:49px;font-size:29px}.explore-search-panel,.explore-hashtags,#nookDiscoveryEngine{padding:15px!important}.explore-discovery-head h2{font-size:19px}}
+
 .home-intro{
   position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;
   justify-content:space-between;gap:18px;padding:23px 25px;margin:0 0 17px;
@@ -3480,10 +3504,10 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       visiblePosts.forEach(p=>renderPost(p,profiles[p.author_id],mine.has(p.id),counts[p.id]||0,commentCounts[p.id]||0,false));
     }
     async function loadExplore() {
-      feed.innerHTML='<div class="profile-panel"><h2>Explore Nook</h2><p>Find people, posts, and hashtags.</p><section id="hashtagDiscovery" style="margin:12px 0"><h3>Follow hashtags</h3><input id="hashtagSearch" class="dm-search" placeholder="Search or enter a hashtag"><div id="hashtagResults" class="muted">Loading hashtags…</div></section><input id="exploreSearch" class="dm-search" placeholder="Search usernames or posts…" aria-label="Search Nook"><div id="exploreResults" class="muted">Start typing to search.</div></div>';
+      feed.innerHTML='<section class="explore-hero"><div><span class="explore-kicker">DISCOVER SOMETHING NEW</span><h2>Explore Nook</h2><p>Find creators to follow, topics to explore, and conversations you might have missed.</p></div><div class="explore-hero-symbol" aria-hidden="true">⌕</div></section><section class="explore-search-panel"><label class="explore-section-label" for="exploreSearch">SEARCH NOOK</label><input id="exploreSearch" class="dm-search" placeholder="Search creators, usernames, or posts…" aria-label="Search Nook"><div class="explore-search-hint">Try a creator name, a topic, or a keyword.</div><div id="exploreResults" class="muted">Start typing to search.</div></section><section id="hashtagDiscovery" class="profile-panel explore-hashtags"><div class="explore-section-head"><div><span class="explore-section-label">FIND YOUR INTERESTS</span><h3>Explore hashtags</h3><p>Follow topics to shape the conversations you see.</p></div></div><input id="hashtagSearch" class="dm-search" placeholder="Search or enter a hashtag"><div id="hashtagResults" class="muted">Loading hashtags…</div></section>';
       loadHashtagDiscovery();
       const discovery=document.createElement('section');discovery.className='profile-panel';discovery.id='nookDiscoveryEngine';
-      discovery.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><span class="muted" style="font-size:11px;letter-spacing:.08em">PERSONALIZED FOR YOU</span><h2 style="margin:4px 0">✨ Nook Discovery</h2><p class="muted" style="margin:0">Find creators and conversations beyond your usual feed.</p></div><button class="secondary" id="refreshNookDiscovery" type="button">↻ Refresh</button></div><h3 style="margin:18px 0 8px">People to discover</h3><div id="nookSuggestedCreators" class="muted">Finding creators…</div><h3 style="margin:18px 0 8px">Trending topics</h3><div id="nookTrendingTopics" class="muted">Finding topics…</div><h3 style="margin:18px 0 8px">Posts you might like</h3><div id="nookRecommendedPosts" class="muted">Finding posts…</div><p class="muted" style="font-size:11px">Recommendations use recent public activity and your follows. You can still search for any creator or post above.</p>';
+      discovery.innerHTML='<div class="explore-discovery-head"><div><span class="explore-section-label">PERSONALIZED FOR YOU</span><h2>Nook Discovery</h2><p>Fresh creators, popular topics, and posts picked from recent community activity.</p></div><button class="secondary" id="refreshNookDiscovery" type="button">↻ Refresh</button></div><section class="explore-discovery-section"><div class="explore-section-head"><div><span class="explore-section-label">MEET THE COMMUNITY</span><h3>Creators to discover</h3></div></div><div id="nookSuggestedCreators" class="muted">Finding creators…</div></section><section class="explore-discovery-section"><div class="explore-section-head"><div><span class="explore-section-label">WHAT PEOPLE ARE TALKING ABOUT</span><h3>Trending topics</h3></div></div><div id="nookTrendingTopics" class="muted">Finding topics…</div></section><section class="explore-discovery-section"><div class="explore-section-head"><div><span class="explore-section-label">HANDPICKED FOR YOU</span><h3>Posts you might like</h3></div></div><div id="nookRecommendedPosts" class="muted">Finding posts…</div></section><p class="explore-discovery-note">Recommendations are based on recent public activity and your follows. Search above to find any creator or post.</p>';
       document.getElementById('exploreSearch').parentElement.prepend(discovery);
       document.getElementById('refreshNookDiscovery').onclick=loadNookDiscoveryRecommendations;
       loadNookDiscoveryRecommendations();
