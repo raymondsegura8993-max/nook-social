@@ -369,6 +369,7 @@ body.jobs-mode .modal h2{color:#172033}
 <button data-tab="Nook Tournaments"><span class="ico">🏆</span><span class="navlabel">Tournaments</span></button>
 <button data-tab="Nook Teammates"><span class="ico">🎮</span><span class="navlabel">Find Teammates</span></button>
 <button data-tab="Game Coaching"><span class="ico">🎓</span><span class="navlabel">Game Coaching</span></button>
+<button data-tab="Clan Tryouts"><span class="ico">🛡</span><span class="navlabel">Clan Tryouts</span></button>
 <button data-tab="Messages"><span class="ico">✉</span><span class="navlabel">Messages</span></button>
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
@@ -3495,6 +3496,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if (tab==='Nook Tournaments') { nookMarketView='tournaments';return loadNookMarketplace(); }
       if (tab==='Nook Teammates') return loadNookTeammates();
       if (tab==='Game Coaching') { window.dispatchEvent(new Event('nook-open-coaching')); return; }
+      if (tab==='Clan Tryouts') { window.dispatchEvent(new Event('nook-open-clan-tryouts')); return; }
       if (tab==='Home') { currentFeed='For you';document.querySelectorAll('.feed-tabs button').forEach(item=>item.classList.toggle('active',item.dataset.feed==='For you'));return loadFeed(); }
       if (tab==='Profile') return showProfile();
       if (tab==='Feedback') return loadFeedback();
@@ -3594,5 +3596,6 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 })();
 </script>
 <script src="./game-coaching.js"></script>
+<script src="./clan-tryouts.js"></script>
 </body>
 </html>
