@@ -532,6 +532,87 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
   .feed-tabs{gap:14px}
 }
 
+
+/* Nook TikTok-inspired responsive shell — presentation-only overrides.
+   Existing routes, forms, data, and feature scripts remain untouched. */
+:root{
+  --bg:#09080e;--panel:#15121c;--panel2:#1d1827;--line:#30283b;
+  --text:#fbf9ff;--muted:#aaa1b8;--purple:#a56aff;--purple2:#7139d6;
+}
+html{scroll-behavior:smooth}
+body{background:#09080e}
+.app{
+  max-width:1560px;
+  grid-template-columns:220px minmax(0, min(620px, 1fr)) 280px;
+  gap:34px;padding:18px 28px;justify-content:center;
+}
+.sidebar{top:16px;height:calc(100vh - 32px)}
+.right{top:16px;height:calc(100vh - 32px)}
+.brand{font-size:27px;margin:5px 0 27px}
+.mark{border-radius:11px}
+.nav{gap:5px}
+.nav button{border-radius:12px;padding:11px 13px;font-size:14px}
+.nav button.active{background:#261b38;box-shadow:inset 3px 0 0 var(--purple)}
+.nav button:hover{background:#211a2c}
+.newpost{border-radius:999px;padding:13px 18px}
+main{min-width:0}
+.top{position:sticky;top:0;z-index:3;padding:12px 0 14px;margin:0 0 15px;background:linear-gradient(#09080e 82%,transparent)}
+.top h1{font-size:24px}
+.feed-tabs{position:sticky;top:58px;z-index:2;background:#09080e;padding:0 10px;margin-bottom:18px;justify-content:center;gap:34px}
+.feed-tabs button{font-size:14px;font-weight:650}
+.composer{border-radius:16px;background:#15121c;padding:14px;margin-bottom:18px}
+.compose-input{border-radius:999px;background:#211b2a}
+.compose-actions{margin-left:52px}
+.chip{border-radius:999px}
+.post{
+  position:relative;border-radius:18px;background:#121018;
+  padding:16px;margin:0 auto 20px;max-width:590px;
+  box-shadow:0 10px 32px #0003;
+}
+.posthead{gap:10px}
+.post p{font-size:14px}
+.post-media{
+  width:min(100%,390px);aspect-ratio:9/16;min-height:0;
+  max-height:min(72vh,720px);margin:14px auto;
+  overflow:hidden;border-radius:14px;padding:0;
+}
+.post-media strong{font-size:22px}
+.post-attachment{
+  max-height:min(72vh,720px);max-width:100%;
+  border-radius:14px;
+}
+.post-attachment.video{
+  display:block;width:min(100%,390px);height:auto;
+  max-height:min(72vh,720px);aspect-ratio:9/16;
+  object-fit:contain;margin:14px auto;
+}
+.post-actions{max-width:390px;margin:8px auto 0;gap:18px}
+.post-actions .action{font-size:13px}
+.right h3{font-size:14px}
+.welcome,.trend{border-radius:16px;background:#15121c}
+.welcome{background:linear-gradient(145deg,#2b1b43,#17131f)}
+.suggest{padding:3px 0}
+.foot{line-height:1.8}
+.modal{border-radius:18px}
+@media(min-width:681px){
+  .app{align-items:start}
+  main{padding-bottom:36px}
+}
+@media(max-width:1050px){
+  .app{grid-template-columns:205px minmax(0,650px);gap:22px;padding:16px 20px}
+}
+@media(max-width:680px){
+  .app{display:block;padding:12px 10px calc(88px + env(safe-area-inset-bottom))}
+  .sidebar{height:auto}
+  .brand{font-size:24px;margin:0 0 12px}
+  .top{top:0;padding:10px 0 12px}
+  .feed-tabs{top:54px;gap:24px}
+  .post{padding:13px;margin-bottom:15px}
+  .post-media,.post-attachment.video{width:min(100%,420px);max-height:72vh}
+  .post-actions{justify-content:space-around;gap:10px}
+  .nav{background:rgba(14,11,19,.97);backdrop-filter:blur(16px)}
+}
+
 </style>
 </head>
 <body>
