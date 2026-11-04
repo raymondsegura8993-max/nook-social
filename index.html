@@ -3403,6 +3403,11 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     async function loadExplore() {
       feed.innerHTML='<div class="profile-panel"><h2>Explore Nook</h2><p>Find people, posts, and hashtags.</p><section id="hashtagDiscovery" style="margin:12px 0"><h3>Follow hashtags</h3><input id="hashtagSearch" class="dm-search" placeholder="Search or enter a hashtag"><div id="hashtagResults" class="muted">Loading hashtags…</div></section><input id="exploreSearch" class="dm-search" placeholder="Search usernames or posts…" aria-label="Search Nook"><div id="exploreResults" class="muted">Start typing to search.</div></div>';
       loadHashtagDiscovery();
+      const discovery=document.createElement('section');discovery.className='profile-panel';discovery.id='nookDiscoveryEngine';
+      discovery.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><span class="muted" style="font-size:11px;letter-spacing:.08em">PERSONALIZED FOR YOU</span><h2 style="margin:4px 0">✨ Nook Discovery</h2><p class="muted" style="margin:0">Find creators and conversations beyond your usual feed.</p></div><button class="secondary" id="refreshNookDiscovery" type="button">↻ Refresh</button></div><h3 style="margin:18px 0 8px">People to discover</h3><div id="nookSuggestedCreators" class="muted">Finding creators…</div><h3 style="margin:18px 0 8px">Trending topics</h3><div id="nookTrendingTopics" class="muted">Finding topics…</div><h3 style="margin:18px 0 8px">Posts you might like</h3><div id="nookRecommendedPosts" class="muted">Finding posts…</div><p class="muted" style="font-size:11px">Recommendations use recent public activity and your follows. You can still search for any creator or post above.</p>';
+      document.getElementById('exploreSearch').parentElement.prepend(discovery);
+      document.getElementById('refreshNookDiscovery').onclick=loadNookDiscoveryRecommendations;
+      loadNookDiscoveryRecommendations();
       const input=document.getElementById('exploreSearch'),results=document.getElementById('exploreResults');
       let timer;
       input.addEventListener('input',()=>{
@@ -3439,6 +3444,33 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         },250);
       });
       input.focus();
+    }
+    async function loadNookDiscoveryRecommendations(){
+      const peopleBox=document.getElementById('nookSuggestedCreators'),topicsBox=document.getElementById('nookTrendingTopics'),postsBox=document.getElementById('nookRecommendedPosts');
+      if(!peopleBox||!topicsBox||!postsBox)return;
+      peopleBox.textContent='Finding creators…';topicsBox.textContent='Finding topics…';postsBox.textContent='Finding posts…';
+      const [followsRes,postsRes]=await Promise.all([
+        db.from('follows').select('following_id').eq('follower_id',currentUser.id).limit(2000),
+        db.from('posts').select('id,author_id,content,media_url,media_type,created_at,view_count').order('created_at',{ascending:false}).limit(120)
+      ]);
+      if(followsRes.error||postsRes.error){peopleBox.textContent='Recommendations are temporarily unavailable.';topicsBox.textContent='Try refreshing later.';postsBox.textContent='Try refreshing later.';return;}
+      const followed=new Set([currentUser.id,...(followsRes.data||[]).map(x=>x.following_id)]);
+      const posts=postsRes.data||[],authorIds=[...new Set(posts.map(p=>p.author_id).filter(id=>!followed.has(id)))];
+      const profileRes=authorIds.length?await db.from('profiles').select('id,username,display_name,avatar_url').in('id',authorIds):{data:[],error:null};
+      const profiles=new Map((profileRes.data||[]).map(p=>[p.id,p]));
+      const creatorStats=new Map();
+      posts.forEach(p=>{if(followed.has(p.author_id))return;const x=creatorStats.get(p.author_id)||{posts:0,latest:p.created_at};x.posts++;if(new Date(p.created_at)>new Date(x.latest))x.latest=p.created_at;creatorStats.set(p.author_id,x);});
+      const creators=[...creatorStats.entries()].map(([id,x])=>({id,...x,profile:profiles.get(id)})).filter(x=>x.profile).sort((a,b)=>b.posts-a.posts||new Date(b.latest)-new Date(a.latest)).slice(0,6);
+      peopleBox.innerHTML='';
+      if(!creators.length)peopleBox.textContent='More creators will appear as the community publishes posts.';
+      creators.forEach(x=>{const row=document.createElement('div');row.className='follow-person';row.style.margin='8px 0';row.innerHTML='<div class="avatar small">'+(x.profile.avatar_url?'<img src="'+esc(x.profile.avatar_url)+'" alt="">':esc(initials(x.profile.display_name||x.profile.username)))+'</div><div class="info"><b>'+esc(x.profile.display_name||x.profile.username)+'</b><small>@'+esc(x.profile.username)+' · '+x.posts+' recent posts</small></div>';const b=document.createElement('button');b.className='follow';b.textContent='Follow';b.onclick=async()=>{await toggleFollow(x.id);b.textContent=currentFollowing.has(x.id)?'Following':'Follow';};row.append(b);peopleBox.append(row);});
+      const topicCounts=new Map();posts.forEach(p=>{const matches=String(p.content||'').match(/#[\p{L}\p{N}_]{2,30}/gu)||[];matches.forEach(tag=>{const t=tag.toLowerCase();topicCounts.set(t,(topicCounts.get(t)||0)+1);});});
+      const topics=[...topicCounts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8);topicsBox.innerHTML='';
+      if(!topics.length)topicsBox.textContent='Trending hashtags will appear as people add topics to posts.';
+      topics.forEach(([tag,count])=>{const b=document.createElement('button');b.className='chip';b.style.margin='3px';b.textContent=tag+' · '+count;b.onclick=()=>{const input=document.getElementById('exploreSearch');if(input){input.value=tag;input.dispatchEvent(new Event('input'));}};topicsBox.append(b);});
+      const recommended=posts.filter(p=>!followed.has(p.author_id)).slice(0,5);postsBox.innerHTML='';
+      if(!recommended.length)postsBox.textContent='No recommendations yet. Check back when more public posts are available.';
+      recommended.forEach(p=>{const holder=document.createElement('div');holder.style.margin='12px 0';renderPost(p,profiles.get(p.author_id),false,0,0,false,holder);postsBox.append(holder);});
     }
     async function loadSavedPosts() {
       if(!currentUser)return;
@@ -3506,6 +3538,24 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       const max=Math.max(1,...counts);
       days.forEach((d,i)=>{const col=document.createElement('div');col.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%;gap:6px';const value=document.createElement('small');value.className='muted';value.textContent=String(counts[i]);const bar=document.createElement('div');bar.style.cssText='width:100%;max-width:34px;height:'+Math.max(5,counts[i]/max*100)+'px;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#c084fc,#7137d8)';const label=document.createElement('small');label.className='muted';label.textContent=d.toLocaleDateString(undefined,{weekday:'short'});col.append(value,bar,label);bars.appendChild(col);});
       const note=document.createElement('p');note.className='muted';note.style.fontSize='12px';note.textContent='Views use the view counts currently stored on your posts. This page does not estimate reach or unique viewers.';trend.appendChild(note);
+      const [engagementLikes,engagementComments]=await Promise.all([
+        ids.length?db.from('post_likes').select('post_id,created_at').in('post_id',ids).limit(10000):{data:[],error:null},
+        ids.length?db.from('post_comments').select('post_id,created_at').in('post_id',ids).limit(10000):{data:[],error:null}
+      ]);
+      const likeRows=engagementLikes.data||[],commentRows=engagementComments.data||[],interactionCounts=new Map();
+      likeRows.concat(commentRows).forEach(x=>interactionCounts.set(x.post_id,(interactionCounts.get(x.post_id)||0)+1));
+      const totalInteractions=likeRows.length+commentRows.length,totalViews=views,engagementRate=totalViews>0?(totalInteractions/totalViews*100):null;
+      const weekStart=Date.now()-7*86400000,previousStart=Date.now()-14*86400000;
+      const thisWeek=posts.filter(p=>new Date(p.created_at).getTime()>=weekStart).length,previousWeek=posts.filter(p=>{const t=new Date(p.created_at).getTime();return t>=previousStart&&t<weekStart;}).length;
+      const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],dayCounts=Array(7).fill(0);posts.forEach(p=>{const t=new Date(p.created_at).getTime();if(t>=Date.now()-30*86400000)dayCounts[new Date(p.created_at).getDay()]++;});
+      const bestDay=Math.max(...dayCounts)>0?dayNames[dayCounts.indexOf(Math.max(...dayCounts))]:'Not enough data';
+      const bestPosts=posts.map(p=>({post:p,interactions:interactionCounts.get(p.id)||0})).sort((a,b)=>b.interactions-a.interactions).slice(0,5);
+      const advanced=document.createElement('section');advanced.className='profile-panel';advanced.innerHTML='<h3>🚀 Advanced performance</h3><div class="follow-stats"><span><b>'+(engagementRate===null?'—':engagementRate.toFixed(1)+'%')+'</b> Interactions / views</span><span><b>'+thisWeek+'</b> Posts · this week</span><span><b>'+previousWeek+'</b> Posts · previous week</span><span><b>'+bestDay+'</b> Most active posting day · 30 days</span></div><p class="muted" style="font-size:11px">Engagement rate is likes + comments divided by recorded post views. It is unavailable until views are recorded. Posting-day insights use your latest 1,000 posts.</p><h3 style="margin-top:18px">Top posts by interactions</h3><div id="creatorAnalyticsTopPosts"></div>';
+      const topBox=advanced.querySelector('#creatorAnalyticsTopPosts');
+      if(!bestPosts.length)topBox.textContent='Publish posts to build your performance ranking.';
+      bestPosts.forEach((x,i)=>{const row=document.createElement('div');row.className='notification-item';row.style.margin='7px 0';const title=document.createElement('b');title.textContent='#'+(i+1)+' · '+String(x.post.content||'Media post').slice(0,90);const detail=document.createElement('div');detail.className='muted';detail.textContent=x.interactions+' interactions · '+(Number(x.post.view_count)||0)+' views';row.append(title,detail);topBox.append(row);});
+      trend.after(advanced);
+      if(engagementLikes.error||engagementComments.error){const warning=document.createElement('p');warning.className='muted';warning.textContent='Some engagement details could not be loaded.';advanced.append(warning);}
     }
     async function loadNookBattles(){
       feed.innerHTML='<div class="profile-panel"><button class="secondary" id="battlesBack">← Back to Studio</button><h2 style="margin-top:14px">🏁 Nook Battles</h2><p class="muted">Create friendly community challenges and let other members enter.</p><form id="battleCreateForm" style="display:grid;gap:9px;margin-top:14px"><input name="title" type="text" minlength="3" maxlength="100" required placeholder="Battle title (3–100 characters)" class="dm-search" style="margin:0"><textarea name="details" maxlength="2000" placeholder="Rules or details (optional)" class="dm-search" style="min-height:85px;margin:0"></textarea><label class="muted" style="font-size:12px">Entry deadline (optional)<input name="ends_at" type="datetime-local" class="dm-search" style="margin:5px 0 0"></label><button class="primary" type="submit">Create battle</button></form><div id="nookBattlesList" style="margin-top:18px">Loading battles…</div></div>';
