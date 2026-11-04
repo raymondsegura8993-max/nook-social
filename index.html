@@ -3504,7 +3504,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;flex-wrap:wrap';
         const name=document.createElement('span');name.textContent='• '+(profileById[m.user_id]?.display_name||profileById[m.user_id]?.username||'Member')+(m.role!=='member'?' · '+m.role:'');name.style.fontSize='12px';row.appendChild(name);
         if(isManager&&m.user_id!==currentUser.id){
-          const allowed=callAccessByUser[m.user_id]!==false;
+          const allowed=callAccessByUser[m.user_id]===true||['owner','moderator'].includes(m.role);
           const control=document.createElement('button');control.type='button';control.className='secondary';control.style.cssText='padding:4px 7px;font-size:10px';control.textContent=allowed?'Calls allowed':'Calls blocked';
           control.onclick=async()=>{
             control.disabled=true;
