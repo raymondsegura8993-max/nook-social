@@ -3513,7 +3513,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
             control.textContent=allowed?'Calls blocked':'Calls allowed';control.disabled=false;callAccessByUser[m.user_id]=!allowed;showToast((allowed?'Removed':'Granted')+' voice-call access.');
           };
           row.appendChild(control);
-        }else if(callAccessByUser[m.user_id]===false){
+        }else if(!(callAccessByUser[m.user_id]===true||['owner','moderator'].includes(m.role))){
           const status=document.createElement('small');status.textContent='Calls disabled';status.style.color='#d58b8b';row.appendChild(status);
         }
         memberHost.appendChild(row);
