@@ -648,6 +648,37 @@ main{min-width:0}
   .post-actions .action{font-size:10px;min-height:34px;padding:6px 4px}
 }
 
+
+/* Extra-tight post action controls */
+.post-actions{
+  grid-template-columns:repeat(4,minmax(0,max-content));
+  justify-content:start;
+  gap:5px 6px;
+  padding-top:7px;
+  margin-top:6px;
+}
+.post-actions .action{
+  width:auto;
+  min-width:0;
+  min-height:28px;
+  padding:4px 7px;
+  border-radius:8px;
+  font-size:10px;
+  line-height:1.15;
+  white-space:nowrap;
+}
+@media(max-width:680px){
+  .post-actions{
+    grid-template-columns:repeat(3,minmax(0,max-content));
+    gap:4px 5px;
+  }
+  .post-actions .action{
+    min-height:27px;
+    padding:4px 6px;
+    font-size:9px;
+  }
+}
+
 </style>
 </head>
 <body>
