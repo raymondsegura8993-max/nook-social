@@ -383,12 +383,7 @@ body.jobs-mode .modal h2{color:#172033}
 <div class="compose-row"><div class="avatar">Y</div><button class="compose-input" id="composeOpen">What's happening in your nook?</button></div>
 <div class="compose-actions"><button class="chip" id="photoBtn">▧ Photo</button><button class="chip" id="videoBtn">▷ Video</button><button class="chip" id="pollBtn">▥ Poll</button><button class="chip" id="linkBtn">↗ Link</button></div>
 </section>
-<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="storyCloseFriends" type="checkbox" style="width:15px;height:15px;vertical-align:middle"> Close Friends only</label><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div><section class="daily-nook-card" id="dailyNookCard">
-<div class="daily-nook-top"><span class="daily-nook-kicker">✦ TODAY ON NOOK</span><span class="daily-nook-day" id="dailyNookDay">DAILY PROMPT</span></div>
-<h2 id="dailyNookQuestion">What is something you learned recently that you wish you knew sooner?</h2>
-<p>Share your answer, discover how others think, and start a conversation.</p>
-<div class="daily-nook-actions"><button class="primary" id="answerDailyPrompt">Answer this prompt</button><span class="daily-nook-note">A new conversation every day</span></div>
-</section>
+<div id="storiesBar" class="profile-panel" style="display:flex;gap:12px;overflow-x:auto;align-items:center;padding:12px;margin-bottom:15px"><button class="chip" id="addStory">＋ Add story</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="storyCloseFriends" type="checkbox" style="width:15px;height:15px;vertical-align:middle"> Close Friends only</label><input id="storyFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden><div id="storyItems" style="display:flex;gap:12px"></div></div>
 <section class="nook-growth-card" aria-labelledby="nookGrowthTitle">
   <div class="nook-growth-copy"><span class="nook-growth-kicker">GROW THE COMMUNITY</span><h2 id="nookGrowthTitle">Know someone who belongs on Nook?</h2><p>Invite a friend or creator to share, discover, and connect with the community.</p><small id="nookGrowthStatus" role="status">Every new member helps Nook grow.</small></div>
   <div class="nook-growth-actions"><button class="primary" id="nookShareInvite" type="button">↗ Share Nook</button><button class="secondary" id="nookCopyInvite" type="button">Copy website link</button></div>
@@ -3525,32 +3520,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
 })();
 </script>
 
-<script>
-(()=>{
- const questions=[
- "What is something you learned recently that you wish you knew sooner?",
- "What are you working on that you are proud of?",
- "What game, hobby, or topic could you talk about for hours?",
- "What is one small win you had this week?",
- "What is a skill you would love to learn?",
- "What is a creator or community that inspired you lately?",
- "What is one thing that always makes your day better?",
- "If you could start a project today, what would it be?",
- "What is a tip you would give someone just starting out?",
- "What is something you are looking forward to?"
- ];
- const card=document.getElementById('dailyNookCard');if(!card)return;
- const now=new Date(),day=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);
- const question=questions[((day%questions.length)+questions.length)%questions.length];
- document.getElementById('dailyNookQuestion').textContent=question;
- document.getElementById('dailyNookDay').textContent='DAILY PROMPT · '+now.toLocaleDateString(undefined,{month:'short',day:'numeric'}).toUpperCase();
- document.getElementById('answerDailyPrompt').addEventListener('click',()=>{
-  document.getElementById('composeOpen')?.click();
-  const field=document.getElementById('postText');
-  if(field){field.value=question+'\n\n';field.focus();field.setSelectionRange(field.value.length,field.value.length);}
- });
-})();
-</script>
+
 
 <script>
 (()=>{
