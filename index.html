@@ -2187,12 +2187,12 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       activeVideoCallId=null;
       incomingVideoCall=null;
     }
-    async function joinNookVideoCall(call,person){
+    async function joinNookVideoCall(call,person,callType='video'){
       if(activeVideoCallRoom)return showToast('You are already in a call.');
       const {data,error}=await db.functions.invoke('nook-video-call-token',{body:{call_id:call.id}});
       if(error||!data?.participant_token)return showToast(data?.error||error?.message||'Could not join the call.');
       const panel=document.createElement('div');panel.id='nookVideoCallPanel';panel.className='video-call-panel';
-      panel.innerHTML='<h2 style="margin:0">Nook video call</h2><p class="muted" id="nookCallStatus">Connecting…</p><div class="video-call-grid" id="nookCallVideos"></div><div class="video-call-controls"><button class="secondary" id="nookCallMute">Mute microphone</button><button class="secondary" id="nookCallCamera">Turn camera off</button><button class="primary" id="nookCallHangup" style="background:#c43b55">Hang up</button></div>';
+      panel.innerHTML='<h2 style="margin:0">Nook '+(callType==='audio'?'audio':'video')+' call</h2><p class="muted" id="nookCallStatus">Connecting…</p><div class="video-call-grid" id="nookCallVideos" '+(callType==='audio'?'style="display:none"':'')+'></div><div class="video-call-controls"><button class="secondary" id="nookCallMute">Mute microphone</button>'+(callType==='video'?'<button class="secondary" id="nookCallCamera">Turn camera off</button>':'')+'<button class="primary" id="nookCallHangup" style="background:#c43b55">Hang up</button></div>';
       document.body.appendChild(panel);
       try{
         const LK=await import('https://esm.sh/livekit-client@2.23.0');
@@ -2202,16 +2202,16 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         room.on(LK.RoomEvent.TrackSubscribed,track=>attach(track));
         room.on(LK.RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>{const tile=el.closest?.('div[style*="border:1px solid #40334f"]');if(tile)tile.remove();else el.remove();}));
         await room.connect(data.server_url,data.participant_token);
-        const local=await LK.createLocalTracks({audio:true,video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
+        const local=await LK.createLocalTracks({audio:true,video:callType==='video'?{facingMode:'user',width:{ideal:1280},height:{ideal:720}}:false});
         activeVideoCallLocalTracks=local;
         for(const track of local){await room.localParticipant.publishTrack(track);attach(track);}
         panel.querySelector('#nookCallStatus').textContent='Connected with '+(person.display_name||person.username||'Nook member');
         let muted=false,cameraOff=false;
         panel.querySelector('#nookCallMute').onclick=async()=>{muted=!muted;await room.localParticipant.setMicrophoneEnabled(!muted);panel.querySelector('#nookCallMute').textContent=muted?'Unmute microphone':'Mute microphone';};
-        panel.querySelector('#nookCallCamera').onclick=async()=>{cameraOff=!cameraOff;await room.localParticipant.setCameraEnabled(!cameraOff);panel.querySelector('#nookCallCamera').textContent=cameraOff?'Turn camera on':'Turn camera off';};
+        if(callType==='video')panel.querySelector('#nookCallCamera').onclick=async()=>{cameraOff=!cameraOff;await room.localParticipant.setCameraEnabled(!cameraOff);panel.querySelector('#nookCallCamera').textContent=cameraOff?'Turn camera on':'Turn camera off';};
         panel.querySelector('#nookCallHangup').onclick=()=>finishNookVideoCall(call.id,'ended');
         room.on(LK.RoomEvent.Disconnected,()=>{if(activeVideoCallId===call.id)finishNookVideoCall(call.id,'ended');});
-      }catch(e){console.error(e);await finishNookVideoCall(call.id,'ended');showToast('Could not start the video call. Check camera and microphone permissions.');}
+      }catch(e){console.error(e);await finishNookVideoCall(call.id,'ended');showToast('Could not start the call. Check microphone'+(callType==='video'?' and camera':'')+' permissions.');}
     }
     async function handleIncomingVideoCall(call){
       if(!call||call.callee_id!==currentUser.id||call.status!=='ringing'||incomingVideoCall?.id===call.id)return;
@@ -2221,8 +2221,8 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       let banner=document.getElementById('nookIncomingCall');
       if(!banner){banner=document.createElement('div');banner.id='nookIncomingCall';banner.className='video-call-incoming';thread.prepend(banner);}
       const {data:profile}=await db.from('profiles').select('username,display_name').eq('id',call.caller_id).maybeSingle();
-      banner.innerHTML='<b>Incoming video call from '+esc(profile?.display_name||profile?.username||'Nook member')+'</b>';
-      const accept=document.createElement('button');accept.className='primary';accept.textContent='Accept';accept.onclick=async()=>{const r=await db.from('video_calls').update({status:'accepted',answered_at:new Date().toISOString()}).eq('id',call.id).eq('callee_id',currentUser.id);if(r.error)return showToast(r.error.message);banner.remove();await joinNookVideoCall({...call,status:'accepted'},profile||{});};
+      const callType=String(call.room_name||'').startsWith('nook-audio-call-')?'audio':'video';banner.innerHTML='<b>Incoming '+callType+' call from '+esc(profile?.display_name||profile?.username||'Nook member')+'</b>';
+      const accept=document.createElement('button');accept.className='primary';accept.textContent='Accept';accept.onclick=async()=>{const r=await db.from('video_calls').update({status:'accepted',answered_at:new Date().toISOString()}).eq('id',call.id).eq('callee_id',currentUser.id);if(r.error)return showToast(r.error.message);banner.remove();await joinNookVideoCall({...call,status:'accepted'},profile||{},callType);};
       const decline=document.createElement('button');decline.className='secondary';decline.textContent='Decline';decline.onclick=async()=>{await db.from('video_calls').update({status:'declined',ended_at:new Date().toISOString()}).eq('id',call.id).eq('callee_id',currentUser.id);banner.remove();incomingVideoCall=null;};
       banner.append(accept,decline);
     }
@@ -2303,7 +2303,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!layout){await loadMessages();layout=feed.querySelector('.dm-layout');}
       activeConversationId=conversationId;
       const thread=layout.querySelector('.dm-thread');
-      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span> · <small id="dmPresenceStatus" class="muted">Checking status…</small> <button type="button" class="secondary" id="startVideoCall" style="float:right;padding:6px 10px">📹 Video call</button></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…"></textarea><input id="dmFile" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" hidden><button class="secondary" type="button" id="dmAttach">＋</button><button class="primary" type="submit">Send</button></form>';
+      thread.innerHTML='<div class="dm-thread-head">'+esc(name)+' <span class="muted" style="font-weight:400">@'+esc(person.username||'member')+'</span> · <small id="dmPresenceStatus" class="muted">Checking status…</small> <span style="float:right;display:flex;gap:6px"><button type="button" class="secondary" id="startAudioCall" style="padding:6px 10px">📞 Audio</button><button type="button" class="secondary" id="startVideoCall" style="padding:6px 10px">📹 Video</button></span></div><div class="dm-messages" id="dmMessages"><div class="dm-empty">Loading messages…</div></div><form class="dm-compose" id="dmCompose"><textarea id="dmText" maxlength="2000" placeholder="Write a message…"></textarea><input id="dmFile" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,audio/*" hidden><button class="secondary" type="button" id="dmAttach">＋</button><button class="primary" type="submit">Send</button></form>';
       const messageBox=document.getElementById('dmMessages');
       async function refreshMessages(){
         if(activeConversationId!==conversationId)return;
@@ -2322,15 +2322,17 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'conversation_id=eq.'+conversationId},()=>refreshMessages())
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'video_calls',filter:'callee_id=eq.'+currentUser.id},payload=>{if(payload.new?.conversation_id===conversationId)handleIncomingVideoCall(payload.new);})
         .subscribe(async status=>{if(status==='SUBSCRIBED')await messageChannel.track({user_id:currentUser.id,online_at:new Date().toISOString()});});
-      document.getElementById('startVideoCall').onclick=async()=>{
+      const startCall=async callType=>{
         if(activeVideoCallRoom)return showToast('You are already in a call.');
         const pair=[currentUser.id,person.id].sort();
-        const roomName='nook-call-'+crypto.randomUUID();
+        const roomName=(callType==='audio'?'nook-audio-call-':'nook-call-')+crypto.randomUUID();
         const created=await db.from('video_calls').insert({conversation_id:conversationId,caller_id:currentUser.id,callee_id:person.id,room_name:roomName,status:'ringing'}).select('*').single();
         if(created.error)return showToast(created.error.message);
-        showToast('Calling '+(person.display_name||person.username||'member')+'…');
-        await joinNookVideoCall(created.data,person);
+        showToast('Starting '+(callType==='audio'?'audio':'video')+' call with '+(person.display_name||person.username||'member')+'…');
+        await joinNookVideoCall(created.data,person,callType);
       };
+      document.getElementById('startAudioCall').onclick=()=>startCall('audio');
+      document.getElementById('startVideoCall').onclick=()=>startCall('video');
       const attachButton=document.getElementById('dmAttach'),fileInput=document.getElementById('dmFile');attachButton.onclick=()=>fileInput.click();const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='secondary';voiceButton.textContent='🎙 Record voice';attachButton.after(voiceButton);let recorder=null,chunks=[];voiceButton.onclick=async()=>{if(recorder?.state==='recording'){recorder.stop();voiceButton.disabled=true;voiceButton.textContent='Saving…';return;}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return showToast('Voice recording is not supported here.');try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});const path=currentUser.id+'/voice-'+Date.now()+'.webm';const up=await db.storage.from('nook-media').upload(path,blob,{contentType:blob.type,upsert:false});if(up.error){voiceButton.disabled=false;voiceButton.textContent='🎙 Record voice';return showToast(up.error.message);}const url=db.storage.from('nook-media').getPublicUrl(path).data.publicUrl;const sent=await db.from('direct_messages').insert({conversation_id:conversationId,sender_id:currentUser.id,content:'Voice message',media_url:url,media_type:'audio'});voiceButton.disabled=false;voiceButton.textContent='🎙 Record voice';if(sent.error)return showToast(sent.error.message);await refreshMessages();};recorder.start();voiceButton.textContent='■ Stop recording';}catch(e){showToast('Allow microphone access to record a voice message.');}};
       const messageInput=document.getElementById('dmText');let typingTimer=null;
       messageInput.oninput=()=>{if(messageChannel)messageChannel.send({type:'broadcast',event:'typing',payload:{user_id:currentUser.id,typing:true}});clearTimeout(typingTimer);typingTimer=setTimeout(()=>{if(messageChannel)messageChannel.send({type:'broadcast',event:'typing',payload:{user_id:currentUser.id,typing:false}});},1000);};
