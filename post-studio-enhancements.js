@@ -22,7 +22,7 @@ const style=document.createElement('style');style.textContent=`
 .nook-photo-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-top:12px}
 .nook-photo-tools input{width:100%}.nook-auto-state{font-size:11px;color:#bba9ce}
 @media(max-width:520px){.nook-enhance{padding:13px}.nook-enhance .nook-tool-section{padding:12px}.nook-enhance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nook-enhance label{font-size:11px}}
-`;document.head.appendChild(style);document.head.appendChild(style);
+`;document.head.appendChild(style);
 const panel=document.createElement('section');panel.id='nookAdvancedStudio';panel.className='nook-enhance';panel.innerHTML=`
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
  <div><b style="font-size:15px">✨ Advanced editor</b><div><small>Optional tools to personalize your post.</small></div></div>
@@ -71,7 +71,7 @@ const panel=document.createElement('section');panel.id='nookAdvancedStudio';pane
  </section>
 </div>`;const marker=$('mentionSuggestions')||$('mediaFile');marker.parentNode.insertBefore(panel,marker);
 const advanced=$('nookAdvancedPanel'),toggle=$('nookAdvancedToggle');
-toggle.onclick=()=>{advanced.hidden=!advanced.hidden;toggle.textContent=advanced.hidden?'Show advanced tools':'Hide advanced tools';};
+toggle.onclick=()=>{advanced.hidden=!advanced.hidden;toggle.textContent=advanced.hidden?'Show tools':'Hide tools';};
 const templates={
 gaming:['Gaming update','Share what is happening in your game.','🎮 Game:\n🏆 Rank / progress:\n✨ What happened:\n💬 What do you think?'],
 announcement:['Big announcement','Let the Nook community know what is new.','📢 Announcement:\n\n📅 Date / details:\n\n💜 More information:'],
