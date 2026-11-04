@@ -396,6 +396,11 @@ body{
   color:#fff;box-shadow:inset 3px 0 0 #a66bff;
 }
 .nav .ico{width:22px;flex:0 0 22px;font-size:17px}
+
+.nav button.communication-shortcut{margin-top:2px;background:rgba(151,91,239,.09);border:1px solid rgba(166,107,255,.2);color:#dfc9ff}
+.nav button.communication-shortcut:hover{background:rgba(151,91,239,.2);border-color:rgba(166,107,255,.38)}
+.nav button.communication-shortcut .ico{color:#c9a6ff}
+
 .newpost{
   min-height:46px;margin:12px 4px 12px;width:calc(100% - 8px);
   border-radius:13px;font-size:14px;letter-spacing:.01em;
@@ -834,6 +839,7 @@ main{min-width:0}
 <button data-tab="Notifications"><span class="ico">♧</span><span class="navlabel">Notifications</span><span class="notification-badge" id="notificationBadge" hidden></span></button>
 <div class="nav-group-label">YOUR SPACE</div>
 <button data-tab="Profile"><span class="ico">◯</span><span class="navlabel">Profile</span></button>
+<button data-tab="Messages" class="communication-shortcut"><span class="ico">☎</span><span class="navlabel">Communication</span></button>
 <button data-tab="Nook Studio"><span class="ico">✦</span><span class="navlabel">Nook Studio</span></button>
 <button data-tab="Nook Live Studio"><span class="ico">🎥</span><span class="navlabel">Nook Live Studio</span></button>
 <button data-tab="Nook Reputation"><span class="ico">⭐</span><span class="navlabel">Nook Reputation</span></button>
