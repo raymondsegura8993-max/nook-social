@@ -3754,18 +3754,20 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(!currentUser)return;
       feed.innerHTML='<div class="empty-feed muted">Loading this week\'s creator rankings…</div>';
       const cutoff=new Date(Date.now()-7*24*60*60*1000).toISOString();
-      const [postsRes,followsRes]=await Promise.all([
+      const [postsRes,followsRes,allFollowsRes]=await Promise.all([
         db.from('posts').select('id,author_id').gte('created_at',cutoff).order('created_at',{ascending:false}).limit(1500),
-        db.from('follows').select('following_id').gte('created_at',cutoff).limit(3000)
+        db.from('follows').select('following_id').gte('created_at',cutoff).limit(3000),
+        db.from('follows').select('following_id').limit(10000)
       ]);
-      if(postsRes.error||followsRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load creator rankings. '+esc((postsRes.error||followsRes.error).message)+'</div>';return;}
+      if(postsRes.error||followsRes.error||allFollowsRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load creator rankings. '+esc((postsRes.error||followsRes.error||allFollowsRes.error).message)+'</div>';return;}
       const posts=postsRes.data||[],postIds=posts.map(p=>p.id);
       const likesRes=postIds.length?await db.from('post_likes').select('post_id').in('post_id',postIds).limit(5000):{data:[],error:null};
       if(likesRes.error){feed.innerHTML='<div class="empty-feed muted">Could not load like rankings. '+esc(likesRes.error.message)+'</div>';return;}
       const counts=(rows,key)=>{const map=new Map();rows.forEach(row=>{const id=row[key];map.set(id,(map.get(id)||0)+1);});return map;};
-      const postCounts=counts(posts,'author_id'),followerCounts=counts(followsRes.data||[],'following_id'),likesByPost=counts(likesRes.data||[],'post_id');
+      const postCounts=counts(posts,'author_id'),followerCounts=counts(followsRes.data||[],'following_id'),allTimeFollowerCounts=counts(allFollowsRes.data||[],'following_id'),likesByPost=counts(likesRes.data||[],'post_id');
       const likesByCreator=new Map();posts.forEach(p=>{const n=likesByPost.get(p.id)||0;likesByCreator.set(p.author_id,(likesByCreator.get(p.author_id)||0)+n);});
       const categories=[
+        {title:'Most followers',subtitle:'Creators with the largest Nook audiences',map:allTimeFollowerCounts,metric:'followers'},
         {title:'Most active',subtitle:'Creators sharing the most this week',map:postCounts,metric:'posts'},
         {title:'Most loved',subtitle:'Most likes earned on this week’s posts',map:likesByCreator,metric:'likes'},
         {title:'Rising creators',subtitle:'New followers gained this week',map:followerCounts,metric:'new followers'}
