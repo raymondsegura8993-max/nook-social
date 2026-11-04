@@ -351,6 +351,187 @@ body.jobs-mode .modal h2{color:#172033}
 .nook-studio-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.nook-studio-head h2{font-size:27px;margin:4px 0}.nook-studio-head p{margin:0;color:#a99bb9;font-size:13px}.nook-studio-kicker{font-size:10px;letter-spacing:2px;color:#b88aff;font-weight:800}.nook-studio-mark{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#9a5cff,#5925a7);font-size:24px;color:white}
 .nook-field-label{display:block;font-size:13px;font-weight:750;color:#eee6f7;margin:13px 0 7px}.nook-studio-input,.nook-studio-description,.nook-post-body{display:block;width:100%;box-sizing:border-box;background:#1b1624!important;color:#fff!important;border:1px solid #40344f!important;border-radius:12px!important;padding:13px!important;font:inherit;outline:none}.nook-studio-input:focus,.nook-studio-description:focus,.nook-post-body:focus{border-color:#a66bff!important;box-shadow:0 0 0 3px #9b5cff22}.nook-studio-description{resize:vertical;min-height:68px}.nook-editor-label-row,.nook-preview-heading,.nook-editor-footer{display:flex;justify-content:space-between;align-items:center;gap:10px}.nook-editor-hint,.nook-editor-footer,.nook-preview-heading span{font-size:11px;color:#a99bb9}.nook-format-toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:#1b1624;border:1px solid #40344f;border-bottom:0;border-radius:12px 12px 0 0}.nook-format-toolbar button{min-width:34px;height:32px;border:1px solid #51435f;border-radius:8px;background:#282033;color:#eee;cursor:pointer}.nook-format-toolbar button:hover{background:#493365;border-color:#a66bff}.nook-post-body{border-radius:0 0 12px 12px!important;min-height:190px;resize:vertical;line-height:1.65}.nook-editor-footer{margin-top:6px}.nook-live-preview{margin-top:18px;padding:13px;background:#171220;border:1px solid #40344f;border-radius:14px}.nook-preview-heading{margin-bottom:10px;color:#eee}.nook-preview-card{padding:15px;background:#211a2c;border:1px solid #41334f;border-radius:11px;min-height:65px;color:#eee;overflow-wrap:anywhere}.nook-preview-card strong{display:block;font-size:18px;margin-bottom:7px}.nook-preview-card p{color:#c8b9d8;margin:0 0 10px}.nook-preview-card div{white-space:pre-wrap;line-height:1.6}.nook-post-studio .modalbar{position:sticky;bottom:-24px;background:#100d16;padding:14px 0 0;z-index:3}
 @media(max-width:680px){.nook-post-studio{padding:17px!important;width:100%!important}.nook-studio-head h2{font-size:23px}.nook-format-toolbar{gap:4px}.nook-format-toolbar button{min-width:31px}}
+
+/* Nook visual system refresh — consistent spacing, hierarchy and responsive layout */
+:root{
+  --bg:#0c0a11;--panel:#15121c;--panel2:#1c1726;--line:#30283c;
+  --text:#f8f6fb;--muted:#aaa1b7;--purple:#a56aff;--purple2:#743ce0;
+  --surface-shadow:0 12px 34px rgba(0,0,0,.18);
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(ellipse at 50% -24%,rgba(117,65,174,.19),transparent 43%),
+    linear-gradient(180deg,#100d16 0%,#0c0a11 42%,#0b0910 100%);
+  letter-spacing:.005em;
+}
+.app{
+  width:min(100%,1520px);
+  grid-template-columns:250px minmax(0,680px) 290px;
+  justify-content:center;
+  gap:28px;
+  padding:26px 30px;
+}
+.sidebar,.right{top:20px;height:calc(100vh - 40px)}
+.sidebar{
+  padding:5px 8px 12px 0;
+  border-right:1px solid rgba(151,126,180,.12);
+  padding-right:14px;
+}
+.brand{font-size:25px;margin:2px 0 22px;padding:0 8px}
+.mark{border-radius:13px}
+.nav{gap:5px;padding:0 4px 12px 0}
+.nav-group-label{
+  color:#9587a8;font-size:10px;letter-spacing:1.45px;
+  padding:16px 13px 7px;
+}
+.nav-group-label:not(:first-child){margin-top:9px;border-color:rgba(151,126,180,.16)}
+.nav button,.nav .nav-link{
+  min-height:43px;padding:10px 13px;border-radius:12px;
+  gap:12px;font-size:13.5px;transition:background .16s ease,color .16s ease;
+}
+.nav button:hover,.nav .nav-link:hover{background:#211a2d;color:#fff}
+.nav button.active{
+  background:linear-gradient(100deg,rgba(151,91,239,.23),rgba(112,63,177,.10));
+  color:#fff;box-shadow:inset 3px 0 0 #a66bff;
+}
+.nav .ico{width:22px;flex:0 0 22px;font-size:17px}
+.newpost{
+  min-height:46px;margin:12px 4px 12px;width:calc(100% - 8px);
+  border-radius:13px;font-size:14px;letter-spacing:.01em;
+}
+.profile-mini{
+  margin:4px 4px 0;padding:11px 10px;border:1px solid rgba(151,126,180,.16);
+  border-radius:14px;background:rgba(25,20,34,.72);
+}
+main{min-width:0;width:100%;max-width:680px}
+.top{
+  min-height:62px;margin:0 0 20px;padding:2px 0 13px;
+  border-bottom:1px solid rgba(151,126,180,.14);
+}
+.top h1{font-size:28px;letter-spacing:-.9px;font-weight:800}
+.top .muted{font-size:10px;letter-spacing:1.5px;font-weight:750;color:#a99ab9}
+.iconbtn{width:42px;height:42px;border-radius:13px;background:#17131f}
+.composer,.post,.trend,.welcome,.profile-panel,.nook-growth-card{
+  border:1px solid rgba(161,137,190,.17);
+  box-shadow:var(--surface-shadow);
+}
+.composer{
+  padding:17px 18px;margin-bottom:16px;border-radius:17px;
+  background:linear-gradient(145deg,rgba(29,23,39,.98),rgba(19,16,26,.98));
+}
+.compose-input{
+  min-height:44px;border-radius:12px;background:#100d16;
+  border:1px solid rgba(161,137,190,.16);padding:10px 14px;
+}
+.compose-input:hover{border-color:#7955a5;background:#15101e}
+.compose-actions{gap:8px;margin-top:13px;flex-wrap:wrap}
+.chip{
+  border-radius:10px;background:#201a2a;border-color:rgba(161,137,190,.18);
+  padding:8px 12px;font-size:12.5px;
+}
+#storiesBar{border-radius:16px!important;background:rgba(22,18,30,.76);border:1px solid rgba(161,137,190,.14)!important}
+.nook-growth-card{border-radius:17px!important;margin:0 0 18px!important}
+.feed-tabs{
+  gap:22px;margin:0 0 17px;padding:0 5px;
+  border-bottom:1px solid rgba(161,137,190,.18);
+  overflow-x:auto;scrollbar-width:none;
+}
+.feed-tabs::-webkit-scrollbar{display:none}
+.feed-tabs button{white-space:nowrap;font-size:13px;padding:12px 2px}
+.post{
+  border-radius:17px;padding:19px;margin-bottom:15px;
+  background:linear-gradient(150deg,#191522 0%,#14111b 100%);
+}
+.posthead{gap:12px}
+.post p{font-size:14px;line-height:1.75;color:#e9e3f0}
+.post-actions{border-top:1px solid rgba(161,137,190,.13);padding-top:11px;margin-top:13px}
+.post-actions .action{border-radius:10px;padding:8px 10px}
+.right{padding:4px 0 20px 3px;scrollbar-color:#49345f transparent}
+.account-bar{
+  padding:10px 11px;margin-bottom:19px;border:1px solid rgba(161,137,190,.16);
+  border-radius:13px;background:rgba(23,19,31,.88);
+}
+.right h3{font-size:14px;letter-spacing:.01em;margin:19px 0 10px}
+.welcome,.trend{border-radius:15px;background:linear-gradient(150deg,#191522,#13101a)}
+.welcome{padding:17px}
+.trend{padding:15px;margin-bottom:12px}
+input,textarea,select{
+  border-radius:10px;
+  border-color:rgba(161,137,190,.25);
+}
+input:focus,textarea:focus,select:focus{
+  outline:2px solid rgba(165,106,255,.38);outline-offset:1px;
+  border-color:#a56aff;
+}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid #b98cff;outline-offset:3px;
+}
+.modal,.modalback .modal{
+  border-color:rgba(177,145,215,.24);
+  box-shadow:0 24px 80px rgba(0,0,0,.48);
+}
+.empty-feed{border-radius:16px;background:rgba(22,18,30,.45)}
+/* Keep specialist sections visually related without overriding their feature behavior */
+.jobs-hero,.market-shell,.tournament-shell,.teammate-shell,
+.coaching-shell,.clan-tryouts-shell,.nook-post-studio{
+  border-radius:18px;
+}
+@media(max-width:1120px){
+  .app{
+    grid-template-columns:220px minmax(0,760px);
+    max-width:1040px;gap:22px;padding:22px 24px;
+  }
+  .right{display:none}
+  main{max-width:760px}
+}
+@media(max-width:760px){
+  body{background:linear-gradient(180deg,#100d16 0%,#0c0a11 52%,#0b0910 100%)}
+  .app{display:block;width:100%;max-width:720px;padding:13px 13px 100px}
+  .sidebar{
+    position:fixed;z-index:999;left:0;right:0;top:auto;bottom:0;
+    height:auto;min-height:0;padding:7px 8px calc(7px + env(safe-area-inset-bottom));
+    border-right:0;border-top:1px solid rgba(161,137,190,.22);
+    background:rgba(17,13,24,.97);backdrop-filter:blur(18px);
+  }
+  .sidebar>.brand,.sidebar>.newpost,.sidebar>.profile-mini{display:none}
+  .nav{
+    display:flex;flex-direction:row;align-items:stretch;justify-content:flex-start;
+    gap:4px;padding:0;overflow-x:auto;overflow-y:hidden;
+    scrollbar-width:none;flex:none;
+  }
+  .nav::-webkit-scrollbar{display:none}
+  .nav-group-label{display:none}
+  .nav button,.nav .nav-link{
+    flex:0 0 64px;min-width:64px;min-height:55px;
+    padding:7px 4px;border-radius:10px;gap:3px;
+    flex-direction:column;justify-content:center;text-align:center;
+    font-size:10px;white-space:normal;
+  }
+  .nav button.active{box-shadow:inset 0 -2px 0 #a66bff}
+  .nav .ico{width:auto;flex:0 0 auto;font-size:18px;line-height:1.15}
+  .nav .navlabel{font-size:9.5px;line-height:1.15;max-width:60px}
+  .nav .nav-external{display:none}
+  main{max-width:none;width:100%}
+  .top{margin:0 0 15px;min-height:54px;padding-bottom:11px}
+  .top h1{font-size:25px}
+  .composer{padding:14px;margin-bottom:13px}
+  .compose-actions{gap:6px}
+  .chip{padding:7px 10px}
+  #storiesBar{margin-bottom:12px!important}
+  .nook-growth-card{margin-bottom:14px!important}
+  .feed-tabs{gap:17px;margin-bottom:13px}
+  .post{padding:15px;margin-bottom:12px}
+  .post p{font-size:13.5px}
+  .right{display:none}
+}
+@media(max-width:390px){
+  .app{padding-left:10px;padding-right:10px}
+  .nav button,.nav .nav-link{flex-basis:59px;min-width:59px}
+  .nav .navlabel{font-size:9px}
+  .feed-tabs{gap:14px}
+}
+
 </style>
 </head>
 <body>
