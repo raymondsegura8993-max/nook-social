@@ -3437,45 +3437,125 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
         target.appendChild(row);});
     }
 
+    let communityChatSubscription = null;
+    async function openCommunityServer(community) {
+      const {data:membership,error:membershipError}=await db.from('community_members').select('role').eq('community_id',community.id).eq('user_id',currentUser.id).maybeSingle();
+      if(membershipError||!membership)return showToast('Join this community before opening its server.');
+      const isManager=['owner','moderator'].includes(membership.role);
+      if(communityChatSubscription){await db.removeChannel(communityChatSubscription);communityChatSubscription=null;}
+      feed.innerHTML='<section class="profile-panel" style="padding:0;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap"><div><button class="secondary" id="communityBack">← Communities</button><h2 style="margin:10px 0 2px">'+esc(community.name)+'</h2><small class="muted">'+esc(community.description||'Your community server')+'</small></div><span class="muted">Your role: '+esc(membership.role)+'</span></div><div id="communityServerLayout" style="display:grid;grid-template-columns:minmax(145px,210px) minmax(0,1fr);min-height:510px"><aside style="padding:14px;background:rgba(12,9,19,.55);border-right:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><b style="font-size:12px;letter-spacing:.08em">TEXT CHANNELS</b><button id="addCommunityChannel" class="secondary" style="padding:4px 8px" '+(isManager?'':'hidden')+'>＋</button></div><div id="communityChannelList" style="display:grid;gap:5px;margin-top:12px"></div><div style="margin-top:24px"><b style="font-size:12px;letter-spacing:.08em">MEMBERS</b><div id="communityMemberList" class="muted" style="font-size:12px;margin-top:9px">Loading…</div></div></aside><section style="display:flex;flex-direction:column;min-width:0;min-height:510px"><div id="communityChatHeader" style="padding:15px;border-bottom:1px solid var(--line)"><b># general</b><p class="muted" style="margin:4px 0 0;font-size:12px">Community conversation</p></div><div id="communityChatMessages" style="flex:1;min-height:330px;max-height:520px;overflow:auto;padding:15px;display:flex;flex-direction:column;gap:12px"><span class="muted">Loading messages…</span></div><form id="communityChatForm" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)"><input id="communityChatInput" class="dm-search" maxlength="2000" placeholder="Message #general" style="margin:0;flex:1;min-width:0"><button class="primary" type="submit">Send</button></form></section></div></section>';
+      document.getElementById('communityBack').onclick=()=>loadCommunities();
+      const channelList=document.getElementById('communityChannelList');
+      const messagesBox=document.getElementById('communityChatMessages');
+      const header=document.getElementById('communityChatHeader');
+      const {data:channels,error:channelError}=await db.from('community_channels').select('id,name,description,channel_type,position').eq('community_id',community.id).order('position').order('created_at');
+      if(channelError){channelList.textContent='Could not load channels: '+channelError.message;return;}
+      let channelRows=channels||[];
+      if(!channelRows.length&&isManager){
+        const created=await db.from('community_channels').insert({community_id:community.id,name:'general',description:'The main community chat.',created_by:currentUser.id}).select('id,name,description,channel_type,position').single();
+        if(created.error){channelList.textContent='Could not create #general: '+created.error.message;return;}
+        channelRows=[created.data];
+      }
+      if(!channelRows.length){channelList.innerHTML='<span class="muted" style="font-size:12px">No channels yet. A community owner or moderator can add one.</span>';}
+      const [memberRows,profileRows]=await Promise.all([
+        db.from('community_members').select('user_id,role').eq('community_id',community.id),
+        db.from('profiles').select('id,username,display_name').in('id',(await db.from('community_members').select('user_id').eq('community_id',community.id)).data?.map(x=>x.user_id)||[])
+      ]);
+      const profileById=Object.fromEntries((profileRows.data||[]).map(p=>[p.id,p]));
+      document.getElementById('communityMemberList').innerHTML=(memberRows.data||[]).map(m=>'<div style="padding:3px 0">• '+esc(profileById[m.user_id]?.display_name||profileById[m.user_id]?.username||'Member')+(m.role!=='member'?' <span style="color:#c49aff">· '+esc(m.role)+'</span>':'')+'</div>').join('')||'No members yet';
+      async function showChannel(channel) {
+        if(communityChatSubscription){await db.removeChannel(communityChatSubscription);communityChatSubscription=null;}
+        [...channelList.querySelectorAll('button[data-channel]')].forEach(b=>{b.style.background=b.dataset.channel===channel.id?'rgba(151,91,255,.22)':'transparent';b.style.borderColor=b.dataset.channel===channel.id?'#9c70ed':'transparent';});
+        header.innerHTML='<b># '+esc(channel.name)+'</b><p class="muted" style="margin:4px 0 0;font-size:12px">'+esc(channel.description||'Community conversation')+'</p>';
+        document.getElementById('communityChatInput').placeholder='Message #'+channel.name;
+        messagesBox.innerHTML='<span class="muted">Loading messages…</span>';
+        async function loadMessages(){
+          const {data:rows,error}=await db.from('community_messages').select('id,sender_id,content,created_at').eq('channel_id',channel.id).order('created_at',{ascending:true}).limit(100);
+          if(error){messagesBox.textContent='Could not load messages: '+error.message;return;}
+          const senders=[...new Set((rows||[]).map(x=>x.sender_id))];
+          const {data:people}=senders.length?await db.from('profiles').select('id,username,display_name,avatar_url').in('id',senders):{data:[]};
+          const peopleById=Object.fromEntries((people||[]).map(p=>[p.id,p]));
+          messagesBox.innerHTML='';
+          if(!rows?.length){messagesBox.innerHTML='<div class="muted" style="text-align:center;margin:auto">No messages yet. Start the conversation!</div>';return;}
+          rows.forEach(message=>{
+            const person=peopleById[message.sender_id]||{};
+            const row=document.createElement('div');row.style.display='flex';row.style.gap='9px';row.style.alignItems='flex-start';
+            const avatar=document.createElement('div');avatar.style.cssText='width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#34204f);display:grid;place-items:center;flex:none;font-size:12px;font-weight:700';avatar.textContent=(person.username||'N').slice(0,1).toUpperCase();
+            const body=document.createElement('div');body.style.minWidth='0';body.innerHTML='<div><b style="font-size:13px">'+esc(person.display_name||person.username||'Member')+'</b> <small class="muted">'+new Date(message.created_at).toLocaleString()+'</small></div><div style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:3px;font-size:14px">'+esc(message.content)+'</div>';
+            row.append(avatar,body);messagesBox.appendChild(row);
+          });
+          messagesBox.scrollTop=messagesBox.scrollHeight;
+        }
+        await loadMessages();
+        communityChatSubscription=db.channel('community-chat-'+channel.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'community_messages',filter:'channel_id=eq.'+channel.id},()=>loadMessages()).subscribe();
+        document.getElementById('communityChatForm').onsubmit=async event=>{
+          event.preventDefault();const input=document.getElementById('communityChatInput');const content=input.value.trim();if(!content)return;
+          const sendButton=event.submitter; if(sendButton)sendButton.disabled=true;
+          const {error}=await db.from('community_messages').insert({channel_id:channel.id,sender_id:currentUser.id,content});
+          if(sendButton)sendButton.disabled=false;
+          if(error){showToast(error.message);return;}
+          input.value='';await loadMessages();
+        };
+      }
+      channelRows.forEach(channel=>{
+        const button=document.createElement('button');button.type='button';button.dataset.channel=channel.id;button.textContent='# '+channel.name;button.style.cssText='text-align:left;padding:9px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text);cursor:pointer';button.onclick=()=>showChannel(channel);channelList.appendChild(button);
+      });
+      const add=document.getElementById('addCommunityChannel');
+      if(isManager)add.onclick=async()=>{
+        const raw=prompt('New channel name (letters, numbers, and hyphens):');if(!raw)return;
+        const name=raw.trim().toLowerCase().replace(/^#/,'').replace(/\s+/g,'-');
+        if(!/^[a-z0-9][a-z0-9-]{0,39}$/.test(name))return showToast('Use 1–40 letters, numbers, or hyphens.');
+        const {data,error}=await db.from('community_channels').insert({community_id:community.id,name,created_by:currentUser.id,position:channelRows.length}).select('id,name,description,channel_type,position').single();
+        if(error)return showToast(error.message);
+        channelRows.push(data);const button=document.createElement('button');button.type='button';button.dataset.channel=data.id;button.textContent='# '+data.name;button.style.cssText='text-align:left;padding:9px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text);cursor:pointer';button.onclick=()=>showChannel(data);channelList.appendChild(button);showChannel(data);
+      };
+      if(channelRows.length)showChannel(channelRows[0]);
+    }
+
     async function loadCommunities() {
       if(!currentUser)return;
-      feed.innerHTML='<section class="profile-panel"><h2>Communities</h2><p>Find people who share your interests.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="communityName" class="dm-search" style="flex:1;min-width:150px;margin:0" maxlength="60" placeholder="Community name"><button class="primary" id="createCommunity">Create</button></div><textarea id="communityDescription" placeholder="What is this community about?" style="width:100%;margin-top:9px;min-height:65px;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white"></textarea></section><div id="communityList" class="profile-panel">Loading communities…</div>';
+      if(communityChatSubscription){await db.removeChannel(communityChatSubscription);communityChatSubscription=null;}
+      feed.innerHTML='<section class="profile-panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span class="explore-section-label">YOUR NOOK SERVERS</span><h2 style="margin:4px 0">Communities</h2><p class="muted" style="margin:0">Create a server, organize channels, and chat with your members.</p></div><span style="font-size:28px">✦</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"><input id="communityName" class="dm-search" style="flex:1;min-width:150px;margin:0" maxlength="60" placeholder="Server name"><button class="primary" id="createCommunity">＋ Create server</button></div><textarea id="communityDescription" placeholder="Describe your server…" style="width:100%;margin-top:9px;min-height:65px;background:#100d16;border:1px solid var(--line);border-radius:10px;padding:10px;color:white"></textarea></section><div id="communityList" class="profile-panel">Loading servers…</div>';
       const list=document.getElementById('communityList');
       document.getElementById('createCommunity').onclick=async()=>{
         const name=document.getElementById('communityName').value.trim(),description=document.getElementById('communityDescription').value.trim();
-        if(name.length<3)return showToast('Community names need at least 3 characters.');
-        const result=await db.from('communities').insert({name,description,owner_id:currentUser.id}).select('id').single();
+        if(name.length<3)return showToast('Server names need at least 3 characters.');
+        const result=await db.from('communities').insert({name,description,owner_id:currentUser.id}).select('id,name,description,owner_id,created_at').single();
         if(result.error)return showToast(result.error.message);
         const member=await db.from('community_members').insert({community_id:result.data.id,user_id:currentUser.id,role:'owner'});
-        if(member.error)return showToast('Community created, but owner membership could not be added: '+member.error.message);
-        showToast('Community created!');
-        loadCommunities();
+        if(member.error)return showToast('Server created, but owner membership could not be added: '+member.error.message);
+        const channel=await db.from('community_channels').insert({community_id:result.data.id,name:'general',description:'The main community chat.',created_by:currentUser.id});
+        if(channel.error)return showToast('Server created. Add #general from inside the server: '+channel.error.message);
+        showToast('Your server is ready!');
+        openCommunityServer(result.data);
       };
       const {data:communities,error}=await db.from('communities').select('id,name,description,owner_id,created_at').order('created_at',{ascending:false}).limit(100);
-      if(error){list.textContent='Could not load communities: '+error.message;return;}
-      if(!communities?.length){list.innerHTML='<div class="muted">No communities yet. Create the first one!</div>';return;}
+      if(error){list.textContent='Could not load servers: '+error.message;return;}
+      if(!communities?.length){list.innerHTML='<div class="muted">No servers yet. Create the first one!</div>';return;}
       const ids=communities.map(x=>x.id);
       const [membersRes,mineRes]=await Promise.all([
         db.from('community_members').select('community_id,user_id,role').in('community_id',ids),
-        db.from('community_members').select('community_id').eq('user_id',currentUser.id).in('community_id',ids)
+        db.from('community_members').select('community_id,role').eq('user_id',currentUser.id).in('community_id',ids)
       ]);
-      const members=membersRes.data||[],mine=new Set((mineRes.data||[]).map(x=>x.community_id));
-      list.innerHTML='';
+      const members=membersRes.data||[],mine=new Map((mineRes.data||[]).map(x=>[x.community_id,x.role]));
+      list.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px"></div>';
+      const grid=list.firstElementChild;
       communities.forEach(community=>{
         const count=members.filter(m=>m.community_id===community.id).length;
-        const item=document.createElement('section');item.className='trenditem';
-        item.innerHTML='<h3>'+esc(community.name)+'</h3><p class="muted">'+esc(community.description||'No description yet.')+'</p><small class="muted">'+count+' members</small>';
-        const button=document.createElement('button');button.className='follow';button.textContent=mine.has(community.id)?'Joined':'Join';
-        button.disabled=mine.has(community.id);
-        button.onclick=async()=>{button.disabled=true;const result=await db.from('community_members').insert({community_id:community.id,user_id:currentUser.id,role:'member'});if(result.error){button.disabled=false;return showToast(result.error.message);}showToast('Joined '+community.name+'!');loadCommunities();};
-        item.appendChild(button);
+        const item=document.createElement('section');item.className='trenditem';item.style.cssText='padding:16px;border:1px solid var(--line);border-radius:13px';
+        item.innerHTML='<div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#9b6bff,#54258c);display:grid;place-items:center;font-size:20px">✦</div><div><h3 style="margin:0">'+esc(community.name)+'</h3><small class="muted">'+count+' members</small></div></div><p class="muted" style="font-size:13px">'+esc(community.description||'A Nook community server.')+'</p>';
+        if(mine.has(community.id)){
+          const open=document.createElement('button');open.className='primary';open.textContent='Open server';open.onclick=()=>openCommunityServer(community);item.appendChild(open);
+        }else{
+          const join=document.createElement('button');join.className='follow';join.textContent='Join server';join.onclick=async()=>{join.disabled=true;const result=await db.from('community_members').insert({community_id:community.id,user_id:currentUser.id,role:'member'});if(result.error){join.disabled=false;return showToast(result.error.message);}showToast('Joined '+community.name+'!');loadCommunities();};item.appendChild(join);
+        }
         if(community.owner_id===currentUser.id){
-          const role=document.createElement('small');role.className='muted';role.style.display='block';role.style.marginTop='8px';role.textContent='You own this community.';item.appendChild(role);
-          const manage=document.createElement('button');manage.className='follow';manage.style.marginTop='8px';manage.textContent='Manage moderators';
+          const role=document.createElement('small');role.className='muted';role.style.display='block';role.style.marginTop='8px';role.textContent='You own this server.';item.appendChild(role);
+          const manage=document.createElement('button');manage.className='secondary';manage.style.marginTop='8px';manage.textContent='Manage moderators';
           manage.onclick=async()=>{const username=prompt('Enter the username to promote to moderator (without @):');if(!username)return;const {data:person,error:personError}=await db.from('profiles').select('id,username').eq('username',username.trim().replace(/^@/,'').toLowerCase()).maybeSingle();if(personError||!person)return showToast('That username was not found.');let result=await db.from('community_members').update({role:'moderator'}).eq('community_id',community.id).eq('user_id',person.id).select('user_id').maybeSingle();if(result.error)return showToast(result.error.message);if(!result.data){result=await db.from('community_members').insert({community_id:community.id,user_id:person.id,role:'moderator'});if(result.error)return showToast(result.error.message);}showToast('@'+person.username+' is now a moderator.');};
           item.appendChild(manage);
         }
-        list.appendChild(item);
+        grid.appendChild(item);
       });
     }
 
