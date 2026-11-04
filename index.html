@@ -3941,7 +3941,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       if(tab!=='Messages'){activeConversationId=null;if(messageChannel){db.removeChannel(messageChannel);messageChannel=null;}}
       if (tab==='Nook Jobs') return loadNookJobs();
       if (tab==='Marketplace') { nookMarketView='browse';return loadNookMarketplace(); }
-      if (tab==='Nook Tournaments') { nookMarketView='tournaments';return loadNookMarketplace(); }
+      if (tab==='Nook Tournaments') return renderNookTournaments();
       if (tab==='Nook Teammates') return loadNookTeammates();
       if (tab==='Game Coaching') { window.dispatchEvent(new Event('nook-open-coaching')); return; }
       if (tab==='Clan Tryouts') { window.dispatchEvent(new Event('nook-open-clan-tryouts')); return; }
