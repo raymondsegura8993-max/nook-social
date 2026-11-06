@@ -4063,8 +4063,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     function setMarketTab(view){
       nookMarketView=view;
       document.querySelectorAll('.market-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.marketView===view));
-      if(view==='tournaments')return renderNookTournaments();
-      if(view==='brands')return renderNookBrands();
+       if(view==='brands')return renderNookBrands();
       renderNookMarketplace();
     }
     async function renderNookBrands(){
@@ -4102,15 +4101,14 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
     }
     async function loadNookMarketplace(){
       document.body.classList.remove('jobs-mode');
-      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Address &amp; Delivery Disclaimer</strong>Buyers and sellers may need to exchange delivery information, arrange package deliveries, or organize an in-person meetup. Nook is not responsible if someone misuses your address or other personal information. If you choose to share your address or arrange a meetup, you do so at your own risk. Nook cannot guarantee your safety or take responsibility for incidents resulting from sharing personal information or meeting other users. Please use caution before sharing your information.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button><button data-market-view="saved">♡ Saved</button><button data-market-view="brands">🏷 Promote a brand</button><button data-market-view="tournaments">🏆 Nook Tournaments</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
+      feed.innerHTML='<div class="market-shell"><div class="market-hero"><div><h2>Buy and sell with the Nook community.</h2><p>Discover items and contact sellers directly. Buyers and sellers arrange everything themselves.</p></div><button class="primary" id="marketPostTop">＋ Sell an item</button></div><div class="market-warning"><strong>⚠ Nook Marketplace Address &amp; Delivery Disclaimer</strong>Buyers and sellers may need to exchange delivery information, arrange package deliveries, or organize an in-person meetup. Nook is not responsible if someone misuses your address or other personal information. If you choose to share your address or arrange a meetup, you do so at your own risk. Nook cannot guarantee your safety or take responsibility for incidents resulting from sharing personal information or meeting other users. Please use caution before sharing your information.</div><div class="market-tabs"><button class="active" data-market-view="browse">Browse items</button><button data-market-view="mine">My listings</button><button data-market-view="saved">♡ Saved</button><button data-market-view="brands">🏷 Promote a brand</button></div><div id="marketViewContent"><div class="market-empty">Loading listings…</div></div></div>';
       feed.querySelectorAll('[data-market-view]').forEach(b=>b.addEventListener('click',()=>setMarketTab(b.dataset.marketView)));
       document.getElementById('marketPostTop')?.addEventListener('click',showNookMarketForm);
       await renderNookMarketplace();
     }
     async function renderNookMarketplace(){
       const target=document.getElementById('marketViewContent');if(!target)return;
-      if(nookMarketView==='tournaments')return renderNookTournaments();
-      if(!currentUser){target.innerHTML='<div class="market-empty"><strong>Sign in to use Nook Marketplace</strong><br>Sign in to contact sellers or list an item.</div>';return;}
+       if(!currentUser){target.innerHTML='<div class="market-empty"><strong>Sign in to use Nook Marketplace</strong><br>Sign in to contact sellers or list an item.</div>';return;}
       let items=[],error=null;
       if(nookMarketView==='saved'){
         const saved=await db.from('nook_marketplace_saved').select('listing_id').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(200);
@@ -4183,7 +4181,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       nookTournamentView='browse';return renderNookTournaments();
     }
     async function renderNookTournaments(){
-      const target=document.getElementById('marketViewContent')||feed;if(!target)return;
+      const target=feed;if(!target)return;
       if(!currentUser){target.innerHTML='<div class="market-empty"><strong>Sign in to use Nook Tournaments</strong><br>Sign in to browse schedules, host a tournament, or message a host.</div>';return;}
       target.innerHTML='<div class="tournament-shell"><div class="tournament-hero"><div><h3>🏆 Nook Tournament Manager</h3><p>Host organized competitions, register players, build brackets, and record match results.</p></div><button class="primary" id="tournamentCreateTop">＋ Schedule tournament</button></div><div class="market-tabs"><button class="'+(nookTournamentView==='browse'?'active':'')+'" data-tournament-view="browse">Discover tournaments</button><button class="'+(nookTournamentView==='mine'?'active':'')+'" data-tournament-view="mine">Host dashboard</button></div><div id="tournamentList" class="tournament-grid"><div class="tournament-empty">Loading tournaments…</div></div></div>';
       target.querySelector('#tournamentCreateTop').onclick=showNookTournamentForm;
