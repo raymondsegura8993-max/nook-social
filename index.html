@@ -4368,7 +4368,7 @@ $('#linkBtn').onclick=()=>{openComposer();showToast('You can include a web link 
       feed.querySelectorAll('[data-job-action]').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.addEventListener('click',async()=>{
         const id=b.dataset.id,action=b.dataset.jobAction;
         if(action==='apply')return showNookJobApply(id);
-        if(action==='toggle'){const job=nookJobsCache.find(j=>j.id===id);if(!job)return;const {error}=await db.from('nook_jobs').update({status:job.status==='open'?'closed':'open',updated_at:new Date().toISOString()}).eq('id',id);if(error)showToast(error.message);else{showToast('Job listing updated.');await renderNookJobsView();}return;}
+        if(action==='toggle'){const job=nookJobsCache.find(j=>j.id===id);if(!job)return;const closing=job.status==='open';const now=new Date().toISOString();const {error}=await db.from('nook_jobs').update({status:closing?'closed':'open',closed_at:closing?now:null,updated_at:now}).eq('id',id);if(error)showToast(error.message);else{showToast('Job listing updated.');await renderNookJobsView();}return;}
         if(action==='apps')return loadNookJobApplicants(id);
       });});
     }
