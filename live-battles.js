@@ -291,19 +291,9 @@
     const id=currentBattleWatch;
     const root=byId('nookLiveBattleContent');if(root)await renderLiveBattleContent();
   }
-  const originalLoadLive=loadLive;
-  loadLive=async function(){
-    await stopBattleWatch();
-    await originalLoadLive();
-    const panel=box('🔴 Nook LIVE Battles','Compete with 2–5 people while everyone is LIVE. Free likes decide the winner.');panel.id='nookLiveBattlePanel';panel.hidden=!(await getOwnLive());
-    const open=btn('Show Battle Controls','primary',async()=>{
-      open.disabled=true;open.textContent='Loading…';
-      const area=mk('div','nook-battle-wrap');area.id='nookLiveBattleContent';panel.append(area);
-      await renderLiveBattleContent();subscribeBattleUpdates();open.remove();
-    });
-    panel.append(open);feed.append(panel);
-  };
+  // Export the battles screen without trying to overwrite the main app's
+  // private loadLive() function from this separate script.
   window.openNookLiveBattles=loadNookLiveBattles;
-  loadNookBattles=loadNookLiveBattles;
+  window.loadNookBattles=loadNookLiveBattles;
   window.addEventListener('beforeunload',()=>{battleRooms.forEach(r=>r.disconnect());Object.values(battleTimers).forEach(clearInterval);});
 })();
